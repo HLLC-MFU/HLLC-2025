@@ -7,20 +7,24 @@ import {
   Delete,
   UseGuards,
   Query,
+  Req,
 } from '@nestjs/common';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { CreatePretestAnswerDto } from '../dto/pretest-answer/create-pretest-answer.dto';
 import { PretestAnswersService } from '../service/pretest-answers.service';
+import { UserRequest } from 'src/pkg/types/users';
 
 @UseGuards(PermissionsGuard)
 @Controller('pretest-answers')
 export class PretestAnswersController {
-  constructor(private readonly pretestAnswersService: PretestAnswersService) {}
+  constructor(private readonly pretestAnswersService: PretestAnswersService) { }
 
   @Post()
-  create(@Body() createPreTestAnswerDto: CreatePretestAnswerDto) {
-    return this.pretestAnswersService.create(createPreTestAnswerDto);
+  create(@Req() req: UserRequest) {
+    const dto = req.body as CreatePretestAnswerDto
+    dto.user = req.user._id.toString();
+    return this.pretestAnswersService.create(dto);
   }
 
   @Get()
@@ -41,5 +45,11 @@ export class PretestAnswersController {
   @Get('/all/average')
   getAverageAll() {
     return this.pretestAnswersService.averageAllPretests();
+  }
+
+  @Get('user')
+  async findByUser(@Req() req: UserRequest) {
+    const userId = req.user._id.toString();
+    return this.pretestAnswersService.findByUserId(userId);
   }
 }

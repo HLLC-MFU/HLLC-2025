@@ -6,31 +6,18 @@ import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import useProfile from '@/hooks/useProfile';
 import { Dimensions } from 'react-native';
+import { Lang } from '@/types/lang';
+import type {
+  Marker,
+  MapApiResponse,
+  LandmarkApiItem,
+  LandmarkApiResponse,
+  CoinCollectionLandmark,
+  CoinCollectionApiItem,
+  CoinCollectionApiResponse,
+} from '@/types/coin-hunting';
 
 const screen = Dimensions.get('window');
-
-const markers = [
-  {
-    x: 600,
-    y: 1100,
-    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
-    description:
-      'ใต้ถุนอาคาร E2 ประกอบด้วยร้านอาหาร 8 ร้าน ร้านอาหารว่างและเครื่องดื่ม 3 ร้าน เปิดบริการตั้งแต่เวลา 07.00 - 18.00 น.ทุกวัน ด้วยความจุ 350 ที่นั่ง สามารถรองรับผู้ใช้บริการได้กว่า 1,500 คนต่อวัน',
-    mapsUrl: 'https://maps.app.goo.gl/FUoQPiJTsr6rQHAQA?g_st=ipc',
-  },
-  {
-    x: 900,
-    y: 400,
-    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
-    description:
-      'ใต้ถุนอาคาร E2 ประกอบด้วยร้านอาหาร 8 ร้าน ร้านอาหารว่างและเครื่องดื่ม 3 ร้าน เปิดบริการตั้งแต่เวลา 07.00 - 18.00 น.ทุกวัน ด้วยความจุ 350 ที่นั่ง สามารถรองรับผู้ใช้บริการได้กว่า 1,500 คนต่อวัน',
-    mapsUrl: 'https://maps.app.goo.gl/FUoQPiJTsr6rQHAQA?g_st=ipc',
-  },
-];
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(value, max));
-}
 
 type ModalType = null | 'scanner' | 'success' | 'alert' | 'stamp' | 'marker-detail';
 
@@ -59,6 +46,15 @@ export default function useCoinHunting() {
     collectedCoinImages: [] as (string | undefined)[],
   });
 
+  // เพิ่ม state สำหรับ markers, collectedIds, loading, error
+  const [markers, setMarkers] = useState<Marker[]>([]);
+  const [collectedIds, setCollectedIds] = useState<string[]>([]);
+  const [loadingMarkers, setLoadingMarkers] = useState(true);
+  const [errorMarkers, setErrorMarkers] = useState<string | null>(null);
+
+  // สำหรับ refresh markers/collectedIds
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const [permission, requestPermission] = useCameraPermissions();
   const router = useRouter();
   const { user } = useProfile();
@@ -67,8 +63,8 @@ export default function useCoinHunting() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await apiRequest<any>('/maps');
-        const maps = res.data?.data || [];
+        const res = await apiRequest<MapApiResponse>('/maps');
+        const maps = Array.isArray(res.data?.data) ? res.data.data : [];
         if (maps.length > 0) {
           const url = `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${maps[0].map}`;
           Image.getSize(
@@ -98,16 +94,64 @@ export default function useCoinHunting() {
     })();
   }, []);
 
+  // Fetch markers & collectedIds
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoadingMarkers(true);
+      setErrorMarkers(null);
+      try {
+        const [landmarksRes, collectionsRes] = await Promise.all([
+          apiRequest<LandmarkApiResponse>('/landmarks?page=1&limit=30'),
+          apiRequest<CoinCollectionApiResponse>('/coin-collections/my-coin'),
+        ]);
+        if (landmarksRes.data && Array.isArray(landmarksRes.data.data)) {
+          const mapped = landmarksRes.data.data.map((item: LandmarkApiItem) => ({
+            x: item.mapCoordinates?.x ?? 0,
+            y: item.mapCoordinates?.y ?? 0,
+            image: item.hintImage
+              ? `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${item.hintImage}`
+              : '',
+            description: {
+              th: item.hint?.th || '',
+              en: item.hint?.en || '',
+            },
+            mapsUrl: item.location?.mapUrl || '',
+            _id: item._id,
+            coinImage: item.coinImage,
+          }));
+          if (mounted) {
+            setMarkers(mapped);
+          }
+        } else {
+          if (mounted) setErrorMarkers('No data');
+        }
+        // Extract collected landmark ids
+        if (collectionsRes.data && Array.isArray(collectionsRes.data.data)) {
+          const allLandmarks = collectionsRes.data.data.flatMap((c: CoinCollectionApiItem) => c.landmarks || []);
+          const ids = allLandmarks.map((l: CoinCollectionLandmark) => l.landmark?._id).filter(Boolean) as string[];
+          if (mounted) setCollectedIds(ids);
+        }
+      } catch (e: any) {
+        if (mounted) setErrorMarkers(e.message || 'Error fetching landmarks');
+      } finally {
+        if (mounted) setLoadingMarkers(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [refreshKey]);
+
   // Fetch stamp count and coin images when open stamp modal
   useEffect(() => {
     if (state.modal === 'stamp') {
       const fetchStamps = async () => {
         try {
-          const res = await apiRequest('/coin-collections') as { data?: { data?: { landmarks?: any[] }[] } };
-          const landmarks = res?.data?.data?.[0]?.landmarks || [];
-          const NUM_SLOTS = 14;
+          const res = await apiRequest<CoinCollectionApiResponse>('/coin-collections/my-coin');
+          const dataArr = Array.isArray(res?.data?.data) ? res.data.data : [];
+          const landmarks = dataArr[0]?.landmarks || [];
+          const NUM_SLOTS = 21;
           const imagesByOrder: (string | undefined)[] = Array(NUM_SLOTS).fill(undefined);
-          landmarks.forEach((l: any) => {
+          landmarks.forEach((l: CoinCollectionLandmark) => {
             const order = l.landmark?.order;
             if (order && order >= 1 && order <= NUM_SLOTS && l.landmark?.coinImage) {
               imagesByOrder[order - 1] = `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${l.landmark.coinImage}`;
@@ -133,6 +177,7 @@ export default function useCoinHunting() {
 
   const handleScannerSuccess = (evoucherData?: { code: string } | null) => {
     setState(s => ({ ...s, evoucher: evoucherData || null, modal: 'success' }));
+    setRefreshKey(k => k + 1); // trigger refresh markers
   };
 
   const handleGoToStamp = () => {
@@ -149,6 +194,11 @@ export default function useCoinHunting() {
   const setScanning = (scanning: boolean) => {
     setUiState(s => ({ ...s, scanning }));
   };
+
+  // clamp function ต้องอยู่ใน scope
+  function clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(value, max));
+  }
 
   return {
     // map image
@@ -169,6 +219,9 @@ export default function useCoinHunting() {
     router,
     user,
     markers,
+    collectedIds,
+    loadingMarkers,
+    errorMarkers,
     clamp,
     collectedCoinImages: uiState.collectedCoinImages,
     // handlers

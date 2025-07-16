@@ -1,0 +1,26 @@
+{
+  "coinHunting": {
+    "guardianCrystals": "14 Guardian Crystals",
+    "specialRewards": "Special Rewards"
+  },
+  "qrcode": {
+    "scanError": "An error occurred while scanning",
+    "invalidQR": "This QR code is not from HLLC or is invalid",
+    "noUser": "User information not found",
+    "noGeolocation": "Browser does not support geolocation",
+    "allowLocation": "Please allow location access to check in",
+    "locationError": "Unable to retrieve location",
+    "invalidPayload": "QR code payload is invalid",
+    "checkinFailed": "Check in failed",
+    "success": "Success",
+    "scanFailed": "Scan failed: {{error}}",
+    "showTab": "Show QR Code",
+    "scanTab": "Scan QR Code",
+    "yourName": "Your Name",
+    "studentId": "Student ID",
+    "showBeforeJoin": "Please show your QR Code before joining the activity.",
+    "notFound": "QR not found or camera issue",
+    "result": "Result",
+    "pleaseScan": "Please scan QR Code"
+  }
+} 

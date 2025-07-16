@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
-import { TutorialModal } from './TutorialModal';
+
 import { BlurView } from 'expo-blur';
 import { GlassButton } from '@/components/ui/GlassButton';
+import TutorialModal from './TutorialModal';
 
-export function MediaCard() {
+export default function MediaCard() {
   const [isModalVisible, setModalVisible] = useState(false);
   const { lamduanSetting } = useLamduanFlowers();
   const latestSetting = lamduanSetting?.[0];

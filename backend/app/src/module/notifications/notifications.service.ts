@@ -19,7 +19,6 @@ import {
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { SseService } from '../sse/sse.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
-import { ReadNotificationDto } from './dto/read-notification.dto';
 import { UserRequest } from 'src/pkg/types/users';
 import { PushNotificationService } from './push-notifications.service';
 import { mapScopeToReceivers } from './utils/notification.util';
@@ -73,7 +72,8 @@ export class NotificationsService {
         scope,
       });
 
-      this.sseService.notify({
+      //refator to specific notification scope
+      this.sseService.broadcast({
         type: 'REFETCH_NOTIFICATIONS',
       });
     }
@@ -116,25 +116,25 @@ export class NotificationsService {
    * @returns Updated NotificationRead document.
    * @throws NotFoundException if the user or notification **does not exist**.
    */
-  async markNotification(dto: ReadNotificationDto, read: boolean) {
-    const userExists = await this.userModel.exists({ _id: dto.userId });
+  async markNotification(userReq: UserRequest['user'], notificationId: string, read: boolean) {
+    const userExists = await this.userModel.exists({ _id: userReq._id });
     if (!userExists) throw new NotFoundException('User not found');
 
     const notificationsExists = await this.notificationModel.exists({
-      _id: dto.notificationId,
+      _id: notificationId,
     });
     if (!notificationsExists)
       throw new NotFoundException('Notification not found');
 
-    const filter = { userId: new Types.ObjectId(dto.userId) };
+    const filter = { userId: new Types.ObjectId(userReq._id) };
     const update = read
       ? {
           $addToSet: {
-            readNotifications: new Types.ObjectId(dto.notificationId),
+            readNotifications: new Types.ObjectId(notificationId),
           },
         }
       : {
-          $pull: { readNotifications: new Types.ObjectId(dto.notificationId) },
+          $pull: { readNotifications: new Types.ObjectId(notificationId) },
         };
 
     const options = read ? { upsert: true } : undefined;

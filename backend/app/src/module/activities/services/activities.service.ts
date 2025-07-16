@@ -12,7 +12,11 @@ import { UserDocument } from '../../users/schemas/user.schema';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
 import { UpdateActivityDto } from '../dto/activities/update-activities.dto';
 import { Activities, ActivityDocument } from '../schemas/activities.schema';
-import { isUserInScope, parseScope, parseStringArray } from '../utils/scope.util';
+import {
+  isUserInScope,
+  parseScope,
+  parseStringArray,
+} from '../utils/scope.util';
 import { Checkin } from 'src/module/checkin/schema/checkin.schema';
 import { RoleDocument } from 'src/module/role/schemas/role.schema';
 import { AssessmentsService } from 'src/module/assessments/service/assessments.service';
@@ -25,6 +29,7 @@ import {
   AssessmentAnswer,
   AssessmentAnswerDocument,
 } from 'src/module/assessments/schema/assessment-answer.schema';
+import { Major, MajorDocument } from 'src/module/majors/schemas/major.schema';
 
 @Injectable()
 export class ActivitiesService {
@@ -41,6 +46,8 @@ export class ActivitiesService {
     private readonly assessmentModel: Model<AssessmentDocument>,
     @InjectModel(AssessmentAnswer.name)
     private assessmentAnswersModel: Model<AssessmentAnswerDocument>,
+    @InjectModel(Major.name)
+    private majorsModel: Model<MajorDocument>,
     private readonly assessmentsService: AssessmentsService,
   ) {}
 
@@ -137,11 +144,36 @@ export class ActivitiesService {
     }
 
     const currentDate = new Date();
-    const major = userDoc.role?.metadata?.canCheckin?.major ?? [];
-    const school = userDoc.role?.metadata?.canCheckin?.school ?? [];
-    const user = userDoc.role?.metadata?.canCheckin?.user ?? [];
+    const roleMajor = userDoc.role?.metadata?.canCheckin?.major ?? [];
+    const roleSchool = userDoc.role?.metadata?.canCheckin?.school ?? [];
+    const roleUser = userDoc.role?.metadata?.canCheckin?.user ?? [];
 
-    if (user.includes('*')) {
+    const userMajorId = userDoc.metadata?.major;
+
+    let userMajorSchoolId: string | undefined;
+
+    if (userMajorId) {
+      const majorDoc = await this.majorsModel
+        .findById(userMajorId)
+        .populate('school')
+        .lean();
+
+      if (majorDoc && majorDoc.school && majorDoc.school._id) {
+        userMajorSchoolId = majorDoc.school._id.toString();
+      }
+    }
+
+    const effectiveSchools = [
+      ...roleSchool,
+      ...(userMajorSchoolId ? [userMajorSchoolId] : []),
+    ];
+
+    const effectiveMajors = [
+      ...roleMajor,
+      ...(userMajorId ? [userMajorId] : []),
+    ];
+
+    if (roleUser.includes('*')) {
       const activities = await this.activitiesModel
         .find({ 'metadata.isOpen': true, 'metadata.isVisible': true })
         .populate('type')
@@ -166,9 +198,17 @@ export class ActivitiesService {
       'metadata.checkinStartAt': { $lte: currentDate },
       'metadata.endAt': { $gte: currentDate },
       $or: [
-        { 'metadata.scope.user': { $in: user.length ? user : [] } },
-        { 'metadata.scope.major': { $in: major.length ? major : [] } },
-        { 'metadata.scope.school': { $in: school.length ? school : [] } },
+        { 'metadata.scope.user': { $in: roleUser.length ? roleUser : [] } },
+        {
+          'metadata.scope.major': {
+            $in: effectiveMajors.length ? effectiveMajors : [],
+          },
+        },
+        {
+          'metadata.scope.school': {
+            $in: effectiveSchools.length ? effectiveSchools : [],
+          },
+        },
       ],
     };
 
@@ -183,7 +223,7 @@ export class ActivitiesService {
       ...result,
       meta: {
         ...result.meta,
-        lastUpdatedAt: new Date().toISOString(), // <-- add this line
+        lastUpdatedAt: new Date().toISOString(),
       },
       message: 'Fetched activities successfully',
     };
@@ -239,6 +279,10 @@ export class ActivitiesService {
     const mapped = await Promise.all(
       result.data
         .filter((activity) => isUserInScope(user, activity as ActivityDocument))
+        .filter((activity) => {
+          const meta = activity.metadata;
+          return meta.isVisible !== false;
+        })
         .map(async (activity) => {
           const meta = activity.metadata;
           const activityDoc = activity as ActivityDocument;
@@ -373,7 +417,9 @@ export class ActivitiesService {
   }
 
   async findAllIsProgressCountActivities() {
-    return this.activitiesModel.find({ 'metadata.isProgressCount': true }).lean();
+    return this.activitiesModel
+      .find({ 'metadata.isProgressCount': true })
+      .lean();
   }
 
   // progress activities by user
@@ -389,15 +435,16 @@ export class ActivitiesService {
     }
 
     // ดึงทั้งหมดที่ isProgressCount
-    const allActivities = await this.activitiesModel.find({
-      'metadata.isProgressCount': true,
-      'metadata.isOpen': true,
-      'metadata.isVisible': true,
-    }).lean();
+    const allActivities = await this.activitiesModel
+      .find({
+        'metadata.isProgressCount': true,
+        'metadata.isOpen': true,
+      })
+      .lean();
 
     // กรองตาม scope
-    const scopedActivities = allActivities.filter(activity =>
-      isUserInScope(user.data[0] as UserDocument, activity as ActivityDocument)
+    const scopedActivities = allActivities.filter((activity) =>
+      isUserInScope(user.data[0] as UserDocument, activity as ActivityDocument),
     );
 
     // นับว่าทำ Assessment แล้วกี่อัน
@@ -405,7 +452,7 @@ export class ActivitiesService {
 
     for (const activity of scopedActivities) {
       const assessments = await this.assessmentsService.findAllByActivity(
-        String(activity._id)
+        String(activity._id),
       );
 
       let hasAnswered = false;
@@ -427,9 +474,10 @@ export class ActivitiesService {
       if (hasAnswered) answeredCount++;
     }
 
-    const percentage = scopedActivities.length > 0
-      ? (answeredCount / scopedActivities.length) * 100
-      : 0;
+    const percentage =
+      scopedActivities.length > 0
+        ? (answeredCount / scopedActivities.length) * 100
+        : 0;
 
     return {
       userProgressCount: answeredCount,

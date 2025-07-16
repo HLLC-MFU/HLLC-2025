@@ -3,16 +3,18 @@ import { View, Text, StyleSheet, Alert, Linking, Modal, Pressable } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassButton } from '@/components/ui/GlassButton';
 import { router } from 'expo-router';
-import { Globe, Trash, Info, ShieldCheck } from 'lucide-react-native';
+import { Globe, Trash, Info, ShieldCheck, LogOut } from 'lucide-react-native';
 import useProfile from '@/hooks/useProfile';
 import { apiRequest } from '@/utils/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { Trans } from 'react-i18next';
 import GlassConfirmModal from '@/components/evoucher/GlassConfirmModal';
+import useAuth from '@/hooks/useAuth';
 
 export default function SettingsScreen() {
   const { user } = useProfile();
+  const { signOut } = useAuth();
 
   const { language, changeLanguage } = useLanguage();
   const { t } = useTranslation();
@@ -75,7 +77,11 @@ export default function SettingsScreen() {
             <Text style={{ color: 'white' }}>{t('settings.privacy')}</Text>
           </View>
         </GlassButton>
-        <GlassButton onPress={router.back}>
+        <GlassButton onPress={signOut}>
+          <LogOut color="white" size={20} style={styles.icon} />
+          <Text style={{ color: 'white' }}>{t('settings.logout')}</Text>
+        </GlassButton>
+        <GlassButton onPress={() => router.back()}>
           <Text style={{ color: 'white' }}>{t('settings.back')}</Text>
         </GlassButton>
       </View>

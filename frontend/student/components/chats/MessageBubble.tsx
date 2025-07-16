@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useMemo, useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ActionSheetIOS, Platform, Alert, TouchableWithoutFeedback, Pressable } from 'react-native';
 import Avatar from './Avatar';
 import { Reply } from 'lucide-react-native';
@@ -37,21 +37,76 @@ const MessageBubble = memo(({
   const [previewImageUrl, setPreviewImageUrl] = useState('');
   const [claiming, setClaiming] = useState<{ [id: string]: boolean }>({});
   const [claimed, setClaimed] = useState<{ [id: string]: boolean }>({});
+
+  // Reset modal state when it closes
+  const handleCloseImagePreview = useCallback(() => {
+    setShowImagePreview(false);
+    // Small delay to ensure modal is fully closed before resetting URL
+    setTimeout(() => {
+      setPreviewImageUrl('');
+    }, 100);
+  }, []);
+
+  const handleOpenImagePreview = useCallback((imageUrl: string) => {
+    setPreviewImageUrl(imageUrl);
+    setShowImagePreview(true);
+  }, []);
+
+  // Cleanup state when component unmounts
+  useEffect(() => {
+    return () => {
+      setShowImagePreview(false);
+      setPreviewImageUrl('');
+    };
+  }, []);
+
+  // Handler for long press (unsend)
+  const handleLongPress = useCallback(() => {
+    // Use Boolean(message.isDeleted) for deleted state
+    const isDeleted = Boolean((message as any).isDeleted);
+    // Allow unsend for all message types (text, image, sticker, file, etc.)
+    if (isMyMessage && !isDeleted && onUnsend) {
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: ['Cancel', 'Unsend'],
+            destructiveButtonIndex: 1,
+            cancelButtonIndex: 0,
+          },
+          (buttonIndex) => {
+            if (buttonIndex === 1) {
+              onUnsend(message);
+            }
+          }
+        );
+      } else {
+        Alert.alert(
+          'Unsend Message',
+          'Do you want to unsend this message?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Unsend', style: 'destructive', onPress: () => onUnsend(message) },
+          ]
+        );
+      }
+    }
+  }, [isMyMessage, message, onUnsend]);
+
   const { user } = useProfile();
-  const userId = user?.data?.[0]?._id;
+  const userId = useMemo(() => user?.data?.[0]?._id, [user]);
   const { t } = useTranslation();
-  const statusElement = isMyMessage && (
+  const statusElement = useMemo(() => isMyMessage && (
     <View style={styles.messageStatus}>
       <Text style={styles.messageStatusText}>
         {isRead ? 'อ่านแล้ว' : 'ส่งแล้ว'}
       </Text>
     </View>
-  );
+  ), [isMyMessage, isRead]);
 
   // Language detection (simple):
-  const lang = (typeof navigator !== 'undefined' && navigator.language?.startsWith('en')) ? 'en' : 'th';
+  const lang = useMemo(() => (typeof navigator !== 'undefined' && navigator.language?.startsWith('en')) ? 'en' : 'th', []);
 
-  const getStickerImageUrl = (imagePath: string) => {
+  const getStickerImageUrl = useCallback((imagePath: string) => {
     // If imagePath is already a full URL, return it
     if (imagePath.startsWith('http')) {
       return imagePath;
@@ -59,16 +114,16 @@ const MessageBubble = memo(({
     // Otherwise, construct the full URL using CHAT_BASE_URL to avoid Authorization header
     const fullUrl = `${API_BASE_URL}/uploads/${imagePath}`;
     return fullUrl;
-  };
+  }, []);
 
-  const getMessageTextStyle = () => {
+  const getMessageTextStyle = useCallback(() => {
     return [
       styles.messageText,
       !isMyMessage && { color: '#222' }, // ข้อความคนอื่นเป็นสีดำ
     ];
-  };
+  }, [isMyMessage]);
 
-  const renderWithMentions = (text: string, currentUsername: string) => {
+  const renderWithMentions = useCallback((text: string, currentUsername: string) => {
     if (!text) return null;
     const regex = /(@\w+)/g;
     const parts = text.split(regex);
@@ -85,9 +140,9 @@ const MessageBubble = memo(({
       }
       return <Text key={i}>{part}</Text>;
     });
-  };
+  }, []);
 
-  const renderContent = () => {
+  const renderContent = useCallback(() => {
     // Check for evoucher type
     if (message.type === 'evoucher' && message.evoucherInfo) {
       const isClaimed = claimed[message.id ?? ''] || false;
@@ -105,8 +160,7 @@ const MessageBubble = memo(({
                 const imgUrl = sponsorImg.startsWith('http')
                   ? sponsorImg
                   : `${IMAGE_BASE_URL}/uploads/${sponsorImg}`;
-                setPreviewImageUrl(imgUrl);
-                setShowImagePreview(true);
+                handleOpenImagePreview(imgUrl);
               }}
               style={{ alignItems: 'center', marginBottom: 8 }}
             >
@@ -184,8 +238,7 @@ const MessageBubble = memo(({
       return (
         <Pressable
           onPress={() => {
-            setPreviewImageUrl(imageUrl);
-            setShowImagePreview(true);
+            handleOpenImagePreview(imageUrl);
           }}
           onLongPress={handleLongPress}
           delayLongPress={350}
@@ -210,8 +263,7 @@ const MessageBubble = memo(({
           <Pressable
             onPress={() => {
               if (message.fileUrl) {
-                setPreviewImageUrl(message.fileUrl);
-                setShowImagePreview(true);
+                handleOpenImagePreview(message.fileUrl);
               }
             }}
             onLongPress={handleLongPress}
@@ -238,7 +290,7 @@ const MessageBubble = memo(({
     }
 
     return <Text style={getMessageTextStyle()}>{renderWithMentions(message.text || '', currentUsername)}</Text>;
-  };
+  }, [message, claimed, claiming, lang, handleOpenImagePreview, handleLongPress, userId, t, currentUsername, getStickerImageUrl, getMessageTextStyle, renderWithMentions]);
   
   const enrichedReplyTo = useMemo(() => {
     const replyTo = message.replyTo || undefined;
@@ -259,14 +311,14 @@ const MessageBubble = memo(({
       return { ...replyTo, notFound: true };
     }
     return replyTo;
-  }, [message.replyTo?.id, message.replyTo?.text, allMessages]);
+  }, [message.replyTo?.id, message.replyTo?.text, allMessages, message.replyTo]);
 
-  const getDisplayName = (user?: { name?: { first?: string; last?: string } }) => {
+  const getDisplayName = useCallback((user?: { name?: { first?: string; last?: string } }) => {
     if (!user || !user.name) return '';
     return `${user.name.first || ''} ${user.name.last || ''}`.trim();
-  };
+  }, []);
 
-  const renderReplyPreview = () => {
+  const renderReplyPreview = useCallback(() => {
     if (!enrichedReplyTo) return null;
     return (
       <TouchableOpacity
@@ -288,8 +340,7 @@ const MessageBubble = memo(({
             <TouchableOpacity 
               onPress={() => {
                 if (enrichedReplyTo.image) {
-                  setPreviewImageUrl(enrichedReplyTo.image);
-                  setShowImagePreview(true);
+                  handleOpenImagePreview(enrichedReplyTo.image);
                 }
               }}
             >
@@ -300,8 +351,7 @@ const MessageBubble = memo(({
             <TouchableOpacity 
               onPress={() => {
                 if (enrichedReplyTo.image) {
-                  setPreviewImageUrl(enrichedReplyTo.image);
-                  setShowImagePreview(true);
+                  handleOpenImagePreview(enrichedReplyTo.image);
                 }
               }}
             >
@@ -322,39 +372,7 @@ const MessageBubble = memo(({
         </View>
       </TouchableOpacity>
     );
-  };
-
-  // Handler for long press (unsend)
-  const handleLongPress = () => {
-    // Use Boolean(message.isDeleted) for deleted state
-    const isDeleted = Boolean((message as any).isDeleted);
-    // Allow unsend for all message types (text, image, sticker, file, etc.)
-    if (isMyMessage && !isDeleted && onUnsend) {
-      if (Platform.OS === 'ios') {
-        ActionSheetIOS.showActionSheetWithOptions(
-          {
-            options: ['Cancel', 'Unsend'],
-            destructiveButtonIndex: 1,
-            cancelButtonIndex: 0,
-          },
-          (buttonIndex) => {
-            if (buttonIndex === 1) {
-              onUnsend(message);
-            }
-          }
-        );
-      } else {
-        Alert.alert(
-          'Unsend Message',
-          'Do you want to unsend this message?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Unsend', style: 'destructive', onPress: () => onUnsend(message) },
-          ]
-        );
-      }
-    }
-  };
+  }, [enrichedReplyTo, isMyMessage, message, onReplyPreviewClick, handleOpenImagePreview, currentUsername, getDisplayName, enrichedReplyTo]);
 
   return (
     <TouchableWithoutFeedback onLongPress={handleLongPress} delayLongPress={350}>
@@ -393,11 +411,14 @@ const MessageBubble = memo(({
           </View>
         )}
         {/* Image Preview Modal */}
-        <ImagePreviewModal
-          visible={showImagePreview}
-          imageUrl={previewImageUrl}
-          onClose={() => setShowImagePreview(false)}
-        />
+        {useMemo(() => (
+          <ImagePreviewModal
+            key={previewImageUrl} // Force re-render when imageUrl changes
+            visible={showImagePreview}
+            imageUrl={previewImageUrl}
+            onClose={handleCloseImagePreview}
+          />
+        ), [showImagePreview, previewImageUrl, handleCloseImagePreview])}
       </View>
     </TouchableWithoutFeedback>
   );

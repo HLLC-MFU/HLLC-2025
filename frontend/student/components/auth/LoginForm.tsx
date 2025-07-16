@@ -7,6 +7,8 @@ import { useLanguage } from '@/context/LanguageContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trans } from 'react-i18next';
 import { User, Lock, EyeClosed, Eye } from '@tamagui/lucide-icons';
+import RegisterButton from './RegisterButton';
+import ForgotPasswordPressable from './ForgotPasswordPressable';
 
 interface LoginFormProps {
   username: string;
@@ -84,18 +86,22 @@ export const LoginForm = ({
           </XStack>
 
         </YStack>
-
-        <Text width={'100%'} textAlign="right" onPress={onForgotPassword}>
+        {/* <Text width={'100%'} textAlign="right" onPress={onForgotPassword}>
           {t("login.forgotPassword")}
-        </Text>
+        </Text> */}
+
+        <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end' }}>
+          <ForgotPasswordPressable />
+        </View>
 
         <View style={{ width: '100%', flexDirection: 'row', gap: 10 }}>
-          <Button flex={1} onPress={onRegister}>{t("login.register")}</Button>
+          {/* <Button flex={1} onPress={onRegister}>{t("login.register")}</Button> */}
+          <RegisterButton />
           <Button flex={1} onPress={onLogin}>{t("login.loginButton")}</Button>
         </View>
 
-        <View style={{ backgroundColor: '#00000025', height: 1, width: '100%' }} />
-        <Button  width={'100%'} onPress={() => Linking.openURL('https://www.facebook.com/mfuactivities/')}>
+        <View style={{ backgroundColor: '#00000025', height: 1, width: '100%', marginTop: 24 }} />
+        <Button width={'100%'} onPress={() => Linking.openURL('https://www.facebook.com/mfuactivities/')}>
           {t("login.contactUs")}
         </Button>
 

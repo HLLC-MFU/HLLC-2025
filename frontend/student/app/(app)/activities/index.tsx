@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "expo-router"
-import { ScrollView, SafeAreaView, RefreshControl } from "react-native"  // <-- added RefreshControl
+import {
+  ScrollView,
+  SafeAreaView,
+  RefreshControl,
+} from "react-native"
 import {
   Text,
   H4,
@@ -9,14 +13,13 @@ import {
   Spinner,
   XStack,
   YStack,
-} from "tamagui" 
+} from "tamagui"
 
 import { apiRequest } from "@/utils/api"
 import { useActivityStore } from "@/stores/activityStore"
 import { UserActivity } from "@/types/activities"
 import { BlurView } from "expo-blur"
 import FadeView from "@/components/ui/FadeView"
-import UpcomingActivityCard from "./_components/upcoming-activity-card"
 import ActivityCard from "./_components/activity-card"
 import { useTranslation } from "react-i18next"
 import { SearchInput } from "@/components/global/SearchInput"
@@ -24,11 +27,13 @@ import { SearchInput } from "@/components/global/SearchInput"
 export default function ActivitiesPage() {
   const router = useRouter()
   const { t } = useTranslation()
+
   const [activities, setActivities] = useState<UserActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
 
+  // Fetch activities on mount and refresh
   useEffect(() => {
     fetchActivities()
   }, [])
@@ -41,9 +46,7 @@ export default function ActivitiesPage() {
           data?: UserActivity[]
         } | null
       }
-
       const response: ApiResponse = await apiRequest("/activities/user", "GET")
-      console.log("Fetched activities response:", response)
       const apiData = response.data && Array.isArray(response.data.data) ? response.data.data : []
       setActivities(apiData)
     } catch (error) {
@@ -60,73 +63,90 @@ export default function ActivitiesPage() {
     fetchActivities()
   }
 
-  const filteredActivities = activities.filter((activity) => {
-    const name = activity.name?.en ?? ""
-    const location = activity.location?.en ?? ""
-    return (
-      name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      location.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  })
-
-  const now = Date.now()
-  const upcomingActivity = activities
-    .filter((a) => {
-      const endAt = new Date(a.metadata?.endAt).getTime()
-      return !isNaN(endAt) && endAt > now
+  // Filter activities by search query
+  const filteredActivities = activities
+    .filter((activity) => {
+      const name = activity.name?.en ?? ""
+      const location = activity.location?.en ?? ""
+      const query = searchQuery.toLowerCase()
+      return (
+        name.toLowerCase().includes(query) ||
+        location.toLowerCase().includes(query)
+      )
     })
-    .sort((a, b) =>
-      new Date(a.metadata.startAt).getTime() -
-      new Date(b.metadata.startAt).getTime()
-    )[0] ?? null
+    .sort((a, b) => {
+      const aStart = new Date(a.metadata?.startAt).getTime()
+      const bStart = new Date(b.metadata?.startAt).getTime()
+      return aStart - bStart
+    })
+
+  // Find the nearest upcoming activity (end date in the future)
+  const now = Date.now()
+  const upcomingActivity =
+    activities
+      .filter((a) => {
+        const endAt = new Date(a.metadata?.endAt).getTime()
+        return !isNaN(endAt) && endAt > now
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.metadata.startAt).getTime() - new Date(b.metadata.startAt).getTime()
+      )[0] ?? null
+
+  // Navigate to activity details and store selected activity
+  const handleActivityPress = (activity: UserActivity) => {
+    useActivityStore.getState().setSelectedActivity(activity)
+    router.push(`/activities/${activity._id}`)
+  }
 
   return (
     <FadeView>
       <SafeAreaView style={{ flex: 1 }}>
         <YStack padding="$4" gap="$4" flex={1}>
-          <Text fontWeight="bold" fontSize={34} color={"white"}>
+          {/* Page Title */}
+          <Text fontWeight="bold" fontSize={34} color="white">
             {t("activity.title")}
           </Text>
 
+          {/* Search Bar */}
           <SearchInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder={t('activity.searchPlaceholder')}
+            placeholder={t("activity.searchPlaceholder")}
           />
 
+          {/* Loading Spinner */}
           {loading && !refreshing ? (
             <YStack flex={1} justifyContent="center" alignItems="center">
               <Spinner size="large" />
               <Paragraph marginTop="$2">Loading activities...</Paragraph>
             </YStack>
           ) : (
+            // Activities List with Pull-to-Refresh
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 20 }}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
+              {/* Upcoming Activity Section */}
               {upcomingActivity && (
                 <>
                   <YStack gap="$3" marginBottom="$5">
-                    <H4 fontWeight="bold" color={"white"}>
+                    <H4 fontWeight="bold" color="white">
                       {t("activity.upcoming")}
                     </H4>
-                    <UpcomingActivityCard
+                    <ActivityCard
                       activity={upcomingActivity}
-                      onPress={() => {
-                        useActivityStore.getState().setSelectedActivity(upcomingActivity)
-                        router.push(`/activities/${upcomingActivity._id}`)
-                      }}
+                      onPress={() => handleActivityPress(upcomingActivity)}
                     />
                   </YStack>
                   <Separator marginVertical="$2" />
                 </>
               )}
 
+              {/* All Activities Section */}
               <YStack gap="$3" marginBottom="$10">
-                <Text fontWeight="bold" color={"white"} fontSize={28}>
+                <Text fontWeight="bold" fontSize={28} color="white">
                   {t("activity.allActivities")}
                 </Text>
                 <XStack flexWrap="wrap" justifyContent="space-between">
@@ -135,10 +155,7 @@ export default function ActivitiesPage() {
                       <ActivityCard
                         key={activity._id}
                         activity={activity}
-                        onPress={() => {
-                          useActivityStore.getState().setSelectedActivity(activity)
-                          router.push(`/activities/${activity._id}`)
-                        }}
+                        onPress={() => handleActivityPress(activity)}
                       />
                     ))
                   ) : (
@@ -148,7 +165,7 @@ export default function ActivitiesPage() {
                       tint="dark"
                     >
                       <Paragraph textAlign="center" color="#ffffff80">
-                        No activities found
+                        {t("activity.noActivitiesFound") || "No activities found"}
                       </Paragraph>
                     </BlurView>
                   )}

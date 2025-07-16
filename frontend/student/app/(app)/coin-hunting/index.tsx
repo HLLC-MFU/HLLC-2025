@@ -17,12 +17,15 @@ export default function CoinHuntingScreen() {
     selectedMarker,
     evoucher,
     alertType,
-    stampCount,
+    stampCount,           
     handleMarkerPress,
     handleCheckIn,
     handleGoToStamp,
     closeModal,
     markers,
+    collectedIds,
+    loadingMarkers,
+    errorMarkers,
     collectedCoinImages,
     handleScannerSuccess,
     handleAlert,
@@ -54,7 +57,13 @@ export default function CoinHuntingScreen() {
         centerText="Bloom possible"
       />
       <InteractiveMap>
-        <MapMarkers onMarkerPress={handleMarkerPress} refreshKey={refreshKey} />
+        <MapMarkers
+          markers={markers}
+          collectedIds={collectedIds}
+          loading={loadingMarkers}
+          error={errorMarkers}
+          onMarkerPress={handleMarkerPress}
+        />
       </InteractiveMap>
       <MarkerDetailModal
         visible={modal === 'marker-detail'}
@@ -81,6 +90,11 @@ export default function CoinHuntingScreen() {
         stamps={stampCount}
         onGetReward={() => {}}
         coinImages={collectedCoinImages}
+        coinRotations={[
+          90, 140, 190, 240, 295, 345, 40, // รอบนอก
+          120, 165, 220, 270, 325, 15, 65 // รอบใน
+        ]}
+        coinSizes={[ 85, 85, 85 , 90, 90, 85, 85, 85, 85, 90, 85, 90, 88, 85]}
       />
     </GestureHandlerRootView>
   );

@@ -1,9 +1,11 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { Input } from '@heroui/react';
+import { Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-import ActivitiesList from './_components/ActivitiesList';
-import { ActivitiesFilters } from './_components/ActivitiesFilters';
-import UpcomingCard from './_components/UpcomingCard';
+import ActivityCard from './_components/ActivitiesCard';
+import ActivityCardSkeleton from './_components/ActivityCardSkeleton';
 
 import { useActivities } from '@/hooks/useActivities';
 
@@ -12,6 +14,7 @@ export default function ActivitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const router = useRouter();
 
   const filteredAndSortedActivities = useMemo(() => {
     if (!activities) return [];
@@ -49,7 +52,23 @@ export default function ActivitiesPage() {
     if (!activities || activities.length === 0) return null;
 
     const now = new Date();
-    const futureActivities = activities
+
+    // Filter by search query first, same as filteredAndSortedActivities logic
+    let filtered = activities;
+
+    if (searchQuery.trim() !== '') {
+      const lower = searchQuery.toLowerCase();
+
+      filtered = activities.filter(
+        a =>
+          a.name?.en?.toLowerCase().includes(lower) ||
+          a.name?.th?.toLowerCase().includes(lower) ||
+          a.acronym?.toLowerCase().includes(lower),
+      );
+    }
+
+    // Then filter to future activities only
+    const futureActivities = filtered
       .filter(a => new Date(a.metadata?.startAt) > now)
       .sort(
         (a, b) =>
@@ -58,43 +77,53 @@ export default function ActivitiesPage() {
       );
 
     return futureActivities[0] ?? null;
-  }, [activities]);
-
-  const toggleSortDirection = () => {
-    setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
-  };
+  }, [activities, searchQuery]);
 
   return (
-    <div className="flex-col min-h-screen">
-      <div className="sticky top-0 z-20 mb-5 bg-white/5 backdrop-blur dark:bg-black/30 rounded-lg flex flex-col gap-5">
-        <h1 className="text-2xl font-bold">Activities</h1>
-        <ActivitiesFilters
-          searchQuery={searchQuery}
-          sortBy={sortBy}
-          sortDirection={sortDirection}
-          onSearchQueryChange={setSearchQuery}
-          onSortByChange={setSortBy}
-          onSortDirectionToggle={toggleSortDirection}
+    <div className="w-full gap-6 bg-transparent">
+      {/* Search Input */}
+      <div className="mb-6">
+        <Input
+          aria-label="Search activities"
+          className="w-full max-w-md "
+          placeholder="Search activities..."
+          radius="full"
+          size="lg"
+          startContent={<Search className="text-default-500" size={20} />}
+          type="search"
+          value={searchQuery}
+          variant="faded"
+          onChange={e => setSearchQuery(e.target.value)}
         />
-        {/* Upcoming Activities */}
-        <div>
-          {upcomingActivity && <UpcomingCard activity={upcomingActivity} />}
-        </div>
-        <h1 className="p-1 ml-2">
-          <span className="text-xl font-semibold">All Activities</span>
-          {filteredAndSortedActivities.length > 0 && (
-            <span className="text-sm text-default-500 ml-2">
-              ({filteredAndSortedActivities.length} found)
-            </span>
-          )}
-        </h1>
       </div>
-      <ActivitiesList
-        activities={filteredAndSortedActivities}
-        isLoading={loading}
-      />
 
-      {filteredAndSortedActivities?.length === 0 && !loading && (
+      <div className="flex flex-col gap-5">
+        {upcomingActivity && !loading && (
+          <div>
+            <ActivityCard
+              activity={upcomingActivity}
+              onClick={() => router.push(`/activities/${upcomingActivity._id}`)}
+            />
+          </div>
+        )}
+        {loading && <ActivityCardSkeleton />}
+      </div>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-auto">
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <ActivityCardSkeleton key={i} />
+            ))
+          : filteredAndSortedActivities.map(activity => (
+              <ActivityCard
+                key={activity._id}
+                activity={activity}
+                onClick={() => router.push(`/activities/${activity._id}`)}
+              />
+            ))}
+      </div>
+
+      {!loading && filteredAndSortedActivities?.length === 0 && (
         <p className="text-center text-sm text-default-500">
           No activities found.
         </p>

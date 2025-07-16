@@ -10,6 +10,7 @@ import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { decryptItem } from '../auth/utils/crypto';
+import { SseService } from '../sse/sse.service';
 
 @Injectable()
 export class CheckinService {
@@ -20,6 +21,7 @@ export class CheckinService {
     @InjectModel(Activities.name) private activityModel: Model<ActivityDocument>,
     @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
     private readonly notificationsService: NotificationsService,
+    private readonly sseService: SseService,
   ) { }
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
@@ -29,49 +31,71 @@ export class CheckinService {
       throw new BadRequestException('Invalid username');
     }
 
-    const userDoc = await this.userModel.findOne({ username }).select('_id');
-    if (!userDoc) {
-      throw new BadRequestException('User not found');
-    }
+    // หา user ที่จะถูกเช็คอิน
+    const userDoc = await this.userModel
+      .findOne({ username })
+      .select('_id role')
+      .populate<{ role: RoleDocument }>('role');
+    if (!userDoc) throw new BadRequestException('User not found');
 
     const userObjectId = userDoc._id;
-    const staffObjectId = staffId ? new Types.ObjectId(staffId) : undefined;
+
+    if (!userDoc.role || !userDoc.role.name) {
+      throw new BadRequestException('Target user role not found');
+    }
+    const targetRole = userDoc.role.name.trim().toUpperCase();
+
+    // staff ผู้เช็คอิน (คนยิง)
+    if (!staffId) {
+      throw new BadRequestException('Staff ID is required');
+    }
+
+    // เช็ค staffId ว่าถูกต้องก่อนแปลง
+    if (!Types.ObjectId.isValid(staffId)) {
+      throw new BadRequestException('Invalid staff ID');
+    }
+    const staffObjectId = new Types.ObjectId(staffId);
+
+    const staffDoc = await this.userModel
+      .findById(staffObjectId)
+      .select('role')
+      .populate<{ role: RoleDocument }>('role');
+    if (!staffDoc || !staffDoc.role || !staffDoc.role.name) {
+      throw new BadRequestException('Staff role not found');
+    }
+    const staffRole = staffDoc.role.name.trim().toUpperCase();
+
+    // เช็ก policy ตามที่กำหนด
+    if (staffRole === 'ADMINISTRATOR') {
+      // admin ทำได้ทุกกรณี
+    } else if (staffRole === 'STAFF') {
+      if (targetRole === 'ADMINISTRATOR') {
+        throw new BadRequestException('STAFF cannot check-in Administrator');
+      }
+    } else if (staffRole.startsWith('SMO')) {
+      if (
+        targetRole === 'ADMINISTRATOR' ||
+        targetRole === 'STAFF' ||
+        targetRole.startsWith('SMO')
+      ) {
+        throw new BadRequestException('SMO cannot check-in Administrator, STAFF or SMO');
+      }
+    } else {
+      // Fresher หรือ role อื่น ๆ ห้ามเช็คอินใครเลย
+      throw new BadRequestException('You are not allowed to check-in other users');
+    }
 
     if (!Array.isArray(activities) || activities.length === 0) {
       throw new BadRequestException('Activities must be a non-empty array');
     }
 
-    let isAdmin = false;
-
-    if (staffObjectId) {
-      const staffDoc = await this.userModel
-        .findById(staffId)
-        .populate({
-          path: 'role',
-          select: 'permissions',
-          model: this.roleModel,
-        })
-        .lean<{ role?: { permissions?: string[] } }>();
-
-      isAdmin = hasAdminPermission(staffDoc?.role?.permissions);
-    } else {
-      const userDocWithRole = await this.userModel
-        .findById(userObjectId)
-        .populate({
-          path: 'role',
-          select: 'permissions',
-          model: this.roleModel,
-        })
-        .lean<{ role?: { permissions?: string[] } }>();
-
-      isAdmin = hasAdminPermission(userDocWithRole?.role?.permissions);
-    }
-
+    // ตรวจสอบเวลาที่อนุญาตเช็คอิน
+    const isAdmin = staffRole === 'ADMINISTRATOR';
     await validateCheckinTime(activities, this.activityModel, isAdmin);
-    const activityObjectIds = activities.map(
-      (id) => new Types.ObjectId(`${id}`),
-    );
 
+    const activityObjectIds = activities.map((id) => new Types.ObjectId(id));
+
+    // เช็คว่า user คนนี้เช็คอินไปแล้วหรือยัง
     const existing = await this.checkinModel
       .find({
         user: userObjectId,
@@ -80,25 +104,21 @@ export class CheckinService {
       .lean();
 
     const alreadyChecked = new Set(existing.map((e) => e.activity.toString()));
-    const filtered = activityObjectIds.filter(
-      (id) => !alreadyChecked.has(id.toString()),
-    );
+    const filtered = activityObjectIds.filter((id) => !alreadyChecked.has(id.toString()));
 
     if (filtered.length === 0) {
-      throw new BadRequestException(
-        'User already checked in to all activities',
-      );
+      throw new BadRequestException('User already checked in to all activities');
     }
 
     const docs = filtered.map((activityId) => ({
       user: userObjectId,
       activity: activityId,
-      ...(staffObjectId && { staff: staffObjectId }),
+      staff: staffObjectId,
     }));
 
-    const checkIn = (await this.checkinModel.insertMany(docs)) as unknown as Checkin[];
+    const checkIn = (await this.checkinModel.insertMany(docs)) as Checkin[];
     if (!checkIn) {
-      throw new BadRequestException('Not found User to Notification');
+      throw new BadRequestException('Failed to create check-in records');
     }
 
     const activityDocs = await this.activityModel
@@ -115,11 +135,7 @@ export class CheckinService {
       .filter(Boolean)
       .join(', ');
 
-    const activitiesImage = activityDocs.find(
-      (a) => a.photo?.bannerPhoto,
-    )?.photo?.bannerPhoto;
-
-    console.log(activitiesImage);
+    const activitiesImage = activityDocs.find((a) => a.photo?.bannerPhoto)?.photo?.bannerPhoto;
 
     await this.notificationsService.create({
       title: {
@@ -142,6 +158,16 @@ export class CheckinService {
           id: [userObjectId.toString()],
         },
       ],
+    });
+
+    this.sseService.sendToUser(userDoc._id.toString() ,{
+      type: 'CHECKED_IN',
+      data: {
+        userId: userDoc._id,
+        staffId: staffId,
+        activityIds: activities,
+        activityNames: activityNamesEn,
+      }
     });
 
     return checkIn;
