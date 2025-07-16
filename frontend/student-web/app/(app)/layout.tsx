@@ -46,7 +46,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const shouldBlur = pathname !== '/';
 
   const hideProgressSummary =
-    pathname === '/community' || pathname.startsWith('/community/coin-hunting');
+    pathname.match(/^\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (chat/[id])
+
+  // ซ่อน BottomNav เฉพาะหน้าแชทห้อง
+  const hideBottomNav = pathname.match(/^\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (chat/[id])
 
   return (
     <div className="relative h-dvh w-full overflow-hidden pb-24">
@@ -82,9 +85,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* BottomNav เฉพาะไม่ใช่หน้าแชท */}
+        {!hideBottomNav && (
           <div className="fixed bottom-0 left-0 right-0 z-50 mx-4 pb-4 h-20">
             <BottomNav />
           </div>
+        )}
       </div>
     </div>
   );
