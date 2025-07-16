@@ -40,28 +40,28 @@ type (
 )
 
 func isEmptyKafkaMessage(value []byte) bool {
-	if len(value) == 0 {
-		return true
-	}
-	// ตัวอย่างตรวจสอบว่าเป็น JSON object ที่ empty หรือมี fields ว่าง
 	var data map[string]interface{}
 	if err := json.Unmarshal(value, &data); err != nil {
-		// ถ้าแปลง json ไม่ได้ถือว่าไม่ empty เพราะไม่ใช่ json ที่เข้าใจได้
 		return false
 	}
-	// ตรวจสอบ key-fields ที่คุณสนใจ เช่น message, stickerID, fileName เป็นต้น
-	if msg, ok := data["Message"].(string); ok && msg != "" {
-		return false
+
+	// ดึง payload.message.message ออกมาตรวจสอบ
+	payload, ok := data["payload"].(map[string]interface{})
+	if !ok {
+		return true // ไม่มี payload ถือว่า empty
 	}
-	if sticker, ok := data["StickerID"].(string); ok && sticker != "" {
-		return false
+
+	msgObj, ok := payload["message"].(map[string]interface{})
+	if !ok {
+		return true // ไม่มี message ใน payload ถือว่า empty
 	}
-	if fileName, ok := data["FileName"].(string); ok && fileName != "" {
-		return false
+
+	// ตรวจสอบ field message ใน payload.message
+	if msg, ok := msgObj["message"].(string); ok && msg != "" {
+		return false // มีข้อความ ไม่ empty
 	}
-	// ถ้าคุณมี fields อื่นๆ เช่น EvoucherInfo, MentionInfo, ModerationInfo ก็ตามตรวจสอบได้
-	// แต่ถ้าไม่มีข้อมูลเลยถือว่า empty
-	return true
+
+	return true // ข้อความว่างหรือไม่มี
 }
 
 // สร้าง bus
