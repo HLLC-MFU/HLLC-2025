@@ -18,6 +18,15 @@ const (
     EventTypeEvoucher   = "evoucher"
     EventTypeUnsendMessage = "unsend_message" // **NEW: Unsend message event**
 	EventTypeRestriction = "restriction"
+
+	// Restriction
+	EventTypeRestrictionMute = "restriction_mute"
+	EventTypeRestrictionUnmute = "restriction_unmute"
+	EventTypeRestrictionBan = "restriction_ban"
+	EventTypeRestrictionUnban = "restriction_unban"
+	EventTypeRestrictionKick = "restriction_kick"
+
+
     EventTypePresence     = "presence"
     EventTypeUpload       = "upload"
 )

@@ -181,7 +181,9 @@ func (ns *NotificationService) createAndSendNotification(ctx context.Context, re
 		payload = ns.createReplyNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
 		
 	case chatModel.MessageTypeRestriction:
-		payload = ns.createRestrictionNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
+		// Determine specific restriction type from message content
+		restrictionType := ns.determineRestrictionType(message)
+		payload = ns.createSpecificRestrictionNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID, restrictionType)
 		
 	case chatModel.MessageTypeUnsend:
 		payload = ns.createUnsendNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
@@ -274,9 +276,55 @@ func (ns *NotificationService) createReplyNotification(room chatModel.Notificati
 	}, receiverID)
 }
 
-// createRestrictionNotification creates a restriction notification
-func (ns *NotificationService) createRestrictionNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string) chatModel.NotificationPayload {
+// createRestrictionNotification creates a restriction notification (legacy)
+func (ns *NotificationService) createRestrictionNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string, restrictionType string) chatModel.NotificationPayload {
+	// Set the specific restriction type in the message
+	message.Type = restrictionType
 	return chatModel.NewRestrictionNotification(room, sender, message, receiverID)
+}
+
+// createSpecificRestrictionNotification creates a specific restriction notification based on type
+func (ns *NotificationService) createSpecificRestrictionNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string, restrictionType string) chatModel.NotificationPayload {
+	// Set the specific restriction type in the message
+	message.Type = restrictionType
+	
+	// Create specific notification based on restriction type
+	switch restrictionType {
+	case chatModel.MessageTypeRestrictionBan:
+		return chatModel.NewRestrictionBanNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionUnban:
+		return chatModel.NewRestrictionUnbanNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionMute:
+		return chatModel.NewRestrictionMuteNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionUnmute:
+		return chatModel.NewRestrictionUnmuteNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionKick:
+		return chatModel.NewRestrictionKickNotification(room, sender, message, receiverID)
+	default:
+		// Fallback to generic restriction notification
+		return chatModel.NewRestrictionNotification(room, sender, message, receiverID)
+	}
+}
+
+// determineRestrictionType determines the specific restriction type from message content
+func (ns *NotificationService) determineRestrictionType(message *model.ChatMessage) string {
+	// Check message content to determine restriction type
+	msgContent := strings.ToLower(message.Message)
+	
+	if strings.Contains(msgContent, "banned") {
+		return chatModel.MessageTypeRestrictionBan
+	} else if strings.Contains(msgContent, "unbanned") {
+		return chatModel.MessageTypeRestrictionUnban
+	} else if strings.Contains(msgContent, "muted") {
+		return chatModel.MessageTypeRestrictionMute
+	} else if strings.Contains(msgContent, "unmuted") {
+		return chatModel.MessageTypeRestrictionUnmute
+	} else if strings.Contains(msgContent, "kicked") {
+		return chatModel.MessageTypeRestrictionKick
+	}
+	
+	// Default fallback
+	return chatModel.MessageTypeRestriction
 }
 
 // createUnsendNotification creates an unsend notification with custom message

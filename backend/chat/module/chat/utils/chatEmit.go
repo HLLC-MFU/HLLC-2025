@@ -710,7 +710,7 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s Action=%s", 
 		restriction.ID.Hex(), restriction.RoomID.Hex(), action)
 
-	//Create sender info
+	// Create sender info
 	senderInfo := model.UserInfo{
 		ID: sender.ID.Hex(),
 		Username: sender.Username,
@@ -721,7 +721,7 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 		},
 	}
 
-	//Create restriction info
+	// Create restriction info
 	restrictionInfo := model.RestrictionInfo{
 		ID: restriction.ID.Hex(),
 		RoomID: restriction.RoomID.Hex(),
@@ -736,17 +736,41 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 		roomInfo = model.RoomInfo{ID: restriction.RoomID.Hex()}
 	}
 
-	//Create message info (use msg.ID, msg.Timestamp, msg.Message)
 	messageInfo := model.MessageInfo{
 		ID: msg.ID.Hex(),
-		Type: action, // Use the specific action type directly
-		Message: msg.Message,
 		Timestamp: msg.Timestamp,
 	}
 
-	// Create Structured Restriction notice event
+	// Handle different actions using a switch and determine specific event type
+	var eventType string
+	switch action {
+	case "ban":
+		eventType = model.EventTypeRestrictionBan
+		messageInfo.Type = "ban"
+		messageInfo.Message = fmt.Sprintf("User %s was banned for %s", sender.Username, restriction.Reason)
+	case "unban":
+		eventType = model.EventTypeRestrictionUnban
+		messageInfo.Type = "unban"
+		messageInfo.Message = fmt.Sprintf("User %s was unbanned", sender.Username)
+	case "mute":
+		eventType = model.EventTypeRestrictionMute
+		messageInfo.Type = "mute"
+		messageInfo.Message = fmt.Sprintf("User %s was muted for %s", sender.Username, restriction.Reason)
+	case "unmute":
+		eventType = model.EventTypeRestrictionUnmute
+		messageInfo.Type = "unmute"
+		messageInfo.Message = fmt.Sprintf("User %s was unmuted", sender.Username)
+	case "kick":
+		eventType = model.EventTypeRestrictionKick
+		messageInfo.Type = "kick"
+		messageInfo.Message = fmt.Sprintf("User %s was kicked out of the room for %s", sender.Username, restriction.Reason)
+	default:
+		return fmt.Errorf("unknown action: %s", action)
+	}
+
+	// Create Structured Restriction notice event with specific event type
 	restrictionEvent := model.Event{
-		Type: model.EventTypeRestriction,
+		Type: eventType,
 		Payload: map[string]interface{}{
 			"room": e.buildRoomPayload(roomInfo),
 			"user": map[string]interface{}{
@@ -779,6 +803,7 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 	log.Printf("[Kafka] Successfully published restriction notice to topic %s", roomTopic)
 	return nil
 }
+
 
 // EmitEvent emits a custom event
 func (e *ChatEventEmitter) EmitEvent(ctx context.Context, msg *model.ChatMessage, event interface{}) error {

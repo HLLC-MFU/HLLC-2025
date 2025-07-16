@@ -17,6 +17,13 @@ const (
 	MessageTypeRestriction = "restriction"
 	MessageTypeUpload      = "upload"
 	MessageTypeReaction    = "reaction"
+	
+	// Specific Restriction Types
+	MessageTypeRestrictionBan    = "restriction_ban"
+	MessageTypeRestrictionUnban  = "restriction_unban"
+	MessageTypeRestrictionMute   = "restriction_mute"
+	MessageTypeRestrictionUnmute = "restriction_unmute"
+	MessageTypeRestrictionKick   = "restriction_kick"
 )
 
 type NotificationPayload struct {
@@ -186,6 +193,72 @@ func NewRestrictionNotification(room NotificationRoom, sender NotificationSender
 	
 	return NotificationPayload{
 		Type:      MessageTypeRestriction,
+		Room:      room,
+		Sender:    sender,
+		Message:   message,
+		Receiver:  receiver,
+		Timestamp: message.Timestamp,
+	}
+}
+
+// Specific restriction notification constructors
+func NewRestrictionBanNotification(room NotificationRoom, sender NotificationSender, message NotificationMessage, receiver string) NotificationPayload {
+	message.Type = MessageTypeRestrictionBan
+	
+	return NotificationPayload{
+		Type:      MessageTypeRestrictionBan,
+		Room:      room,
+		Sender:    sender,
+		Message:   message,
+		Receiver:  receiver,
+		Timestamp: message.Timestamp,
+	}
+}
+
+func NewRestrictionUnbanNotification(room NotificationRoom, sender NotificationSender, message NotificationMessage, receiver string) NotificationPayload {
+	message.Type = MessageTypeRestrictionUnban
+	
+	return NotificationPayload{
+		Type:      MessageTypeRestrictionUnban,
+		Room:      room,
+		Sender:    sender,
+		Message:   message,
+		Receiver:  receiver,
+		Timestamp: message.Timestamp,
+	}
+}
+
+func NewRestrictionMuteNotification(room NotificationRoom, sender NotificationSender, message NotificationMessage, receiver string) NotificationPayload {
+	message.Type = MessageTypeRestrictionMute
+	
+	return NotificationPayload{
+		Type:      MessageTypeRestrictionMute,
+		Room:      room,
+		Sender:    sender,
+		Message:   message,
+		Receiver:  receiver,
+		Timestamp: message.Timestamp,
+	}
+}
+
+func NewRestrictionUnmuteNotification(room NotificationRoom, sender NotificationSender, message NotificationMessage, receiver string) NotificationPayload {
+	message.Type = MessageTypeRestrictionUnmute
+	
+	return NotificationPayload{
+		Type:      MessageTypeRestrictionUnmute,
+		Room:      room,
+		Sender:    sender,
+		Message:   message,
+		Receiver:  receiver,
+		Timestamp: message.Timestamp,
+	}
+}
+
+func NewRestrictionKickNotification(room NotificationRoom, sender NotificationSender, message NotificationMessage, receiver string) NotificationPayload {
+	message.Type = MessageTypeRestrictionKick
+	
+	return NotificationPayload{
+		Type:      MessageTypeRestrictionKick,
 		Room:      room,
 		Sender:    sender,
 		Message:   message,

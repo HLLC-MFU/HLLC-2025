@@ -155,6 +155,10 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 		} else if msg.ChatMessage.EvoucherInfo != nil {
 			eventType = model.EventTypeEvoucher
 			messageType = model.MessageTypeEvoucher
+		} else if msg.ChatMessage.ModerationInfo != nil {
+			// Determine specific restriction type from message content
+			eventType = h.determineRestrictionEventType(msg.ChatMessage.Message)
+			messageType = model.MessageTypeRestriction
 		} else if msg.ChatMessage.Image != "" {
 			eventType = "upload"
 			messageType = "upload"
@@ -278,6 +282,27 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 	}
 	
 	log.Printf("[WebSocket] ✅ Successfully sent %d/%d history messages to client for room %s", messagesSent, len(reversedMessages), roomID)
+}
+
+// determineRestrictionEventType determines the specific restriction event type from message content
+func (h *WebSocketHandler) determineRestrictionEventType(messageContent string) string {
+	// Check message content to determine restriction type
+	msgContent := strings.ToLower(messageContent)
+	
+	if strings.Contains(msgContent, "banned") {
+		return model.EventTypeRestrictionBan
+	} else if strings.Contains(msgContent, "unbanned") {
+		return model.EventTypeRestrictionUnban
+	} else if strings.Contains(msgContent, "muted") {
+		return model.EventTypeRestrictionMute
+	} else if strings.Contains(msgContent, "unmuted") {
+		return model.EventTypeRestrictionUnmute
+	} else if strings.Contains(msgContent, "kicked") {
+		return model.EventTypeRestrictionKick
+	}
+	
+	// Default fallback
+	return model.EventTypeRestriction
 }
 
 func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
