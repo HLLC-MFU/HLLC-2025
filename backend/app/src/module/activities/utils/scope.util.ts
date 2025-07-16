@@ -118,6 +118,15 @@ export function isUserInScope(
         ).school?._id?.toString()
       : undefined;
 
+  const isEmptyScope =
+    (!scope.user || scope.user.length === 0) &&
+    (!scope.major || scope.major.length === 0) &&
+    (!scope.school || scope.school.length === 0);
+
+  if (isEmptyScope) {
+    return true;
+  }
+
   const isInUserScope = scope.user?.some((id) => {
     if (typeof id === 'string' || id instanceof Types.ObjectId) {
       return id.toString() === userId;

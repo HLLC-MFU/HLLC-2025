@@ -28,6 +28,7 @@ export default function CoinHuntingPageInner() {
     collectedCoinImages,
     handleScannerSuccess,
     handleAlert,
+    cooldownMs,
   } = useCoinHunting();
 
   const router = useRouter();
@@ -45,6 +46,13 @@ export default function CoinHuntingPageInner() {
     const modalParam = searchParams.get('modal');
     const code = searchParams.get('code');
     const type = searchParams.get('type');
+    const msRaw = searchParams.get('remainingCooldownMs');
+    let ms: number | undefined = undefined;
+    if (msRaw && !isNaN(Number(msRaw)) && Number(msRaw) > 0) {
+      ms = Number(msRaw);
+    }
+    if (type === 'cooldown') {
+    }
 
     const allowedTypes = ['already-collected', 'no-evoucher', 'too-far', 'cooldown'] as const;
     if (modalParam === 'success') {
@@ -56,7 +64,11 @@ export default function CoinHuntingPageInner() {
       type &&
       allowedTypes.includes(type as typeof allowedTypes[number])
     ) {
-      handleAlert(type as typeof allowedTypes[number]);
+      if (type === 'cooldown') {
+        handleAlert(type as typeof allowedTypes[number], ms);
+      } else {
+        handleAlert(type as typeof allowedTypes[number]);
+      }
       setHandledQuery(true);
       router.replace('/community/coin-hunting');
     }
@@ -74,6 +86,19 @@ export default function CoinHuntingPageInner() {
     router.replace('/community/coin-hunting');
   };
 
+  // กำหนด initialCenter ให้อยู่ตรงกลางจอ (center pan)
+  // ขนาดภาพ map: 6000x2469, initialScale: 0.5 (จาก InteractiveMap)
+  const imageWidth = 6000;
+  const imageHeight = 2469;
+  const initialScale = 0.5;
+  const screenW = typeof window !== 'undefined' ? window.innerWidth : 1920;
+  const screenH = typeof window !== 'undefined' ? window.innerHeight : 1080;
+  // คำนวณให้ภาพอยู่ตรงกลางจอ
+  const initialCenter = {
+    x: (screenW - imageWidth * initialScale) / 2,
+    y: (screenH - imageHeight * initialScale) / 2,
+  };
+
   return (
     <div style={{ flex: 1, height: '100vh', backgroundColor: 'transparent' }}>
       <TopBar
@@ -81,7 +106,7 @@ export default function CoinHuntingPageInner() {
         onStamp={handleGoToStampModal}
         centerText="Bloom possible"
       />
-      <InteractiveMap>
+      <InteractiveMap initialCenter={initialCenter}>
         <MapMarkers
           markers={markers}
           collectedIds={collectedIds}
@@ -95,6 +120,7 @@ export default function CoinHuntingPageInner() {
         marker={selectedMarker}
         onClose={closeModal}
         onCheckIn={handleCheckIn}
+        isCheckedIn={!!(selectedMarker && collectedIds.includes(selectedMarker._id))}
       />
       <CombinedModal
         visible={modal === 'success'}
@@ -108,6 +134,7 @@ export default function CoinHuntingPageInner() {
         type="alert"
         onClose={handleCloseModal}
         alertType={alertType as any}
+        remainingCooldownMs={cooldownMs ?? undefined}
       />
       <StampModal
         visible={modal === 'stamp'}

@@ -143,7 +143,7 @@ export default function QrCodeClient() {
         } else if (res.statusCode === 403 || (res.message && res.message.toLowerCase().includes('too far'))) {
           router.push('/community/coin-hunting?modal=alert&type=too-far');
         } else if (res.statusCode === 429 || (res.message && res.message.toLowerCase().includes('cooldown'))) {
-          router.push('/community/coin-hunting?modal=alert&type=cooldown');
+          router.push(`/community/coin-hunting?modal=alert&type=cooldown&remainingCooldownMs=${res?.data?.remainingCooldownMs ?? 0}`);
         } else {
           showErrorAlert(res.message || t('qrcode.checkinFailed'));
         }

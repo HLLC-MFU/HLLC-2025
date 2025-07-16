@@ -153,8 +153,8 @@ export default function StampModal({
 
   // Helper to get translated title
   const getTitle = () => {
-    if (currentPage === 0) return i18n.t('guardianCrystals', { lng: language });
-    if (currentPage === 1) return i18n.t('specialRewards', { lng: language });
+    if (currentPage === 0) return i18n.t('coinHunting.guardianCrystals', { lng: language });
+    if (currentPage === 1) return i18n.t('coinHunting.specialRewards', { lng: language });
     return '';
   };
 
