@@ -1,4 +1,3 @@
-import { getToken } from '@/utils/storage';
 import { WS_BASE_URL } from '../../configs/chats/chatConfig';
 
 export class WebSocketManager {
@@ -60,29 +59,20 @@ export class WebSocketManager {
    * Create a new WebSocket connection
    */
   private static async createConnection(roomId: string): Promise<WebSocket> {
-    const token = await getToken('accessToken');
-    if (!token) {
-      throw new Error('No access token found');
-    }
-
-    const wsUrl = `${WS_BASE_URL}/chat/ws/${roomId}?token=${token}`;
-
+    // Remove token logic, just use wsUrl without token
+    const wsUrl = `${WS_BASE_URL}/chat/ws/${roomId}`;
     return new Promise<WebSocket>((resolve, reject) => {
       const socket = new WebSocket(wsUrl);
-
       socket.onopen = () => {
         resolve(socket);
       };
-
       socket.onerror = (error) => {
         console.error('WebSocket connection error:', error);
         reject(error);
       };
-
       socket.onclose = () => {
         this.connections.delete(roomId);
       };
-
       // Set a timeout for the connection
       setTimeout(() => {
         if (socket.readyState !== WebSocket.OPEN) {

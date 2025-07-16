@@ -1,3 +1,5 @@
+'use client';
+
 import { useCallback, useRef, Dispatch, SetStateAction } from 'react';
 
 export interface ConnectionState {

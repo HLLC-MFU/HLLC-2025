@@ -10,6 +10,8 @@ export function onMessage(event: MessageEvent, args: any) {
   const { state, addMessage, userId } = args;
   try {
     const data = JSON.parse(event.data);
+    console.log('[WebSocket] Received message:', data);
+    
     // กรณี backend ส่ง type: 'message' (ไม่มี eventType) - รวมทั้ง history messages
     if (data.type === 'message' && data.payload && data.payload.message) {
       const msg = data.payload.message;
@@ -24,6 +26,7 @@ export function onMessage(event: MessageEvent, args: any) {
     }
     // เดิม: eventType: 'history'
     if (data.eventType === 'history') {
+      console.log('[WebSocket] Received history messages:', data.payload?.length || 0, 'messages');
       const messageData = data.payload;
       if (Array.isArray(messageData)) {
         messageData.forEach((msg) => {
@@ -294,6 +297,7 @@ export function onMessage(event: MessageEvent, args: any) {
 
 export function onOpen(event: Event, args: any) {
   const { ws, updateState, updateConnectionState, connectionTimeout, PING_INTERVAL } = args;
+  console.log('[WebSocket] Connection opened, setting up heartbeat');
   updateState({ isConnected: true, error: null, ws });
   updateConnectionState({ isConnecting: false, reconnectAttempts: 0, hasAttemptedConnection: false });
   if (connectionTimeout.current) {
@@ -305,10 +309,12 @@ export function onOpen(event: Event, args: any) {
       try {
         ws.ping && ws.ping();
       } catch (err) {
+        console.error('[WebSocket] Ping failed:', err);
         clearInterval(pingInterval);
         ws.close();
       }
     } else {
+      console.log('[WebSocket] Connection not open, clearing ping interval');
       clearInterval(pingInterval);
     }
   }, PING_INTERVAL);
@@ -317,6 +323,7 @@ export function onOpen(event: Event, args: any) {
 
 export function onClose(event: CloseEvent, args: any) {
   const { updateState, updateConnectionState, connectionTimeout, ws, attemptReconnect } = args;
+  console.log('[WebSocket] Connection closed with code:', event.code, 'reason:', event.reason);
   updateState({ isConnected: false, ws: null });
   updateConnectionState({ isConnecting: false });
   if (connectionTimeout.current) {
@@ -325,20 +332,26 @@ export function onClose(event: CloseEvent, args: any) {
   if (ws && ws.heartbeatInterval) {
     clearInterval(ws.heartbeatInterval);
   }
+  // Only attempt reconnect for unexpected closures
   if (event.code !== 1000 && event.code !== 1001) {
+    console.log('[WebSocket] Attempting to reconnect...');
     attemptReconnect && attemptReconnect();
+  } else {
+    console.log('[WebSocket] Normal closure, not attempting reconnect');
   }
 }
 
 export function attemptReconnect(args: any) {
   const { connectionState, reconnectTimeoutRef, state, connect, roomId, MAX_RECONNECT_ATTEMPTS } = args;
   if (connectionState.current.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    console.log('[WebSocket] Max reconnect attempts reached');
     return;
   }
   if (reconnectTimeoutRef.current) {
     clearTimeout(reconnectTimeoutRef.current);
   }
   const delay = Math.min(1000 * Math.pow(2, connectionState.current.reconnectAttempts), 30000);
+  console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${connectionState.current.reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
   reconnectTimeoutRef.current = setTimeout(() => {
     connectionState.current.reconnectAttempts += 1;
     if (state.ws) {

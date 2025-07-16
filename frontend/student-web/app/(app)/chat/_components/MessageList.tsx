@@ -54,12 +54,12 @@ const MessageList = ({
   return (
     <div
       ref={flatListRef as React.RefObject<HTMLDivElement> as any}
-      className="flex flex-col gap-2 px-4 pb-20 overflow-y-auto h-full"
+      className="flex flex-col gap-2 pb-24 pt-4 overflow-y-auto h-full min-h-[60vh] scrollbar-none bg-transparent"
       onScroll={onScroll}
       style={{ minHeight: 200 }}
     >
       {messages.map((group, groupIdx) => (
-        <div key={groupIdx} className="mb-2">
+        <div key={groupIdx} className="mb-4">
           {group.length === 1 && (group[0].type === 'join' || group[0].type === 'leave') ? (
             <SystemMessage text={group[0].text || ''} timestamp={group[0].timestamp || ''} />
           ) : (

@@ -43,7 +43,8 @@ const useAuth = create<AuthStore>()(
         try {
           set({ loading: true, error: null });
 
-          const res = await fetch(
+          // 1. Login เพื่อ set cookie
+          const resCookie = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL}/auth/login?useCookies=true`,
             {
               method: 'POST',
@@ -53,37 +54,76 @@ const useAuth = create<AuthStore>()(
             },
           );
 
-          if (res.status === 201) {
-            const data = await res.json();
-
-            if (data?.user) {
-              useProfile.getState().setUser(data.user);
-            }
-
-            addToast({
-              title: 'Login successful',
-              color: 'success',
-              description: 'You have successfully logged in.',
-              variant: 'solid',
-            });
-
-            redirect('/');
-
-            return true;
-          } else {
-            set({ error: res.statusText });
+          if (resCookie.status !== 201) {
+            set({ error: resCookie.statusText });
             addToast({
               title: 'Login failed',
               color: 'danger',
               description: 'Invalid credentials.',
               variant: 'solid',
             });
-
             return false;
           }
+
+          // 2. Login อีกรอบเพื่อดึง accessToken
+          const resToken = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+            {
+              method: 'POST',
+              body: JSON.stringify({ username, password }),
+              headers: { 'Content-Type': 'application/json' },
+              // ไม่ต้องใส่ credentials: 'include'
+            },
+          );
+
+          const data = await resToken.json();
+
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[signIn] Login response data (token):', data);
+          }
+
+          // Extract tokens from nested 'tokens' object if present
+          const accessToken = data?.accessToken || data?.tokens?.accessToken;
+          const refreshToken = data?.refreshToken || data?.tokens?.refreshToken;
+
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[signIn] Extracted accessToken:', accessToken);
+            console.log('[signIn] Extracted refreshToken:', refreshToken);
+          }
+
+          if (accessToken) {
+            saveToken('accessToken', accessToken);
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('[signIn] Saved accessToken:', accessToken);
+            }
+          } else {
+            addToast({
+              title: 'Login warning',
+              color: 'danger',
+              description: 'No accessToken received from backend. WebSocket will not work.',
+              variant: 'solid',
+            });
+          }
+
+          if (refreshToken) {
+            saveToken('refreshToken', refreshToken);
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('[signIn] Saved refreshToken:', refreshToken);
+            }
+          }
+
+          addToast({
+            title: 'Login successful',
+            color: 'success',
+            description: 'You have successfully logged in.',
+            variant: 'solid',
+          });
+
+          redirect('/');
+
+          return true;
         } catch (err) {
           set({ error: (err as Error).message });
-
           return false;
         } finally {
           set({ loading: false });

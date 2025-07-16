@@ -299,6 +299,17 @@ class ChatService {
     }
   }
 
+  async getRoomMessages(roomId: string): Promise<any[]> {
+    try {
+      const response = await ApiClient.get<any>(ApiClient.getRoomMessagesEndpoint(roomId));
+      // สมมติ response เป็น array ของ message
+      return response.data || response || [];
+    } catch (error) {
+      console.error('Error fetching room messages:', error);
+      return [];
+    }
+  }
+
   // Members
   async getRoomsWithMembers(): Promise<{ rooms: { room: ChatRoom; members: string[] }[] }> {
     try {

@@ -39,6 +39,11 @@ const MessageBubble = memo(({
     setShowImagePreview(true);
   }, []);
 
+  useEffect(() => {
+    // DEBUG: log message object to console
+    console.log('[DEBUG][MessageBubble] message:', message);
+  }, [message]);
+
   useEffect(() => () => {
     setShowImagePreview(false);
     setPreviewImageUrl('');
@@ -215,7 +220,7 @@ const MessageBubble = memo(({
 
   return (
     <div
-      className={`my-1 max-w-full flex flex-col ${isMyMessage ? 'items-end ml-10' : 'items-start mr-10'}`}
+      className={`my-3 max-w-full flex flex-col ${isMyMessage ? 'items-end ml-10' : 'items-start mr-10'}`}
       onContextMenu={handleLongPress}
     >
       {renderReplyPreview()}
@@ -226,13 +231,16 @@ const MessageBubble = memo(({
           !isMyMessage && <div style={{ width: 40 }} />
         )}
         <div
-          className={`max-w-[80%] min-w-[20px] px-3 py-2 rounded-2xl ${isMyMessage ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'} ${isMyMessage ? 'rounded-tr-md' : 'rounded-tl-md'} ${isFirstInGroup ? (isMyMessage ? 'rounded-tr-2xl' : 'rounded-tl-2xl') : ''} ${isLastInGroup ? (isMyMessage ? 'rounded-br-2xl' : 'rounded-bl-2xl') : ''} ${message.stickerId || message.image || message.fileType === 'image' ? 'p-1 bg-transparent' : ''}`}
+          className={`max-w-[80%] min-w-[20px] px-5 py-3 rounded-2xl shadow-xl border border-white/30 backdrop-blur ${isMyMessage ? 'bg-gradient-to-br from-blue-400/60 to-blue-600/80 text-white' : 'bg-white/40 text-gray-900'} ${isMyMessage ? 'rounded-tr-md' : 'rounded-tl-md'} ${isFirstInGroup ? (isMyMessage ? 'rounded-tr-2xl' : 'rounded-tl-2xl') : ''} ${isLastInGroup ? (isMyMessage ? 'rounded-br-2xl' : 'rounded-bl-2xl') : ''} ${message.stickerId || message.image || message.fileType === 'image' ? 'p-1 bg-transparent' : ''}`}
         >
           {renderContent()}
         </div>
       </div>
       {isLastInGroup && (
         <div className={`flex flex-row items-center mt-1 ${isMyMessage ? 'justify-end' : 'ml-10'}`}>
+          {!isMyMessage && message.user?.username && (
+            <span className="text-xs text-blue-500 font-semibold mr-2">{message.user.username}</span>
+          )}
           <span className="text-xs text-gray-400">{formatTime(message.timestamp)}</span>
           {statusElement}
         </div>

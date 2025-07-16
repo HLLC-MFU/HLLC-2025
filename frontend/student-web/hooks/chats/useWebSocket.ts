@@ -2,14 +2,14 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { Message, ConnectedUser } from '../../types/chat';
 import { getToken } from '@/utils/storage';
-import { WS_BASE_URL } from '../../configs/chats/chatConfig';
+import { getWebSocketUrl } from '../../configs/chats/chatConfig';
 import { Buffer } from 'buffer';
 import { useStateUtils, ConnectionState, WebSocketState } from './stateUtils';
 import { onMessage as baseOnMessage, onOpen, onClose, attemptReconnect } from './websocketHandlers';
 
 const MAX_MESSAGES = 100;
 const MAX_RECONNECT_ATTEMPTS = 5;
-const CONNECTION_TIMEOUT = 5000;
+const CONNECTION_TIMEOUT = 10000; // Increased timeout
 const PING_INTERVAL = 60000;
 const RECONNECT_DELAY = 3000;
 
@@ -112,37 +112,78 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     });
   }, []);
 
-  // WebSocket connect logic
+  // WebSocket connect logic - Updated to use correct URL format
   const connect = useCallback(async (roomIdParam?: string) => {
     const rid = roomIdParam || '';
     if (!rid || !userId || connectionState.current.isConnecting || (state.ws && state.ws.readyState === WebSocket.OPEN)) return;
+    
     try {
       updateConnectionState({ isConnecting: true });
       const token = await getToken('accessToken');
       if (!token) throw new Error('No access token found');
+      
       // Check token expiration
       const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
       const payload = JSON.parse(Buffer.from(base64, 'base64').toString('utf8'));
       if (Date.now() >= payload.exp * 1000) throw new Error('Token expired');
-      const wsUrl = `${WS_BASE_URL}/chat/ws/${rid}?token=${token}`;
+      
+      // Use the correct WebSocket URL format
+      const wsUrl = getWebSocketUrl(rid, token);
+      console.log('[WebSocket] Connecting to:', wsUrl);
+      
       if (state.ws) {
         try { state.ws.close(); } catch {}
         updateState({ ws: null });
       }
+      
       const socket: any = new WebSocket(wsUrl);
+      
+      // Enhanced connection timeout handling
       if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
       connectionTimeout.current = setTimeout(() => {
         if (socket.readyState !== WebSocket.OPEN) {
+          console.log('[WebSocket] Connection timeout, closing socket');
           socket.close();
           updateConnectionState({ isConnecting: false });
           updateState({ error: 'Connection timeout' });
         }
       }, CONNECTION_TIMEOUT);
+      
+      // Enhanced event handlers with better logging
       socket.onmessage = (event: MessageEvent) => onMessage(event, { state, addMessage, userId, setState });
-      socket.onopen = (event: Event) => onOpen(event, { ws: socket, updateState, updateConnectionState, connectionTimeout, PING_INTERVAL });
-      socket.onclose = (event: CloseEvent) => onClose(event, { updateState, updateConnectionState, connectionTimeout, ws: socket, attemptReconnect: () => attemptReconnect({ connectionState, reconnectTimeoutRef, state, connect, roomId: rid, MAX_RECONNECT_ATTEMPTS }) });
+      
+      socket.onopen = (event: Event) => {
+        console.log('[WebSocket] Connection opened successfully');
+        onOpen(event, { ws: socket, updateState, updateConnectionState, connectionTimeout, PING_INTERVAL });
+      };
+      
+      socket.onclose = (event: CloseEvent) => {
+        console.log('[WebSocket] Connection closed:', event.code, event.reason);
+        onClose(event, { 
+          updateState, 
+          updateConnectionState, 
+          connectionTimeout, 
+          ws: socket, 
+          attemptReconnect: () => attemptReconnect({ 
+            connectionState, 
+            reconnectTimeoutRef, 
+            state, 
+            connect, 
+            roomId: rid, 
+            MAX_RECONNECT_ATTEMPTS 
+          }) 
+        });
+      };
+      
+      socket.onerror = (error: Event) => {
+        console.error('[WebSocket] Connection error:', error);
+        updateState({ error: 'WebSocket connection error' });
+      };
+      
       updateState({ ws: socket });
+      
     } catch (error) {
+      console.error('[WebSocket] Failed to create connection:', error);
       updateState({ error: 'Failed to create WebSocket connection' });
       updateConnectionState({ isConnecting: false });
       setTimeout(() => {

@@ -50,7 +50,7 @@ type KafkaConfig struct {
 }
 
 type UploadConfig struct {
-	BaseURL string
+	StaticPath string
 }
 
 // **NEW: Async-first Flow Configuration**
@@ -219,7 +219,7 @@ func LoadConfig() (*Config, error) {
 			},
 		},
 		Upload: UploadConfig{
-			BaseURL: fmt.Sprintf("%s/uploads", baseURL),
+			StaticPath: getEnv("UPLOAD_PATH"), // Use just the path "/uploads"
 		},
 	}
 

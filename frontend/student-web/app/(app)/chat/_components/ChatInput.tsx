@@ -62,39 +62,33 @@ const ChatInput = ({
   return (
     <div className="relative mb-5 mx-2.5">
       {replyTo && (
-        <div className="flex items-center bg-white/10 rounded-xl p-2 mb-1 mx-0.5">
+        <div className="flex items-center bg-white/20 backdrop-blur rounded-xl p-2 mb-1 mx-0.5">
           <span className="text-gray-400 mr-1.5">↩</span>
-          <span className="text-white opacity-70 flex-1 truncate">
+          <span className="text-gray-900 opacity-80 flex-1 truncate">
             {replyTo.text}
           </span>
           <button
             onClick={() => setReplyTo && setReplyTo(undefined)}
             className="text-gray-400 text-base ml-2"
+            type="button"
           >
             ✕
           </button>
         </div>
       )}
-      
-      <div className={`flex items-end rounded-3xl p-1.5 min-h-14 border-2 transition-all duration-300 ${
-        isFocused 
-          ? 'border-blue-500 shadow-lg shadow-blue-500/30' 
-          : 'border-white/20'
-      }`}>
-        <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-white/5 rounded-3xl" />
-
+      <div className={`flex items-end rounded-3xl p-2 min-h-14 border-2 transition-all duration-300 bg-white/30 backdrop-blur shadow-lg ${isFocused ? 'border-blue-400' : 'border-white/30'}`}>
+        {/* Image/plus button */}
         {canSendImage && (
           <button
-            className={`m-1 w-11 h-11 rounded-full flex items-center justify-center transition-opacity ${
-              isDisabled ? 'opacity-50' : 'hover:bg-white/20'
-            }`}
+            className={`m-1 w-11 h-11 rounded-full flex items-center justify-center transition-opacity bg-white/20 hover:bg-blue-100/40 ${isDisabled ? 'opacity-50' : ''}`}
             onClick={handleImageUpload}
             disabled={isDisabled}
+            type="button"
           >
-            <span className="text-white text-xl">+</span>
+            <span className="text-blue-500 text-xl">+</span>
           </button>
         )}
-
+        {/* Text input */}
         <input
           ref={inputRef}
           type="text"
@@ -104,44 +98,31 @@ const ChatInput = ({
           onBlur={handleBlur}
           onKeyPress={handleKeyPress}
           placeholder={isDisabled ? 'กำลังเชื่อมต่อ...' : 'พิมพ์ข้อความ...'}
-          className={`flex-1 bg-transparent text-white text-base px-1 py-3 min-h-11 outline-none ${
-            isDisabled ? 'opacity-50' : ''
-          }`}
+          className={`flex-1 bg-transparent text-gray-900 text-base px-2 py-3 min-h-11 outline-none font-medium placeholder-gray-400 ${isDisabled ? 'opacity-50' : ''}`}
           disabled={isDisabled}
           maxLength={1000}
         />
-
+        {/* Send button */}
         {hasText && (
           <button
-            className={`m-1 w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-              canSend 
-                ? 'bg-gradient-to-br from-blue-500 to-purple-600 hover:shadow-lg' 
-                : 'bg-white/10 opacity-50'
-            }`}
+            className={`m-1 w-11 h-11 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg hover:scale-105 transition-transform ${!canSend ? 'opacity-50' : ''}`}
             onClick={handleSend}
             disabled={!canSend}
+            type="button"
           >
             <span className="text-white text-lg">→</span>
           </button>
         )}
-
+        {/* Emoji/sticker button */}
         <button
-          className={`m-1 w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-            showStickerPicker 
-              ? 'bg-yellow-500/20' 
-              : isDisabled 
-                ? 'opacity-50' 
-                : 'hover:bg-white/20'
-          }`}
+          className={`m-1 w-11 h-11 rounded-full flex items-center justify-center transition-all ${showStickerPicker ? 'bg-yellow-400/20' : 'hover:bg-white/20'} ${isDisabled ? 'opacity-50' : ''}`}
           onClick={() => setShowStickerPicker(!showStickerPicker)}
           disabled={isDisabled}
+          type="button"
         >
-          <span className={`text-lg ${showStickerPicker ? 'text-yellow-400' : 'text-white/80'}`}>
-            😊
-          </span>
+          <span className={`text-lg ${showStickerPicker ? 'text-yellow-500' : 'text-gray-700'}`}>😊</span>
         </button>
       </div>
-
       {!isConnected && (
         <div className="absolute -top-1 right-2">
           <div className="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white" />

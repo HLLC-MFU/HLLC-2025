@@ -8,9 +8,9 @@ export const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localho
 // API endpoint base URL
 export const API_BASE_URL = `${CHAT_BASE_URL}/api`;
 
-// WebSocket endpoint
-export const getWebSocketUrl = (roomId: string, userId: string) => 
-  `${WS_BASE_URL}/chat/ws/${roomId}/${userId}`;
+// WebSocket endpoint - Updated to match required format
+export const getWebSocketUrl = (roomId: string, token: string) => 
+  `${WS_BASE_URL}/chat/ws/${roomId}/?token=${token}`;
 
 export default {
   CHAT_BASE_URL,

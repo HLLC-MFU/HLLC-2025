@@ -4,14 +4,14 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProfile } from '@/hooks/useProfile';
 import { useChatRooms } from '@/hooks/chats/useChatRooms';
-import CategoryFilter from '@/components/chats/CategoryFilter';
-import ChatHeader from '@/components/chats/ChatHeader';
-import { ChatTabBar } from '@/components/chats/ChatTabBar';
-import { ConfirmJoinModal } from '@/components/chats/ConfirmJoinModal';
-import CreateRoomModal from '@/components/chats/CreateRoomModal';
-import RoomCard from '@/components/chats/RoomCard';
-import { RoomDetailModal } from '@/components/chats/RoomDetailModal';
-import RoomListItem from '@/components/chats/RoomListItem';
+import CategoryFilter from '@/app/(app)/chat/_components/CategoryFilter';
+import ChatHeader from '@/app/(app)/chat/_components/ChatHeader';
+import { ChatTabBar } from '@/app/(app)/chat/_components/ChatTabBar';
+import { ConfirmJoinModal } from '@/app/(app)/chat/_components/ConfirmJoinModal';
+import CreateRoomModal from '@/app/(app)/chat/_components/CreateRoomModal';
+import RoomCard from '@/app/(app)/chat/_components/RoomCard';
+import { RoomDetailModal } from '@/app/(app)/chat/_components/RoomDetailModal';
+import RoomListItem from '@/app/(app)/chat/_components/RoomListItem';
 import chatService from '@/services/chats/chatService';
 
 interface ChatRoomWithId {
@@ -66,7 +66,7 @@ export default function ChatPage() {
     try {
       const result = await chatService.joinRoom(roomId);
       if (result.success) {
-        router.push(`/chat/${roomId}?isMember=true`);
+        router.push(`/chat/${roomId}`);
       } else {
         alert(result.message || 'Failed to join room');
       }
@@ -78,7 +78,7 @@ export default function ChatPage() {
   const navigateToRoom = async (rid: string, isMember: boolean) => {
     try {
       if (isMember) {
-        router.push(`/chat/${rid}?isMember=true`);
+        router.push(`/chat/${rid}`);
       } else {
         await joinRoom(rid);
       }
