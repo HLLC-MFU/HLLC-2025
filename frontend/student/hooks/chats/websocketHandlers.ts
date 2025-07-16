@@ -2,6 +2,7 @@ import { Message } from '../../types/chatTypes';
 import { createMessage, safeUser } from './messageUtils';
 import { createFileMessage } from '@/utils/chats/messageHandlers';
 import { CHAT_BASE_URL } from '../../configs/chats/chatConfig';
+import { Platform } from 'react-native';
 
 // args: { state, updateState, updateConnectionState, addMessage, ... }
 
@@ -10,6 +11,10 @@ export function onMessage(event: MessageEvent, args: any) {
   const { state, addMessage, userId } = args;
   try {
     const data = JSON.parse(event.data);
+    // Filter: ignore ping message
+    if (data.type === 'ping') {
+      return;
+    }
     // กรณี backend ส่ง type: 'message' (ไม่มี eventType) - รวมทั้ง history messages
     if (data.type === 'message' && data.payload && data.payload.message) {
       const msg = data.payload.message;
@@ -299,20 +304,32 @@ export function onOpen(event: Event, args: any) {
   if (connectionTimeout.current) {
     clearTimeout(connectionTimeout.current);
   }
-  // Setup heartbeat
-  const pingInterval = setInterval(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      try {
-        ws.ping && ws.ping();
-      } catch (err) {
+  // Setup heartbeat: Android will NOT set any interval at all
+  if (Platform.OS !== 'android') {
+    const pingInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        try {
+          if (typeof ws.ping === 'function') {
+            ws.ping();
+          }
+        } catch (err) {
+          clearInterval(pingInterval);
+          ws.close();
+        }
+      } else {
         clearInterval(pingInterval);
-        ws.close();
       }
-    } else {
-      clearInterval(pingInterval);
-    }
-  }, PING_INTERVAL);
-  ws.heartbeatInterval = pingInterval;
+    }, PING_INTERVAL);
+    ws.heartbeatInterval = pingInterval;
+  } else {
+    // Android: ส่ง ping message ทุก PING_INTERVAL ms
+    const pingInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, PING_INTERVAL);
+    ws.heartbeatInterval = pingInterval;
+  }
 }
 
 export function onClose(event: CloseEvent, args: any) {
