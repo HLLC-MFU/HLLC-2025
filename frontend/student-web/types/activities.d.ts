@@ -97,3 +97,9 @@ export type UserActivity = {
   checkinMessage: string;
   hasAnsweredAssessment: boolean;
 };
+
+type Progress = {
+  userProgressCount: number;
+  progressPercentage: number;
+  scopedActivitiesCount: number;
+};
