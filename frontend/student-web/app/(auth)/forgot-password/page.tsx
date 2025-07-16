@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import lobby from '@/public/lobby.png';
 import { apiRequest } from '@/utils/api';
 import { Province } from '@/types/user';
+import useAuth from '@/hooks/useAuth';
 
 interface ResetPasswordPageProps {
   provinces: Province[];
@@ -43,6 +44,7 @@ export default function ResetPasswordPage({
   const [isFetchingUser, setIsFetchingUser] = useState(false);
   const [provinces, setProvinces] = useState<Province[]>([]);
   const router = useRouter();
+  const { resetPassword } = useAuth();
 
   useEffect(() => {
     fetch('/data/province.json')
@@ -130,11 +132,11 @@ export default function ResetPasswordPage({
 
     setIsLoading(true);
     try {
-      const result = await onResetPassword({
+      const result = await resetPassword({
         username,
         password,
         confirmPassword,
-        secret,
+        metadata: { secret },
       });
 
       if (result === true) {
