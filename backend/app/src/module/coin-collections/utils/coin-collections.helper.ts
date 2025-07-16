@@ -32,9 +32,12 @@ export class CoinCollectionsHelper {
         return distance;
     }
 
-    checkCooldown(cooldownResults: any[]) {
+    checkCooldown(cooldownResults: any[], remainingCooldownMs: number) {
         if (cooldownResults.length > 0) {
-            throw new BadRequestException('Landmark is in cooldown');
+            throw new BadRequestException({
+                message: 'Landmark is in cooldown',
+                remainingCooldownMs,
+            });
         }
     }
 
