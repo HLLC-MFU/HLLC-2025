@@ -9,7 +9,7 @@ type SceneProps = {
 
 export function Scene({ schoolAcronym }: SceneProps ) {
   const group = useRef<THREE.Group>(null);
-  const glb = useGLTF(`models/${schoolAcronym ?? 'LAW'}.glb`);
+  const glb = useGLTF(`models/${schoolAcronym ?? 'DENT'}.glb`);
   const scale = 1;
 
   useEffect(() => {
@@ -71,8 +71,8 @@ export function Scene({ schoolAcronym }: SceneProps ) {
 
   return (
     <group ref={group} scale={scale}>
-      <primitive object={glb.scene} />
-      <primitive object={new THREE.AxesHelper(1)} />
+        <primitive object={glb.scene} />
+      {/* <primitive object={new THREE.AxesHelper(1)} /> */}
     </group>
   );
 }

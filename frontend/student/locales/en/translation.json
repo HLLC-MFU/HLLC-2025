@@ -32,7 +32,13 @@
         "registerButton": "Register",
         "loginPrompt": "Already have an account?",
         "login": "Login",
-        "provinceNote": "Note: You can select any province. This is used only for identity verification if you request password recovery. It does not need to reflect your current location."
+        "provinceNote": "Note: You can select any province. This is used only for identity verification if you request password recovery. It does not need to reflect your current location.",
+        "permission": {
+            "title": "HLLC Wants to Use hllc.mfu.ac.th to Sign Up",
+            "message": "This app uses your HLLC account to sign up. Please allow this app to share information about you.",
+            "Cancle": "Cancel",
+            "confirm": "Confirm"
+        }
     },
     "resetPassword": {
         "title": "Reset Password",
@@ -46,7 +52,13 @@
         "resetButton": "Reset Password",
         "loginPrompt": "Already have an account?",
         "backToLogin": "Back to Login",
-        "invalidSecret": "Invalid province. Please try again."
+        "invalidSecret": "Invalid province. Please try again.",
+        "permission": {
+            "title": "HLLC Wants to Use hllc.mfu.ac.th to Reset Password",
+            "message": "This app uses your HLLC account to reset your password. Please allow this app to share information about you.",
+            "Cancle": "Cancel",
+            "confirm": "Confirm"
+        }
     },
     "provinceSelector": {
         "title": "Select Province",
@@ -148,5 +160,17 @@
     },
     "coinHunting": {
         "collection": "Collection"
-    }
+    },
+    "assessment": {
+        "title": "Assessment Activity",
+        "questionCount": "Questions: {{count}}",
+        "notFound": "No questions found for this assessment",
+        "loading": "Loading...",
+        "low": "Low",
+        "high": "High",
+        "cancel": "CANCEL",
+        "submit": "SUBMIT",
+        "submitting": "SUBMITTING...",
+        "yourComments": "Your comments"
+      }
 }

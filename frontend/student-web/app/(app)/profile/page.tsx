@@ -37,7 +37,7 @@ export default function ProfilePage() {
           THREE.ColorManagement.enabled = true;
         }}
       >
-        <SceneLights />
+        {schoolAcronym ? <SceneLights /> : ''}
         <Scene schoolAcronym={schoolAcronym}/>
       </Canvas>
 
