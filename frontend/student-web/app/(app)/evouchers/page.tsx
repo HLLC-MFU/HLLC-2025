@@ -70,8 +70,8 @@ export default function EvoucherPage() {
             />
 
             {/* Sponsors Group */}
-            <ScrollShadow className="h-[90%] overflow-y-auto" size={40} hideScrollBar>
-                <div className="grid grid-cols-2 gap-8">
+            <ScrollShadow className="h-[90%] overflow-y-auto pb-10" size={40} hideScrollBar>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
                     {filteredSponsors.map((sponsor, index) => {
                         if (sponsor?.logo?.logoPhoto) {
                             return (
