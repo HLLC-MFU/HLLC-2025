@@ -200,7 +200,11 @@ func (h *Hub) BroadcastEvent(event ChatEvent) {
 func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {
 	successCount := 0
 	failCount := 0
-
+	// Check if the event payload is empty
+	if isEmptyMessage(payload) {
+		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected")
+		return
+	}
 	if roomMap, ok := h.clients.Load(roomID); ok {
 		log.Printf("[WS] Broadcasting to room %s", roomID)
 		
@@ -241,7 +245,11 @@ func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {
 func (h *Hub) BroadcastToRoomExcept(roomID string, excludeUserID string, payload []byte) {
 	successCount := 0
 	failCount := 0
-
+		// Check if the event payload is empty
+	if isEmptyMessage(payload) {
+		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected")
+		return
+	}
 	if roomMap, ok := h.clients.Load(roomID); ok {
 		log.Printf("[DEBUG] Broadcasting to room %s (excluding user %s)", roomID, excludeUserID)
 		
@@ -374,7 +382,11 @@ func (h *Hub) GetConnectedRooms() map[string]bool {
 func (h *Hub) BroadcastToUser(targetUserID string, payload []byte) {
 	successCount := 0
 	failCount := 0
-	
+		// Check if the event payload is empty
+	if isEmptyMessage(payload) {
+		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected")
+		return
+	}
 	log.Printf("[WS] Broadcasting to user %s across all rooms", targetUserID)
 	
 	// วนลูปทุก room เพื่อหา user
