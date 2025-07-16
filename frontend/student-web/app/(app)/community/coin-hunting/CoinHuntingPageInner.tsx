@@ -28,6 +28,7 @@ export default function CoinHuntingPageInner() {
     collectedCoinImages,
     handleScannerSuccess,
     handleAlert,
+    cooldownMs,
   } = useCoinHunting();
 
   const router = useRouter();
@@ -45,6 +46,13 @@ export default function CoinHuntingPageInner() {
     const modalParam = searchParams.get('modal');
     const code = searchParams.get('code');
     const type = searchParams.get('type');
+    const msRaw = searchParams.get('remainingCooldownMs');
+    let ms: number | undefined = undefined;
+    if (msRaw && !isNaN(Number(msRaw)) && Number(msRaw) > 0) {
+      ms = Number(msRaw);
+    }
+    if (type === 'cooldown') {
+    }
 
     const allowedTypes = ['already-collected', 'no-evoucher', 'too-far', 'cooldown'] as const;
     if (modalParam === 'success') {
@@ -56,7 +64,11 @@ export default function CoinHuntingPageInner() {
       type &&
       allowedTypes.includes(type as typeof allowedTypes[number])
     ) {
-      handleAlert(type as typeof allowedTypes[number]);
+      if (type === 'cooldown') {
+        handleAlert(type as typeof allowedTypes[number], ms);
+      } else {
+        handleAlert(type as typeof allowedTypes[number]);
+      }
       setHandledQuery(true);
       router.replace('/community/coin-hunting');
     }
@@ -122,6 +134,7 @@ export default function CoinHuntingPageInner() {
         type="alert"
         onClose={handleCloseModal}
         alertType={alertType as any}
+        remainingCooldownMs={cooldownMs ?? undefined}
       />
       <StampModal
         visible={modal === 'stamp'}
