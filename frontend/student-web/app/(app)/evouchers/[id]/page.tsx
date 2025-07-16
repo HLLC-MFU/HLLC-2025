@@ -74,7 +74,7 @@ export default function EvoucherDetailPage() {
     )
 
     return (
-        <div className="flex flex-col gap-6 px-6">
+        <div className="flex flex-col h-full gap-6 px-6">
             {/* Header */}
             <div className="flex items-center gap-4">
                 <ArrowLeft size={28} color="white" onClick={router.back} />
@@ -102,8 +102,8 @@ export default function EvoucherDetailPage() {
             />
 
             {/* User Evoucher */}
-            <ScrollShadow className="h-[600px] overflow-y-auto pb-10" size={40} hideScrollBar>
-                <div className="flex flex-col items-center gap-8">
+            <ScrollShadow className="h-[90%] overflow-y-auto pb-10" size={40} hideScrollBar>
+                <div className="grid justify-center sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 items-center gap-8">
                     {filteredEvoucherCode.map((code, index) => {
                         const evoucherCode = code.evoucher?.sponsor === id ? code : null;
                         if (evoucherCode?.evoucher?.photo?.home) {
