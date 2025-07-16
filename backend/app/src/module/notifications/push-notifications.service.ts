@@ -129,7 +129,7 @@ export class PushNotificationService {
       const subtitle = dto.subtitle?.[lang] || dto.subtitle?.['en'];
 
       for (let i = 0; i < deviceList.length; i += MAX_TOKENS) {
-        const tokenBatch = devices.slice(i, i + MAX_TOKENS).map(device => device.fcmToken);
+        const tokenBatch = deviceList.slice(i, i + MAX_TOKENS).map(device => device.fcmToken);
         
         const response = await messaging.sendEachForMulticast(
           {
