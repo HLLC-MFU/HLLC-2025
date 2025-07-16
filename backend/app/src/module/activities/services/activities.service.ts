@@ -480,8 +480,8 @@ export class ActivitiesService {
         : 0;
 
     return {
-      userProgressCount: answeredCount,
-      progressPercentage: percentage,
+      userProgressCount: Math.floor(answeredCount),
+      progressPercentage: Math.floor(percentage),
       scopedActivitiesCount: scopedActivities.length,
     };
   }
