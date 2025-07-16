@@ -39,6 +39,25 @@ func getRoomTopic(roomID string) string {
 	return fmt.Sprintf("%s%s", RoomTopicPrefix, roomID)
 }
 
+func isEmptyMessage(payload interface{}) bool {
+    switch msg := payload.(type) {
+    case map[string]interface{}:
+        // ตรวจสอบ fields ใน map
+        if msg["Message"] == "" &&
+            (msg["StickerID"] == nil || msg["StickerID"] == "") &&
+            msg["FileName"] == "" &&
+            msg["EvoucherInfo"] == nil &&
+            msg["MentionInfo"] == nil &&
+            msg["ModerationInfo"] == nil {
+            return true
+        }
+    default:
+        // ใช้ reflection หรือแปลงเป็น map เพื่อตรวจสอบ (ถ้าจำเป็น)
+        // หรือถ้า payload เป็น struct type ที่คุณรู้จัก ก็แปลงและเช็คตรงๆได้
+    }
+    return false
+}
+
 func (h *Hub) Register(c Client) {
 	roomKey := c.RoomID.Hex()
 	userKey := c.UserID.Hex()
@@ -102,8 +121,17 @@ func (h *Hub) countRoomStats(roomID string) (users int, connections int) {
 	return
 }
 
+
+
 func (h *Hub) BroadcastEvent(event ChatEvent) {
 	log.Printf("[ChatMessage] Broadcasting event type=%s", event.Type)
+
+	// Check if the event payload is empty
+	if isEmptyMessage(event.Payload) {
+		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected")
+		return
+	}
+
 
 	payload, err := json.Marshal(event)
 	if err != nil {
