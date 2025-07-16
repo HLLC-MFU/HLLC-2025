@@ -117,20 +117,37 @@ func NewChatService(
 
 	return chatService
 }
+/* Helper function for Validate Empty Message */
+func isValidChatMessage(msg *model.ChatMessage) bool {
+	return msg != nil &&
+		(msg.Message != "" || msg.StickerID != nil || msg.FileName != "" ||
+			msg.EvoucherInfo != nil || msg.MentionInfo != nil || msg.ModerationInfo != nil)
+}
 
 // **Interface implementations for AsyncHelper**
+/* Prevent save empty message to database */
 func (s *ChatService) SaveMessageToDB(ctx context.Context, msg *model.ChatMessage) error {
+	if !isValidChatMessage(msg) {
+		log.Printf("[ChatService] Skipping empty message from user %s in room %s", msg.UserID.Hex(), msg.RoomID.Hex())
+		return nil
+	}
+
 	_, err := s.Create(ctx, *msg)
 	return err
 }
 
+/* Prevent save empty message to database */
 func (s *ChatService) SaveMessageToCache(ctx context.Context, msg *model.ChatMessage) error {
-	// **ENHANCED: Create properly enriched message with all data**
+	if !isValidChatMessage(msg) {
+		log.Printf("[ChatService] Skipping cache for empty message %s", msg.ID.Hex())
+		return nil
+	}
+
 	enriched := model.ChatMessageEnriched{
 		ChatMessage: *msg,
 	}
 
-	// **ENHANCED: Get reply-to message if exists**
+	// Enrich if reply-to exists
 	if msg.ReplyToID != nil {
 		replyToMsg, err := s.historyService.getReplyToMessageWithUser(ctx, *msg.ReplyToID)
 		if err != nil {
@@ -141,7 +158,7 @@ func (s *ChatService) SaveMessageToCache(ctx context.Context, msg *model.ChatMes
 		}
 	}
 
-	// **ENHANCED: Log special message types being cached**
+	// Log special cases
 	if msg.EvoucherInfo != nil {
 		log.Printf("[ChatService] Caching evoucher message %s", msg.ID.Hex())
 	}
@@ -158,20 +175,30 @@ func (s *ChatService) SaveMessageToCache(ctx context.Context, msg *model.ChatMes
 	return s.cache.SaveMessage(ctx, msg.RoomID.Hex(), &enriched)
 }
 
+
 // **NEW: Batch processing methods**
 func (s *ChatService) SaveMessageBatch(ctx context.Context, msgs []*model.ChatMessage) error {
 	if len(msgs) == 0 {
 		return nil
 	}
-	
-	// Convert to interface slice for bulk insert
-	docs := make([]interface{}, len(msgs))
-	for i, msg := range msgs {
-		docs[i] = *msg
+
+	// Filter valid messages only
+	validMsgs := make([]interface{}, 0, len(msgs))
+	for _, msg := range msgs {
+		if isValidChatMessage(msg) {
+			validMsgs = append(validMsgs, *msg)
+		} else {
+			log.Printf("[ChatService] Skipping empty message in batch from user %s in room %s", msg.UserID.Hex(), msg.RoomID.Hex())
+		}
 	}
-	
-	// Perform bulk insert
-	_, err := s.collection.InsertMany(ctx, docs)
+
+	if len(validMsgs) == 0 {
+		// No valid messages to insert
+		return nil
+	}
+
+	// Bulk insert valid messages
+	_, err := s.collection.InsertMany(ctx, validMsgs)
 	return err
 }
 
@@ -179,31 +206,36 @@ func (s *ChatService) SaveMessageBatchToCache(ctx context.Context, roomID string
 	if len(msgs) == 0 {
 		return nil
 	}
-	
-	// Convert to enriched messages and save in batches
+
 	pipeline := s.redis.Pipeline()
+	key := fmt.Sprintf("chat:room:%s:messages", roomID)
+
 	for _, msg := range msgs {
+		if !isValidChatMessage(msg) {
+			log.Printf("[ChatService] Skipping empty message in batch cache for room %s", roomID)
+			continue
+		}
+
 		enriched := model.ChatMessageEnriched{
 			ChatMessage: *msg,
 		}
-		
+
 		jsonData, err := json.Marshal(enriched)
 		if err != nil {
 			return fmt.Errorf("failed to marshal message: %w", err)
 		}
-		
-		key := fmt.Sprintf("chat:room:%s:messages", roomID)
+
 		score := float64(msg.Timestamp.UnixNano())
 		pipeline.ZAdd(ctx, key, redis.Z{
 			Score:  score,
 			Member: jsonData,
 		})
 	}
-	
-	// Execute pipeline
+
 	_, err := pipeline.Exec(ctx)
 	return err
 }
+
 
 // SendNotifications sends notifications to offline users
 func (s *ChatService) SendNotifications(ctx context.Context, message *model.ChatMessage, onlineUsers []string) error {
