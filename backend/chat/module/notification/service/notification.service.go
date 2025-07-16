@@ -19,8 +19,8 @@ import (
 
 type NotificationService struct {
 	*queries.BaseService[chatModel.NotificationPayload]
-	kafkaBus   *kafka.Bus
-	collection *mongo.Collection
+	kafkaBus    *kafka.Bus
+	collection  *mongo.Collection
 	roleService *userService.RoleService
 }
 
@@ -40,7 +40,7 @@ type SimpleRoom struct {
 
 func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService *userService.RoleService) *NotificationService {
 	collection := db.Collection("notifications")
-	
+
 	return &NotificationService{
 		BaseService: queries.NewBaseService[chatModel.NotificationPayload](collection),
 		kafkaBus:    kafkaBus,
@@ -90,7 +90,7 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 		log.Printf("[NotificationService] Failed to get room info: %v", err)
 		return
 	}
-	
+
 	offlineCount := 0
 	totalMembers := 0
 
@@ -102,13 +102,13 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 		if memberIDStr == message.UserID.Hex() {
 			continue
 		}
-		
+
 		totalMembers++
 
 		// Send notification to offline users only
 		if !onlineUserMap[memberIDStr] {
 			log.Printf("[NotificationService] User %s is OFFLINE, sending notification", memberIDStr)
-			
+
 			// Create notification based on message type
 			ns.createAndSendNotification(ctx, memberIDStr, message, room, sender, role)
 			offlineCount++
@@ -116,7 +116,7 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 			log.Printf("[NotificationService] User %s is ONLINE, skipping notification (will receive via WebSocket)", memberIDStr)
 		}
 	}
-	
+
 	log.Printf("[NotificationService] Notification summary: %d offline users notified out of %d total members", offlineCount, totalMembers)
 }
 
@@ -124,46 +124,42 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 
 // createAndSendNotification creates the appropriate notification based on message type
 func (ns *NotificationService) createAndSendNotification(ctx context.Context, receiverID string, message *model.ChatMessage, room *SimpleRoom, sender *SimpleUser, role *chatModel.NotificationSenderRole) {
+	// เช็ค message ว่างก่อนส่ง
+	if strings.TrimSpace(message.Message) == "" {
+		log.Printf("[NotificationService] Empty message detected, skipping notification for receiver %s", receiverID)
+		return
+	}
+
 	messageType := ns.determineMessageType(message)
-	
+
 	log.Printf("[NotificationService] Creating %s notification for receiver %s", messageType, receiverID)
-	
-	// Create base notification components
+
+	// สร้างส่วนประกอบ notification
 	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn)
 	notificationSender := chatModel.CreateNotificationSender(sender.ID, sender.Username, sender.FirstName, sender.LastName, role)
 	notificationMessage := chatModel.CreateNotificationMessage(message.ID.Hex(), message.Message, messageType, message.Timestamp)
-	
+
 	var payload chatModel.NotificationPayload
-	
-	// Conditional logic based on message type (similar to old version)
+
 	switch messageType {
 	case chatModel.MessageTypeSticker:
 		payload = ns.createStickerNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
-		
 	case chatModel.MessageTypeUpload:
 		payload = ns.createUploadNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
-		
 	case chatModel.MessageTypeEvoucher:
 		payload = ns.createEvoucherNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
-		
 	case chatModel.MessageTypeMention:
 		payload = ns.createMentionNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
-		
 	case chatModel.MessageTypeReply:
 		payload = ns.createReplyNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
-		
 	case chatModel.MessageTypeRestriction:
 		payload = ns.createRestrictionNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
-		
 	case chatModel.MessageTypeUnsend:
 		payload = ns.createUnsendNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
-		
 	default:
-		// Default message (not text)
 		payload = ns.createTextNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
 	}
-	
-	// Send the notification
+
 	ns.sendNotificationToKafka(ctx, receiverID, payload)
 }
 
@@ -186,7 +182,7 @@ func (ns *NotificationService) createStickerNotification(room chatModel.Notifica
 		}
 		message.StickerInfo = &stickerInfo
 	}
-	
+
 	return chatModel.NewStickerNotification(room, sender, message, chatModel.NotificationStickerInfo{
 		ID:    chatMessage.StickerID.Hex(),
 		Image: chatMessage.Image,
@@ -200,14 +196,14 @@ func (ns *NotificationService) createUploadNotification(room chatModel.Notificat
 	if idx := strings.LastIndex(filename, "/"); idx != -1 {
 		filename = filename[idx+1:]
 	}
-	
+
 	uploadInfo := chatModel.NotificationUploadInfo{
 		FileName: filename,
 	}
-	
+
 	// Add upload info to message
 	message.UploadInfo = &uploadInfo
-	
+
 	return chatModel.NewUploadNotification(room, sender, message, uploadInfo, receiverID)
 }
 
@@ -217,7 +213,7 @@ func (ns *NotificationService) createEvoucherNotification(room chatModel.Notific
 	if chatMessage.EvoucherInfo != nil {
 		message.EvoucherInfo = chatMessage.EvoucherInfo
 	}
-	
+
 	return chatModel.NewEvoucherNotification(room, sender, message, chatMessage.EvoucherInfo, receiverID)
 }
 
@@ -227,7 +223,7 @@ func (ns *NotificationService) createMentionNotification(room chatModel.Notifica
 	if len(chatMessage.MentionInfo) > 0 {
 		message.MentionInfo = chatMessage.MentionInfo
 	}
-	
+
 	return chatModel.NewMentionNotification(room, sender, message, chatMessage.MentionInfo, receiverID)
 }
 
@@ -240,7 +236,7 @@ func (ns *NotificationService) createReplyNotification(room chatModel.Notificati
 		}
 		message.ReplyTo = &replyInfo
 	}
-	
+
 	return chatModel.NewReplyNotification(room, sender, message, chatModel.NotificationReplyInfo{
 		MessageID: chatMessage.ReplyToID.Hex(),
 	}, receiverID)
@@ -256,20 +252,19 @@ func (ns *NotificationService) createUnsendNotification(room chatModel.Notificat
 	// Custom message for unsend
 	unsendMessage := chatModel.CreateNotificationMessage(
 		chatMessage.ID.Hex(),
-		sender.Username + " has unsent the message",
+		sender.Username+" has unsent the message",
 		chatModel.MessageTypeUnsend,
 		chatMessage.Timestamp,
 	)
-	
+
 	return chatModel.NewUnsendNotification(room, sender, unsendMessage, receiverID)
 }
-
 
 // ==================== LEGACY COMPATIBILITY METHODS ====================
 
 // SendOfflineNotification sends a structured notification to offline users (legacy method for backward compatibility)
 func (ns *NotificationService) SendOfflineNotification(ctx context.Context, receiverID string, message *model.ChatMessage, messageType string) {
-	log.Printf("[NotificationService] Legacy SendOfflineNotification: receiver=%s, message=%s, type=%s", 
+	log.Printf("[NotificationService] Legacy SendOfflineNotification: receiver=%s, message=%s, type=%s",
 		receiverID, message.ID.Hex(), messageType)
 
 	// Get sender info
@@ -370,7 +365,7 @@ func (ns *NotificationService) NotifyOfflineUsersOnly(ctx context.Context, messa
 		log.Printf("[NotificationService] Failed to get room info: %v", err)
 		return
 	}
-	
+
 	offlineCount := 0
 
 	// Send notification to OFFLINE members only (except sender)
@@ -385,13 +380,13 @@ func (ns *NotificationService) NotifyOfflineUsersOnly(ctx context.Context, messa
 		// ✅ Send notification only to OFFLINE users
 		if !onlineUserMap[memberIDStr] {
 			log.Printf("[NotificationService] Notifying offline user %s", memberIDStr)
-			
+
 			// Create notification based on message type
 			ns.createAndSendNotification(ctx, memberIDStr, message, room, sender, role)
 			offlineCount++
 		}
 	}
-	
+
 	log.Printf("[NotificationService] Notified %d offline users", offlineCount)
 }
 
@@ -475,8 +470,8 @@ func (ns *NotificationService) getRoomById(ctx context.Context, roomID string) (
 
 	roomCollection := ns.collection.Database().Collection("rooms")
 	var room struct {
-		ID   primitive.ObjectID    `bson:"_id"`
-		Name map[string]string     `bson:"name"`
+		ID   primitive.ObjectID `bson:"_id"`
+		Name map[string]string  `bson:"name"`
 	}
 
 	err = roomCollection.FindOne(ctx, bson.M{"_id": roomObjID}).Decode(&room)
@@ -521,7 +516,7 @@ func (ns *NotificationService) getNotificationUserRole(ctx context.Context, user
 		ID:   roleID,
 		Name: roleName,
 	}
-} 
+}
 
 // SendOfflineMentionNotification sends a mention notification to offline user
 func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Context, receiverID string, message *model.ChatMessage) {
@@ -545,17 +540,17 @@ func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Contex
 	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn)
 	notificationSender := chatModel.CreateNotificationSender(sender.ID, sender.Username, sender.FirstName, sender.LastName, nil)
 	notificationMessage := chatModel.CreateNotificationMessage(message.ID.Hex(), message.Message, chatModel.MessageTypeMention, message.Timestamp)
-	
+
 	// Add mention info to message
 	if len(message.MentionInfo) > 0 {
 		notificationMessage.MentionInfo = message.MentionInfo
 		log.Printf("[NotificationService] Added %d mentions to notification", len(message.MentionInfo))
 	}
-	
+
 	payload := chatModel.NewMentionNotification(notificationRoom, notificationSender, notificationMessage, message.MentionInfo, receiverID)
 	log.Printf("[NotificationService] Payload to Kafka: %+v", payload)
 
 	ns.sendNotificationToKafka(ctx, receiverID, payload)
-	
+
 	log.Printf("[NotificationService] ✅ Sent mention notification to user %s", receiverID)
-} 
+}
