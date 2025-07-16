@@ -1,11 +1,13 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useActivities } from '@/hooks/useActivities';
 import { Input } from '@heroui/react';
 import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+
 import ActivityCard from './_components/ActivitiesCard';
 import ActivityCardSkeleton from './_components/ActivityCardSkeleton';
+
+import { useActivities } from '@/hooks/useActivities';
 
 export default function ActivitiesPage() {
   const { activities, loading } = useActivities(null);
@@ -110,15 +112,15 @@ export default function ActivitiesPage() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-auto">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => (
-            <ActivityCardSkeleton key={i} />
-          ))
+              <ActivityCardSkeleton key={i} />
+            ))
           : filteredAndSortedActivities.map(activity => (
-            <ActivityCard
-              key={activity._id}
-              activity={activity}
-              onClick={() => router.push(`/activities/${activity._id}`)}
-            />
-          ))}
+              <ActivityCard
+                key={activity._id}
+                activity={activity}
+                onClick={() => router.push(`/activities/${activity._id}`)}
+              />
+            ))}
       </div>
 
       {!loading && filteredAndSortedActivities?.length === 0 && (
@@ -126,7 +128,6 @@ export default function ActivitiesPage() {
           No activities found.
         </p>
       )}
-
     </div>
   );
 }

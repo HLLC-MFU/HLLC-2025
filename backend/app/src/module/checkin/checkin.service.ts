@@ -10,6 +10,7 @@ import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { decryptItem } from '../auth/utils/crypto';
+import { SseService } from '../sse/sse.service';
 
 @Injectable()
 export class CheckinService {
@@ -20,6 +21,7 @@ export class CheckinService {
     @InjectModel(Activities.name) private activityModel: Model<ActivityDocument>,
     @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
     private readonly notificationsService: NotificationsService,
+    private readonly sseService: SseService,
   ) { }
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
@@ -156,6 +158,16 @@ export class CheckinService {
           id: [userObjectId.toString()],
         },
       ],
+    });
+
+    this.sseService.sendToUser(userDoc._id.toString() ,{
+      type: 'CHECKED_IN',
+      data: {
+        userId: userDoc._id,
+        staffId: staffId,
+        activityIds: activities,
+        activityNames: activityNamesEn,
+      }
     });
 
     return checkIn;

@@ -1,4 +1,4 @@
-'use client';
+"use client"
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
@@ -96,7 +96,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: '100%',
   },
   modalContent: {
-    background: 'rgba(18, 18, 18, 0.85)',
+    background: 'rgba(18, 18, 18, 0.4)',
     borderRadius: 18,
     padding: 18,
     width: 320,
