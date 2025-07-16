@@ -1,20 +1,19 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { addToast } from '@heroui/react';
 
 import BottomNav from '@/components/bottom-nav';
 import lobby from '@/public/lobby_6.jpeg';
 import ProgressBar from '@/components/ui/progressBar';
 import useProgress from '@/hooks/useProgress';
 import { useSSE } from '@/hooks/useSSE';
-import { addToast } from '@heroui/react';
-import { BellRing } from 'lucide-react';
 import { useActivities } from '@/hooks/useActivities';
 import { useNotification } from '@/hooks/useNotification';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-    const router = useRouter();
+  const router = useRouter();
   const { fetchActivitiesByUser } = useActivities(null);
   const { fetchNotification } = useNotification();
 
@@ -27,8 +26,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       //   color: 'warning',
       //   variant: 'bordered',
       // });
-    }
-    else if (payload.type === 'CHECKED_IN') {
+    } else if (payload.type === 'CHECKED_IN') {
       fetchActivitiesByUser();
       addToast({
         title: `Checked in`,
@@ -71,7 +69,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="relative z-20 flex h-full flex-col text-foreground">
         <div className="fixed top-0 left-0 right-0 z-50 mx-4">
           {!hideProgressSummary && (
-            <ProgressBar progress={progressPercentage} onClickAvatar={() => router.push('/profile')}/>
+            <ProgressBar
+              progress={progressPercentage}
+              onClickAvatar={() => router.push('/profile')}
+            />
           )}
         </div>
 

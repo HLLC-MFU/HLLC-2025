@@ -323,15 +323,28 @@ func (ns *NotificationService) SendMessageNotification(ctx context.Context, rece
 
 // sendNotificationToKafka sends a structured notification to Kafka
 func (ns *NotificationService) sendNotificationToKafka(ctx context.Context, receiverID string, payload chatModel.NotificationPayload) {
+	// ตรวจสอบว่าข้อความว่างหรือไม่
+	if strings.TrimSpace(payload.Message.Message) == "" &&
+		payload.Type != chatModel.MessageTypeSticker &&
+		payload.Type != chatModel.MessageTypeUpload &&
+		payload.Type != chatModel.MessageTypeEvoucher &&
+		payload.Type != chatModel.MessageTypeRestriction &&
+		payload.Type != chatModel.MessageTypeUnsend {
+		
+		log.Printf("[NotificationService] 🚫 Skipping notification: empty message for receiver=%s (type=%s)", receiverID, payload.Type)
+		return
+	}
+
 	log.Printf("[NotificationService] Sending notification to Kafka: receiver=%s, payloadType=%s, topic=chat-notifications, payload=%+v", receiverID, payload.Type, payload)
 	topic := "chat-notifications"
 	err := ns.kafkaBus.Emit(ctx, topic, receiverID, payload)
 	if err != nil {
 		log.Printf("[NotificationService] Failed to send notification to Kafka: %v", err)
 	} else {
-		log.Printf("[NotificationService] Successfully sent notification to Kafka for %s", receiverID)
+		log.Printf("[NotificationService] ✅ Successfully sent notification to Kafka for %s", receiverID)
 	}
 }
+
 
 // NotifyOfflineUsersOnly sends notifications ONLY to users who are currently offline
 func (ns *NotificationService) NotifyOfflineUsersOnly(ctx context.Context, message *model.ChatMessage, onlineUsers []string, roomMembers []primitive.ObjectID) {
