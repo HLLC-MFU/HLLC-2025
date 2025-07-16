@@ -48,7 +48,7 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
   const isMobile = typeof window !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
   // กำหนด initial scale ให้แผนที่แสดงผลแบบ zoom-out
-  const initialScale = 0.7; // ปรับค่านี้เพื่อความกว้างที่ต้องการ
+  const initialScale = 0.5; // ปรับค่านี้เพื่อความกว้างที่ต้องการ
 
   // Helper: clamp value
   const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
@@ -135,7 +135,7 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
           className="w-full h-full pointer-events-none select-none"
           style={{ position: 'relative', zIndex: 10 }}
         />
-        <div className="absolute inset-0 pointer-events-none bg-black/30 z-10" />
+        <div className="absolute inset-0 pointer-events-none bg-black/25 z-10" />
         <div className="absolute inset-0 z-20">
           {children}
         </div>

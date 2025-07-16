@@ -95,6 +95,7 @@ export default function CoinHuntingPageInner() {
         marker={selectedMarker}
         onClose={closeModal}
         onCheckIn={handleCheckIn}
+        isCheckedIn={!!(selectedMarker && collectedIds.includes(selectedMarker._id))}
       />
       <CombinedModal
         visible={modal === 'success'}
