@@ -5,8 +5,11 @@ import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { Checkin, CheckinDocument } from './schema/checkin.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
-import { Activities, ActivityDocument } from 'src/module/activities/schemas/activities.schema';
-import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
+import {
+  Activities,
+  ActivityDocument,
+} from 'src/module/activities/schemas/activities.schema';
+import { validateCheckinTime } from './utils/checkin.util';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { decryptItem } from '../auth/utils/crypto';
@@ -18,11 +21,12 @@ export class CheckinService {
     @InjectModel(Checkin.name) private checkinModel: Model<CheckinDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Role.name) private roleModel: Model<RoleDocument>,
-    @InjectModel(Activities.name) private activityModel: Model<ActivityDocument>,
+    @InjectModel(Activities.name)
+    private activityModel: Model<ActivityDocument>,
     @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
     private readonly notificationsService: NotificationsService,
     private readonly sseService: SseService,
-  ) { }
+  ) {}
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
     const { staff: staffId, user: username, activities } = createCheckinDto;
@@ -78,11 +82,15 @@ export class CheckinService {
         targetRole === 'STAFF' ||
         targetRole.startsWith('SMO')
       ) {
-        throw new BadRequestException('SMO cannot check-in Administrator, STAFF or SMO');
+        throw new BadRequestException(
+          'SMO cannot check-in Administrator, STAFF or SMO',
+        );
       }
     } else {
       // Fresher หรือ role อื่น ๆ ห้ามเช็คอินใครเลย
-      throw new BadRequestException('You are not allowed to check-in other users');
+      throw new BadRequestException(
+        'You are not allowed to check-in other users',
+      );
     }
 
     if (!Array.isArray(activities) || activities.length === 0) {
@@ -104,10 +112,14 @@ export class CheckinService {
       .lean();
 
     const alreadyChecked = new Set(existing.map((e) => e.activity.toString()));
-    const filtered = activityObjectIds.filter((id) => !alreadyChecked.has(id.toString()));
+    const filtered = activityObjectIds.filter(
+      (id) => !alreadyChecked.has(id.toString()),
+    );
 
     if (filtered.length === 0) {
-      throw new BadRequestException('User already checked in to all activities');
+      throw new BadRequestException(
+        'User already checked in to all activities',
+      );
     }
 
     const docs = filtered.map((activityId) => ({
@@ -135,7 +147,8 @@ export class CheckinService {
       .filter(Boolean)
       .join(', ');
 
-    const activitiesImage = activityDocs.find((a) => a.photo?.bannerPhoto)?.photo?.bannerPhoto;
+    const activitiesImage = activityDocs.find((a) => a.photo?.bannerPhoto)
+      ?.photo?.bannerPhoto;
 
     await this.notificationsService.create({
       title: {
@@ -160,14 +173,19 @@ export class CheckinService {
       ],
     });
 
-    this.sseService.sendToUser(userDoc._id.toString() ,{
+    this.sseService.sendToUser(userDoc._id.toString(), {
       type: 'CHECKED_IN',
       data: {
         userId: userDoc._id,
         staffId: staffId,
         activityIds: activities,
         activityNames: activityNamesEn,
-      }
+      },
+    });
+
+    this.sseService.sendToUser(staffDoc._id.toString(), {
+      type: 'REFETCH_DATA',
+      path: '/activities/user',
     });
 
     return checkIn;
@@ -185,7 +203,7 @@ export class CheckinService {
 
 function hasAdminPermission(perms?: string[]) {
   if (!Array.isArray(perms)) return false;
-  return perms.some(p => {
+  return perms.some((p) => {
     try {
       return decryptItem(p) === '*';
     } catch (err) {

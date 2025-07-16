@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 type SsePayload<T = any> = {
   type: string;
+  path?: string;
   data: T;
 };
 
@@ -9,7 +10,6 @@ export function useSSE<T = any>(
   onMessage?: (payload: SsePayload<T>) => void,
   onError?: (err: Event) => void,
 ) {
-
   const [connected, setConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -26,9 +26,10 @@ export function useSSE<T = any>(
       setConnected(true);
     };
 
-    eventSource.onmessage = (event) => {
+    eventSource.onmessage = event => {
       try {
         const payload: SsePayload<T> = JSON.parse(event.data);
+
         console.log('[SSE] Message:', payload);
         if (onMessage) onMessage(payload);
       } catch (err) {
@@ -36,7 +37,7 @@ export function useSSE<T = any>(
       }
     };
 
-    eventSource.onerror = (err) => {
+    eventSource.onerror = err => {
       setConnected(false);
       if (onError) onError(err);
     };
@@ -45,7 +46,7 @@ export function useSSE<T = any>(
       eventSource.close();
       setConnected(false);
     };
-  }, [onError]);
+  }, [onError, onMessage]);
 
   return { connected };
 }

@@ -446,6 +446,12 @@ func (h *AsyncHelper) processCacheMessageBatch(batch []DatabaseJob) error {
 }
 
 func (h *AsyncHelper) processNotificationJob(job NotificationJob, workerID int) {
+	if job.Message == nil || job.Message.Message == "" || job.Message.RoomID.IsZero() {
+		log.Printf("[AsyncHelper] Skipping notification for empty message %s", job.Message.ID.Hex())
+		job.Service.UpdateMessageStatus(job.Message.ID, "notification_sent", false)
+		h.checkMessageCompletion(job.Message.ID)
+		return
+	}
 	err := job.Service.SendNotifications(job.Context, job.Message, job.OnlineUsers)
 
 	if err != nil {
