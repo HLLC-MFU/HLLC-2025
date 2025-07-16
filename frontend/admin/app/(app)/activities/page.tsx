@@ -53,7 +53,7 @@ export default function ActivitiesPage() {
     deleteActivityType,
     loading,
     fetchActivities,
-  } = useActivities();
+  } = useActivities({ autoFetch: true });
 
   const filteredActivities = useMemo(() => {
     if (!activities) return [];
@@ -75,20 +75,21 @@ export default function ActivitiesPage() {
     const groups: Record<string, Activities[]> = {};
 
     filteredActivities.forEach((activity) => {
-      const typeId =
-        typeof activity.type === 'object' && activity.type !== null && '_id' in activity.type
-          ? (activity.type as { _id: string })._id
-          : activity.type || 'other';
+      // activity.type is already a string (type name)
+      const typeName = typeof activity.type === 'string'
+        ? activity.type
+        : typeof activity.type === 'object' && 'name' in activity.type
+          ? activity.type.name
+          : 'Other';
 
-      if (!groups[typeId]) {
-        groups[typeId] = [];
+      if (!groups[typeName]) {
+        groups[typeName] = [];
       }
-      groups[typeId].push(activity);
+      groups[typeName].push(activity);
     });
 
     return groups;
   }, [filteredActivities]);
-
 
 
   const handleAddActivity = (typeId: string) => {
@@ -221,7 +222,7 @@ export default function ActivitiesPage() {
               variant="splitted"
             >
               {activityTypes.map((type) => {
-                const typeActivities = groupedActivities[type._id] || [];
+                const typeActivities = groupedActivities[type.name] || [];
 
                 return (
                   <AccordionItem

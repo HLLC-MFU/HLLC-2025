@@ -1,8 +1,8 @@
-'use client';
+"use client"
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useGesture } from '@use-gesture/react';
-import { animated, useSpring } from '@react-spring/web';
+import { animated } from '@react-spring/web';
 
 type InteractiveMapProps = {
   onImageLoad?: (imageSize: { width: number; height: number }) => void;
@@ -15,19 +15,19 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
   const [imageSize, setImageSize] = useState({ width: 6000, height: 2469 });
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
-  // --- REMOVE gesture pan, keep only zoom ---
-  const [{ scale }, api] = useSpring(() => ({
-    scale: 1,
-    config: { tension: 300, friction: 30 },
-  }));
+  // ใช้ useState แทน useSpring สำหรับ pan/zoom
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [scale] = useState(1); // ล็อก scale ไว้ที่ 1
 
-  // Load image size once
+  // Load image size once, and set loaded flag
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
   useEffect(() => {
     const img = new window.Image();
-    img.src = '/images/map.png'; // Make sure it's in /public/images/
+    img.src = '/images/map.png';
     img.onload = () => {
       setImageSize({ width: img.width, height: img.height });
       onImageLoad?.({ width: img.width, height: img.height });
+      setIsImageLoaded(true);
     };
   }, []);
 
@@ -44,59 +44,56 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  // Scroll to center of image when loaded
-  useEffect(() => {
-    if (!containerRef.current || !imageSize.width || !imageSize.height) return;
-    const cW = window.innerWidth;
-    const cH = window.innerHeight;
-    const iW = imageSize.width;
-    const iH = imageSize.height;
-    if (iW > cW || iH > cH) {
-      const left = Math.max(0, (iW - cW) / 2);
-      const top = Math.max(0, (iH - cH) / 2);
-      containerRef.current.scrollTo({ left, top, behavior: 'auto' });
-    }
-  }, [imageSize.width, imageSize.height]);
+  // Detect mobile device
+  const isMobile = typeof window !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+  // กำหนด initial scale ให้แผนที่แสดงผลแบบ zoom-out
+  const initialScale = 0.7; // ปรับค่านี้เพื่อความกว้างที่ต้องการ
 
   // Helper: clamp value
   const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
 
   // ปรับ clamp pan/zoom ไม่ให้ออกนอกขอบภาพ (แก้ getBounds)
-  const getBounds = (scaleValue: number) => {
+  const getBounds = () => {
     const cW = window.innerWidth;
     const cH = window.innerHeight;
-    const scaledWidth = imageSize.width * scaleValue;
-    const scaledHeight = imageSize.height * scaleValue;
+    const scaledWidth = imageSize.width * initialScale;
+    const scaledHeight = imageSize.height * initialScale;
     let minX = 0, maxX = 0, minY = 0, maxY = 0;
     if (scaledWidth > cW) {
-      minX = (cW - scaledWidth) / 2;
-      maxX = (scaledWidth - cW) / 2;
+      minX = cW - scaledWidth;
+      maxX = 0;
     }
     if (scaledHeight > cH) {
-      minY = (cH - scaledHeight) / 2;
-      maxY = (scaledHeight - cH) / 2;
+      minY = cH - scaledHeight;
+      maxY = 0;
     }
     return {
-      minX: -maxX,
-      maxX: -minX,
-      minY: -maxY,
-      maxY: -minY,
+      minX,
+      maxX,
+      minY,
+      maxY,
     };
   };
 
   const bind = useGesture(
     {
-      onPinch: ({ offset: [d], memo }) => {
-        const scaleValue = Math.max(1, Math.min(d, 3));
-        api.start({ scale: scaleValue });
+      onDrag: ({ offset: [dx, dy], last, memo }) => {
+        // scale = 1 เสมอ แต่แสดงผลด้วย initialScale
+        const adjDx = dx;
+        const adjDy = dy;
+        const bounds = getBounds();
+        const clampedX = clamp(adjDx, bounds.minX, bounds.maxX);
+        const clampedY = clamp(adjDy, bounds.minY, bounds.maxY);
+        setPan({ x: clampedX, y: clampedY });
         return memo;
       },
     },
     {
-      pinch: {
-        from: () => [scale.get(), 0],
-        scaleBounds: { min: 1, max: 3 },
-        rubberband: false,
+      drag: {
+        from: () => [pan.x, pan.y],
+        filterTaps: true,
+        ...(isMobile ? { pointer: { touch: true } } : {}),
       },
     }
   );
@@ -116,22 +113,21 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
     <div
       ref={containerRef}
       {...bind()}
-      className="fixed top-0 left-0 w-screen h-screen bg-black overflow-auto touch-auto z-0"
-      style={{}}
+      className="fixed top-0 left-0 w-screen h-screen bg-black overflow-hidden touch-auto z-0"
+      style={{ touchAction: 'none' }}
     >
-      <animated.div
+      <div
         style={{
-          scale,
           width: imageSize.width,
           height: imageSize.height,
           position: 'relative',
           left: 0,
           top: 0,
           transformOrigin: 'top left',
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${initialScale})`,
         }}
         className=""
       >
-
         <img
           ref={imageRef}
           src="/images/map.png"
@@ -139,12 +135,11 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
           className="w-full h-full pointer-events-none select-none"
           style={{ position: 'relative', zIndex: 10 }}
         />
-
         <div className="absolute inset-0 pointer-events-none bg-black/30 z-10" />
         <div className="absolute inset-0 z-20">
           {children}
         </div>
-      </animated.div>
+      </div>
     </div>
   );
 }

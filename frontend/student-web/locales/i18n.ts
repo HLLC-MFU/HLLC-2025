@@ -1,18 +1,15 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+import enTranslation from './en/translation.json';
+import thTranslation from './th/translation.json';
+
 const resources = {
   en: {
-    translation: {
-      welcome: 'Welcome',
-      // Add more keys as needed
-    },
+    translation: enTranslation,
   },
   th: {
-    translation: {
-      welcome: 'ยินดีต้อนรับ',
-      // Add more keys as needed
-    },
+    translation: thTranslation,
   },
 };
 

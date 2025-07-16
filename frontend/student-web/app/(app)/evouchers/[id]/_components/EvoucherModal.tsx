@@ -43,10 +43,10 @@ export default function EvoucherModal({
                 <Modal
                     isOpen={isOpen}
                     onClose={onClose}
-                    placement="center"
-                    className="bg-transparent border-none shadow-none"
+                    className="bg-transparent border-none shadow-none mx-6"
                     classNames={{
-                        backdrop: "bg-black/80 ",
+                        backdrop: "bg-black/80",
+                        closeButton: "flex justify-center items-center text-black bg-white",
                     }}
                     hideCloseButton
                 >
@@ -57,7 +57,6 @@ export default function EvoucherModal({
                                 src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${code.evoucher?.photo?.back ?? ""}`}
                                 className="hidden"
                             />
-
                             <div className={`flex w-full h-full justify-center transition-all duration-700 ${isFlipped ? '' : 'scale-x-[-1]'}`}>
                                 {isFront ? (
                                     code?.evoucher?.photo?.front ? (

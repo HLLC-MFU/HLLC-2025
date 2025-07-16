@@ -103,7 +103,7 @@ export default function useCoinHunting() {
       try {
         const [landmarksRes, collectionsRes] = await Promise.all([
           apiRequest<LandmarkApiResponse>('/landmarks?page=1&limit=30'),
-          apiRequest<CoinCollectionApiResponse>('/coin-collections'),
+          apiRequest<CoinCollectionApiResponse>('/coin-collections/my-coin'),
         ]);
         if (landmarksRes.data && Array.isArray(landmarksRes.data.data)) {
           const mapped = landmarksRes.data.data.map((item: LandmarkApiItem) => ({
@@ -146,7 +146,7 @@ export default function useCoinHunting() {
     if (state.modal === 'stamp') {
       const fetchStamps = async () => {
         try {
-          const res = await apiRequest<CoinCollectionApiResponse>('/coin-collections');
+          const res = await apiRequest<CoinCollectionApiResponse>('/coin-collections/my-coin');
           const dataArr = Array.isArray(res?.data?.data) ? res.data.data : [];
           const landmarks = dataArr[0]?.landmarks || [];
           const NUM_SLOTS = 21;
