@@ -74,6 +74,19 @@ export default function CoinHuntingPageInner() {
     router.replace('/community/coin-hunting');
   };
 
+  // กำหนด initialCenter ให้อยู่ตรงกลางจอ (center pan)
+  // ขนาดภาพ map: 6000x2469, initialScale: 0.5 (จาก InteractiveMap)
+  const imageWidth = 6000;
+  const imageHeight = 2469;
+  const initialScale = 0.5;
+  const screenW = typeof window !== 'undefined' ? window.innerWidth : 1920;
+  const screenH = typeof window !== 'undefined' ? window.innerHeight : 1080;
+  // คำนวณให้ภาพอยู่ตรงกลางจอ
+  const initialCenter = {
+    x: (screenW - imageWidth * initialScale) / 2,
+    y: (screenH - imageHeight * initialScale) / 2,
+  };
+
   return (
     <div style={{ flex: 1, height: '100vh', backgroundColor: 'transparent' }}>
       <TopBar
@@ -81,7 +94,7 @@ export default function CoinHuntingPageInner() {
         onStamp={handleGoToStampModal}
         centerText="Bloom possible"
       />
-      <InteractiveMap>
+      <InteractiveMap initialCenter={initialCenter}>
         <MapMarkers
           markers={markers}
           collectedIds={collectedIds}

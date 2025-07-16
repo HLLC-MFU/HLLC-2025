@@ -7,9 +7,10 @@ import { animated } from '@react-spring/web';
 type InteractiveMapProps = {
   onImageLoad?: (imageSize: { width: number; height: number }) => void;
   children?: React.ReactNode;
+  initialCenter?: { x: number; y: number }; // เพิ่ม prop สำหรับกำหนดตำแหน่ง pan เริ่มต้น
 };
 
-export default function InteractiveMap({ onImageLoad, children }: InteractiveMapProps) {
+export default function InteractiveMap({ onImageLoad, children, initialCenter }: InteractiveMapProps) {
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageSize, setImageSize] = useState({ width: 6000, height: 2469 });
@@ -17,6 +18,8 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
 
   // ใช้ useState แทน useSpring สำหรับ pan/zoom
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  // กัน setPan initialCenter ซ้ำ
+  const didSetInitialPan = useRef(false);
   const [scale] = useState(1); // ล็อก scale ไว้ที่ 1
 
   // Load image size once, and set loaded flag
@@ -76,6 +79,15 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
     };
   };
 
+  // เมื่อโหลดภาพเสร็จและมี initialCenter ให้ setPan ไปยังตำแหน่งนั้น (แค่ครั้งแรก)
+  useEffect(() => {
+    if (isImageLoaded && initialCenter && !didSetInitialPan.current) {
+      setPan(initialCenter);
+      didSetInitialPan.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isImageLoaded, initialCenter]);
+
   const bind = useGesture(
     {
       onDrag: ({ offset: [dx, dy], last, memo }) => {
@@ -98,16 +110,6 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
     }
   );
 
-  const handleMapClick = (e: React.MouseEvent) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-    console.log('[MAP TAP]', {
-      x: Math.round(clickX),
-      y: Math.round(clickY),
-    });
-  };
 
   return (
     <div
