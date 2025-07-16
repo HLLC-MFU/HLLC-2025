@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+import { useSSE } from './useSSE';
+
 import { apiRequest } from '@/utils/api';
 import { Activities } from '@/types/activities';
 import { Assessment } from '@/types/assessment';
@@ -98,6 +100,20 @@ export function useActivities(activityId: string | null) {
       setLoading(false);
     }
   };
+
+  useSSE(payload => {
+    if (payload.type === 'REFETCH_DATA') {
+      switch (payload.path) {
+        case '/activities/user':
+          fetchActivitiesByUser();
+          break;
+        default:
+          break;
+      }
+    } else {
+      return;
+    }
+  });
 
   useEffect(() => {
     fetchActivitiesByUser();
