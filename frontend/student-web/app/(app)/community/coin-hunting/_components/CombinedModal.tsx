@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import {
   MdCheckCircle,
   // MdGiftOff,
@@ -76,6 +77,17 @@ interface CombinedModalProps {
   onGoToStamp?: () => void;
   evoucher?: Evoucher | null;
   alertType?: AlertType;
+  remainingCooldownMs?: number; // เพิ่ม prop นี้
+}
+
+function formatMsToMinSec(ms: number, lang: 'th' | 'en' = 'th') {
+  const totalSeconds = Math.ceil(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const unit = lang === 'th' ? 'นาที' : 'min';
+  return `${minutes.toString().padStart(2, '0')}:${seconds
+    .toString()
+    .padStart(2, '0')} ${unit}`;
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -244,8 +256,29 @@ const IconsMap = {
     onGoToStamp,
     evoucher,
     alertType,
+    remainingCooldownMs,
   }: CombinedModalProps) {
     const router = useRouter();
+    // สำหรับ real-time countdown
+    const [cooldownMs, setCooldownMs] = useState<number | undefined>(remainingCooldownMs);
+
+    useEffect(() => {
+      if (alertType === 'cooldown' && visible && typeof remainingCooldownMs === 'number') {
+        setCooldownMs(remainingCooldownMs);
+      }
+    }, [remainingCooldownMs, alertType, visible]);
+
+    useEffect(() => {
+      if (alertType !== 'cooldown' || !visible || typeof cooldownMs !== 'number') return;
+      if (cooldownMs <= 0) return;
+      const interval = setInterval(() => {
+        setCooldownMs((prev) => {
+          if (typeof prev !== 'number') return prev;
+          return prev - 1000;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }, [alertType, visible, cooldownMs]);
   
     if (!visible) return null;
   
@@ -298,6 +331,11 @@ const IconsMap = {
                   {config.title}
                 </h2>
                 <p style={styles.alertMessage}>{config.message}</p>
+                {alertType === 'cooldown' && cooldownMs !== undefined && (
+                  <p style={{ color: '#3b82f6', fontWeight: 'bold', marginTop: 8 }}>
+                    เหลือเวลา {formatMsToMinSec(Math.max(0, cooldownMs))}
+                  </p>
+                )}
               </div>
             )}
             {type === 'success' ? (

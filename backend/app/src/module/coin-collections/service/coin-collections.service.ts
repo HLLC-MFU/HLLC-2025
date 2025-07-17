@@ -44,8 +44,30 @@ export class CoinCollectionsService {
         },
       },
     });
-    this.coinCollectionsHelper.checkCooldown(cooldownCheck);
 
+    let remainingCooldownMs = 0;
+
+    if (cooldownCheck.length > 0) {
+      const collectedTimestamps: Date[] = [];
+      cooldownCheck.forEach((doc) => {
+        doc.landmarks.forEach((item) => {
+          if (
+            item.landmark.equals(landmarkObjectId) &&
+            item.collectedAt >= new Date(Date.now() - landmark.cooldown)
+          ) {
+            collectedTimestamps.push(item.collectedAt);
+          }
+        });
+      });
+
+      if (collectedTimestamps.length > 0) {
+        const newest = new Date(Math.max(...collectedTimestamps.map(d => d.getTime())));
+        const cooldownEnd = newest.getTime() + landmark.cooldown;
+        remainingCooldownMs = Math.max(cooldownEnd - Date.now(), 0);
+      }
+
+      this.coinCollectionsHelper.checkCooldown(cooldownCheck, remainingCooldownMs);
+    }
     const userCollection = await this.coinCollectionModel.findOne({
       user: userObjectId,
     });

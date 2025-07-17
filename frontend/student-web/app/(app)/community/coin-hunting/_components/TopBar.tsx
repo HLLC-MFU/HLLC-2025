@@ -30,8 +30,8 @@ export default function TopBar({ onStamp }: TopBarProps) {
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
-    position: 'absolute',
-    top: 0,
+    position: 'fixed',
+    top: 30,
     left: 0,
     right: 0,
     zIndex: 100,

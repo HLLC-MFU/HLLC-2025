@@ -1,22 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, Coins, Flower, Footprints } from 'lucide-react';
+import { Bell, Flower } from 'lucide-react';
+import { addToast } from '@heroui/react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+
 import GlassButton from '@/components/ui/glass-button';
-import { ConfirmationModal } from '@/components/PretestPosttest/ConfirmModal';
 import PretestQuestionModal from '@/components/PretestPosttest/PretestQuestionModal';
 import { usePrepostQuestion } from '@/hooks/usePrePostQuestion';
 import { PrepostQuestions } from '@/types/prepostQuestion';
-import { addToast } from '@heroui/react';
 import PosttestQuestionModal from '@/components/PretestPosttest/PosttestQuestionModal';
-import useProgress from '@/hooks/useProgress';
-import { useRouter } from 'next/navigation';
+import { useSseStore } from '@/stores/useSseStore';
 import { useAppearances } from '@/hooks/useAppearances';
-import Image from 'next/image';
 
 const baseImageUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function HomePage() {
+  const [notificationModalVisible, setNotificationModalVisible] =
+    useState(false);
   const {
     pretestAnswersInput,
     posttestAnswersInput,
@@ -31,38 +33,48 @@ export default function HomePage() {
     hasPosttestAnswers,
   } = usePrepostQuestion();
   const { assets } = useAppearances();
+  const progress = useSseStore(state => state.progress);
 
-  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
-  const { progress } = useProgress();
   const [isPretestModalOpen, setIsPretestModalOpen] = useState(false);
   const [isPosttestModalOpen, setIsPosttestModalOpen] = useState(false);
-  const [selectedPretestQuestions, setSelectedPretestQuestions] = useState<PrepostQuestions[]>([]);
-  const [selectedPosttestQuestions, setSelectedPosttestQuestions] = useState<PrepostQuestions[]>([]);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isPosttestConfirmOpen, setIsPosttestConfirmOpen] = useState(false);
+  const [selectedPretestQuestions, setSelectedPretestQuestions] = useState<
+    PrepostQuestions[]
+  >([]);
+  const [selectedPosttestQuestions, setSelectedPosttestQuestions] = useState<
+    PrepostQuestions[]
+  >([]);
   const router = useRouter();
 
   const openPretestModal = () => {
     const filteredQuestions = prepostQuestion.filter(
-      q => q.displayType === 'pretest' || q.displayType === 'both',
+      q => q.displayType === 'pretest',
     );
+
     setSelectedPretestQuestions(filteredQuestions);
     const initialAnswers = filteredQuestions.map(q => {
-      const existingAnswer = pretestAnswersInput.find(ans => ans.pretest === q._id);
+      const existingAnswer = pretestAnswersInput.find(
+        ans => ans.pretest === q._id,
+      );
+
       return existingAnswer || { pretest: q._id, answer: '' };
     });
+
     setPretestAnswersInput(initialAnswers);
     setIsPretestModalOpen(true);
   };
 
   const openPosttestModal = () => {
     const filteredQuestions = prepostQuestion.filter(
-      q => q.displayType === 'posttest' || q.displayType === 'both',
+      q => q.displayType === 'posttest',
     );
+
     setSelectedPosttestQuestions(filteredQuestions);
 
     const initialAnswers = filteredQuestions.map(q => {
-      const existingAnswer = posttestAnswersInput.find(ans => ans.posttest === q._id);
+      const existingAnswer = posttestAnswersInput.find(
+        ans => ans.posttest === q._id,
+      );
+
       return existingAnswer || { posttest: q._id, answer: '' };
     });
 
@@ -88,8 +100,7 @@ export default function HomePage() {
     }
   }, [hasPretestAnswers, hasPosttestAnswers, progress?.progressPercentage]);
 
-
-  const handleSubmit = async () => {
+  const handlePretestSubmit = async () => {
     if (!pretestAnswersInput || pretestAnswersInput.length === 0) {
       addToast({
         title: 'No Answer to Submit.',
@@ -139,6 +150,7 @@ export default function HomePage() {
         title: 'No Answer to Submit.',
         color: 'danger',
       });
+
       return;
     }
 
@@ -174,11 +186,6 @@ export default function HomePage() {
     }
   };
 
-  const handleConfirmModal = async () => {
-    await handleSubmit();
-    setIsConfirmOpen(false);
-  };
-
   const steps = 9000;
   // const progressLoading = false;
   const deviceMismatch = false;
@@ -187,7 +194,7 @@ export default function HomePage() {
     <div className="relative flex flex-col max-h-full w-full bg-cover bg-center bg-no-repeat text-white pt-6 md:pt-12 pb-28">
       <div className="flex justify-between items-start mb-6">
         <div className="flex gap-2">
-          <GlassButton iconOnly>
+          <GlassButton iconOnly onClick={() => router.push('/lamduan-flowers')}>
             {(assets && assets.lamduan)
               ? (
                 <Image
@@ -200,7 +207,6 @@ export default function HomePage() {
                 <Flower
                   className="text-white"
                   size={20}
-                  onClick={() => router.push('/lamduan-flowers')}
                 />
               )}
           </GlassButton>
@@ -225,8 +231,8 @@ export default function HomePage() {
 
       <PretestQuestionModal
         answers={pretestAnswersInput}
-        prePostQuestions={selectedPretestQuestions}
         isOpen={isPretestModalOpen}
+        prePostQuestions={selectedPretestQuestions}
         setAnswers={setPretestAnswersInput}
         onClose={() => {
           if (hasPretestAnswers === false) {
@@ -234,18 +240,19 @@ export default function HomePage() {
               title: 'You must complete the pretest first.',
               color: 'warning',
             });
+
             return;
           }
           setIsPretestModalOpen(false);
           setSelectedPretestQuestions([]);
         }}
-        onSubmit={() => setIsConfirmOpen(true)}
+        onSubmit={() => handlePretestSubmit()}
       />
 
       <PosttestQuestionModal
         answers={posttestAnswersInput}
-        prePostQuestions={selectedPosttestQuestions}
         isOpen={isPosttestModalOpen}
+        prePostQuestions={selectedPosttestQuestions}
         setAnswers={setPosttestAnswersInput}
         onClose={() => {
           if (hasPosttestAnswers === false) {
@@ -253,31 +260,13 @@ export default function HomePage() {
               title: 'You must complete the posttest first.',
               color: 'warning',
             });
+
             return;
           }
           setIsPosttestModalOpen(false);
           setSelectedPosttestQuestions([]);
         }}
-        onSubmit={() => setIsPosttestConfirmOpen(true)}
-      />
-
-      <ConfirmationModal
-        isOpen={isConfirmOpen}
-        subtitle="Are you sure you want to submit your answers? You won't be able to change them after submission."
-        title="Do you want to submit your answers?"
-        onClose={() => setIsConfirmOpen(false)}
-        onConfirm={handleConfirmModal}
-      />
-
-      <ConfirmationModal
-        isOpen={isPosttestConfirmOpen}
-        subtitle="Are you sure you want to submit your POSTTEST answers? You won't be able to change them after submission."
-        title="Do you want to submit your POSTTEST answers?"
-        onClose={() => setIsPosttestConfirmOpen(false)}
-        onConfirm={async () => {
-          await handlePosttestSubmit();
-          setIsPosttestConfirmOpen(false);
-        }}
+        onSubmit={() => handlePosttestSubmit()}
       />
     </div>
   );

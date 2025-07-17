@@ -37,6 +37,7 @@ export default function useCoinHunting() {
   const [errorMarkers, setErrorMarkers] = useState<string | null>(null);
 
   const [refreshKey, setRefreshKey] = useState(0);
+  const [cooldownMs, setCooldownMs] = useState<number | null>(null);
 
   const router = useRouter();
   const { user } = useProfile();
@@ -160,8 +161,10 @@ export default function useCoinHunting() {
     setState(s => ({ ...s, evoucher: null, modal: 'stamp' }));
   };
 
-  const handleAlert = (type: 'already-collected' | 'no-evoucher' | 'too-far' | 'cooldown') => {
+  const handleAlert = (type: 'already-collected' | 'no-evoucher' | 'too-far' | 'cooldown', ms?: number) => {
     setState(s => ({ ...s, alertType: type, modal: 'alert' }));
+    if (type === 'cooldown' && typeof ms === 'number') setCooldownMs(ms);
+    else setCooldownMs(null);
   };
 
   const closeModal = () => setState(s => ({ ...s, modal: null }));
@@ -203,5 +206,6 @@ export default function useCoinHunting() {
     handleAlert,
     closeModal,
     setState,
+    cooldownMs,
   };
 }

@@ -12,12 +12,8 @@ import { Button } from '@heroui/react';
 import { Eye, EyeOff, Settings, TriangleAlert } from 'lucide-react';
 
 export default function ProfilePage() {
-  const { schoolAcronym, fetchUser } = useProfile();
+  const { schoolAcronym } = useProfile();
   const [isVisible, setIsVisible] = useState<boolean>(true);
-
-  useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
 
   return (
     <div className="flex flex-col justify-between fixed inset-0 pt-6 pb-16 px-4 z-50">

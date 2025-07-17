@@ -56,7 +56,7 @@ export function Scene({ schoolAcronym }: SceneProps) {
 
           materials.forEach((mat: THREE.Material) => {
             if (mat instanceof THREE.MeshStandardMaterial) {
-              if (mat.map) mat.map.colorSpace = THREE .SRGBColorSpace;
+              if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
               mat.transparent = false;
               mat.roughness = 1;
               mat.metalness = 0;

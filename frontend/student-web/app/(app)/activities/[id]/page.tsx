@@ -102,11 +102,6 @@ export default function ActivitiesDetailPage() {
     }
   };
 
-  const handleConfirmModal = async () => {
-    await handleSubmit();
-    setIsConfirmOpen(false);
-  };
-
   const HandleViewMap = () => {
     if (activity?.location?.mapUrl) {
       window.open(activity.location.mapUrl, '_blank');
@@ -210,16 +205,6 @@ export default function ActivitiesDetailPage() {
                       <CheckinStatusChip
                         assessmentStatus={activity.hasAnsweredAssessment}
                         status={activity.checkinStatus}
-                        onClick={() => {
-                          if (activity.checkinStatus === 0) {
-                            addToast({
-                              title: 'You have not checked in yet.',
-                              color: 'warning',
-                            });
-                          } else {
-                            setIsModalOpen(true);
-                          }
-                        }}
                       />
                     </div>
                   </div>
@@ -274,7 +259,7 @@ export default function ActivitiesDetailPage() {
                   </div>
                 ) : (
                   <div>
-                    <Stepper activity={activity} />
+                    <Stepper activity={activity} router={router}/>
                   </div>
                 )}
               </div>
@@ -290,15 +275,7 @@ export default function ActivitiesDetailPage() {
         isOpen={isModalOpen}
         setAnswers={setAnswers}
         onClose={handleCloseModal}
-        onSubmit={() => setIsConfirmOpen(true)}
-      />
-      {/*Confirm modal */}
-      <ConfirmationModal
-        isOpen={isConfirmOpen}
-        subtitle="Are you sure you want to submit your answers? You won't be able to change them after submission."
-        title="Do you want to submit your answers?"
-        onClose={() => setIsConfirmOpen(false)}
-        onConfirm={handleConfirmModal}
+        onSubmit={() =>handleSubmit()}
       />
     </>
   );
