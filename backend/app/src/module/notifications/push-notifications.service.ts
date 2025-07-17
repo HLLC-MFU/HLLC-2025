@@ -7,7 +7,7 @@ import { User, UserDocument } from '../users/schemas/user.schema';
 import { Model, Types } from 'mongoose';
 import { Device, DeviceDocument } from '../devices/schemas/device.schema';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
-import { getUsersByMajors, getUsersByRoles, getUsersBySchools } from './utils/notification.util';
+import { formatDisplayName, getNotificationBody, getNotificationImage, getNotificationSubtitle, getUsersByMajors, getUsersByRoles, getUsersBySchools } from './utils/notification.util';
 import { ChatNotificationPayload } from 'src/pkg/types/kafka';
 
 @Injectable()
@@ -32,27 +32,30 @@ export class PushNotificationService {
   }
 
   private async handleChatNotification(payload: ChatNotificationPayload) {
+    const { message, sender, room } = payload;
+
+    const fullName = await formatDisplayName(sender.name);
+
+    const body = await getNotificationBody(message);
+    const subtitle = await getNotificationSubtitle(message, room, payload.receiver);
+    const image = await getNotificationImage(message);
+
     const dto: PushNotificationDto = {
       receivers: {
         users: [payload.receiver],
       },
       title: {
-        th: `${payload.sender.name.first} ${payload.sender.name.middle} ${payload.sender.name.last}`,
-        en: `${payload.sender.name.first} ${payload.sender.name.middle} ${payload.sender.name.last}`,
+        th: fullName,
+        en: fullName,
       },
-      subtitle: {
-        th: `${payload.room.name.th}`,
-        en: `${payload.room.name.en}`,
-      },
-      body: {
-        th: payload.message.message,
-        en: payload.message.message,
-      },
+      subtitle,
+      body,
+      image,
       data: {
         type: 'chat',
-        roomId: payload.room._id,
-        messageId: payload.message._id,
-        senderId: payload.sender._id,
+        roomId: room._id,
+        messageId: message._id,
+        senderId: sender._id,
       },
       priority: 'high',
       badge: 1,
