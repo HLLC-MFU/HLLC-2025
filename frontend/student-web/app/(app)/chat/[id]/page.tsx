@@ -106,12 +106,21 @@ export default function ChatRoomPage() {
 
   const handleSendMessageWithScroll = () => {
     console.log('[DEBUG] handleSendMessageWithScroll called', { isMember, isConnected, messageText });
-    handleSendMessage();
-    setTimeout(() => {
-      if (flatListRef.current) {
-        flatListRef.current.scrollTop = flatListRef.current.scrollHeight;
-      }
-    }, 100);
+    
+    // Only send message if there's actual content and we're connected
+    if (messageText.trim() && isConnected) {
+      handleSendMessage();
+      
+      // Clear the input after sending
+      setMessageText('');
+      
+      // Scroll to bottom after a short delay to ensure message is rendered
+      setTimeout(() => {
+        if (flatListRef.current) {
+          flatListRef.current.scrollTop = flatListRef.current.scrollHeight;
+        }
+      }, 100);
+    }
   };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {

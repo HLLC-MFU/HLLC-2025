@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Message } from '@/types/chat';
+import { useProfile } from '@/hooks/useProfile';
 
 interface ChatInputProps {
   messageText: string;
@@ -32,10 +33,22 @@ const ChatInput = ({
   setReplyTo,
   canSendImage = true,
 }: ChatInputProps) => {
+  const { user } = useProfile();
   const [isFocused, setIsFocused] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const hasText = messageText.trim().length > 0;
   const isDisabled = !isMember || !isConnected;
   const canSend = hasText && !isDisabled;
+
+  useEffect(() => {
+    if (hasText) {
+      setIsTyping(true);
+      const timer = setTimeout(() => setIsTyping(false), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setIsTyping(false);
+    }
+  }, [hasText]);
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -57,79 +70,182 @@ const ChatInput = ({
       e.preventDefault();
       handleSend();
     }
+    handleTyping();
+  };
+
+  const getDisplayName = (user?: { name?: any; username?: string }) => {
+    if (!user) return 'user';
+    if (user.name) {
+      if (typeof user.name === 'string') return user.name;
+      if (user.name.first || user.name.last) {
+        return `${user.name.first || ''} ${user.name.last || ''}`.trim();
+      }
+    }
+    return user.username || 'user';
   };
 
   return (
-    <div className="relative mb-5 mx-2.5">
+    <div className="relative mb-6 mx-3">
+      {/* Reply Preview */}
       {replyTo && (
-        <div className="flex items-center bg-white/20 backdrop-blur rounded-xl p-2 mb-1 mx-0.5">
-          <span className="text-gray-400 mr-1.5">↩</span>
-          <span className="text-gray-900 opacity-80 flex-1 truncate">
-            {replyTo.text}
-          </span>
+        <div className="flex items-center bg-gradient-to-r from-blue-50/90 to-indigo-50/90 dark:from-blue-900/20 dark:to-indigo-900/20 backdrop-blur-sm rounded-t-2xl p-3 mx-0.5 border-b border-blue-200/50 dark:border-blue-700/50 shadow-sm">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 font-semibold mb-1">
+              <svg className="w-4 h-4 mr-2 text-blue-500 dark:text-blue-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+              <span className="bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                Replying to {replyTo.user?._id === user?._id ? 'yourself' : getDisplayName(replyTo.user)}
+              </span>
+            </div>
+            <div className="text-sm text-gray-700 dark:text-gray-300 truncate pl-6 font-medium">
+              {replyTo.text || (
+                <span className="flex items-center text-gray-500 dark:text-gray-400">
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Image or file
+                </span>
+              )}
+            </div>
+          </div>
           <button
-            onClick={() => setReplyTo && setReplyTo(undefined)}
-            className="text-gray-400 text-base ml-2"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setReplyTo && setReplyTo(undefined);
+            }}
+            className="ml-3 p-1.5 rounded-full hover:bg-blue-200/50 dark:hover:bg-blue-800/30 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-all duration-200 hover:scale-110"
             type="button"
+            aria-label="Cancel reply"
           >
-            ✕
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
       )}
-      <div className={`flex items-end rounded-3xl p-2 min-h-14 border-2 transition-all duration-300 bg-white/30 backdrop-blur shadow-lg ${isFocused ? 'border-blue-400' : 'border-white/30'}`}>
-        {/* Image/plus button */}
+
+      {/* Main Input Container */}
+      <div className={`relative flex items-end rounded-3xl p-1.5 min-h-[52px] border-2 transition-all duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg hover:shadow-xl ${
+        isFocused 
+          ? 'border-blue-400 dark:border-blue-500 shadow-blue-500/20 bg-white/90 dark:bg-gray-800/90' 
+          : 'border-gray-200/50 dark:border-gray-600/50'
+      } ${replyTo ? 'rounded-tl-none rounded-tr-none' : ''} ${
+        isDisabled ? 'opacity-60' : ''
+      }`}>
+        
+        {/* Connection Status Indicator */}
+        {!isConnected && (
+          <div className="absolute -top-1 -right-1 z-10">
+            <div className="relative">
+              <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-white dark:border-gray-800 animate-pulse" />
+              <div className="absolute inset-0 w-3 h-3 rounded-full bg-red-500 animate-ping opacity-75" />
+            </div>
+          </div>
+        )}
+
+        {/* Add/Image Button */}
         {canSendImage && (
           <button
-            className={`m-1 w-11 h-11 rounded-full flex items-center justify-center transition-opacity bg-white/20 hover:bg-blue-100/40 ${isDisabled ? 'opacity-50' : ''}`}
+            className={`m-1 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+              isDisabled 
+                ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed' 
+                : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800 dark:hover:to-blue-700 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 shadow-sm hover:shadow-md'
+            }`}
             onClick={handleImageUpload}
             disabled={isDisabled}
             type="button"
           >
-            <span className="text-blue-500 text-xl">+</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
           </button>
         )}
-        {/* Text input */}
-        <input
-          ref={inputRef}
-          type="text"
-          value={messageText}
-          onChange={(e) => handleTextInput(e.target.value)}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onKeyPress={handleKeyPress}
-          placeholder={isDisabled ? 'กำลังเชื่อมต่อ...' : 'พิมพ์ข้อความ...'}
-          className={`flex-1 bg-transparent text-gray-900 text-base px-2 py-3 min-h-11 outline-none font-medium placeholder-gray-400 ${isDisabled ? 'opacity-50' : ''}`}
-          disabled={isDisabled}
-          maxLength={1000}
-        />
-        {/* Send button */}
-        {hasText && (
-          <button
-            className={`m-1 w-11 h-11 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg hover:scale-105 transition-transform ${!canSend ? 'opacity-50' : ''}`}
-            onClick={handleSend}
-            disabled={!canSend}
-            type="button"
-          >
-            <span className="text-white text-lg">→</span>
-          </button>
-        )}
-        {/* Emoji/sticker button */}
+
+        {/* Text Input */}
+        <div className="flex-1 relative">
+          <input
+            ref={inputRef}
+            type="text"
+            value={messageText}
+            onChange={(e) => handleTextInput(e.target.value)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onKeyPress={handleKeyPress}
+            placeholder={isDisabled ? 'กำลังเชื่อมต่อ...' : 'พิมพ์ข้อความ...'}
+            className={`w-full bg-transparent text-gray-900 dark:text-gray-100 text-[15px] px-3 py-2.5 min-h-[40px] outline-none font-medium placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed ${
+              isDisabled ? 'cursor-not-allowed' : ''
+            }`}
+            disabled={isDisabled}
+            maxLength={1000}
+          />
+          
+          {/* Character Counter */}
+          {messageText.length > 800 && (
+            <div className={`absolute -bottom-5 right-0 text-xs font-medium ${
+              messageText.length > 950 ? 'text-red-500' : 'text-yellow-500'
+            }`}>
+              {messageText.length}/1000
+            </div>
+          )}
+        </div>
+
+        {/* Emoji/Sticker Button */}
         <button
-          className={`m-1 w-11 h-11 rounded-full flex items-center justify-center transition-all ${showStickerPicker ? 'bg-yellow-400/20' : 'hover:bg-white/20'} ${isDisabled ? 'opacity-50' : ''}`}
+          className={`m-1 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+            showStickerPicker 
+              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 scale-110' 
+              : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:scale-110'
+          } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow-md'}`}
           onClick={() => setShowStickerPicker(!showStickerPicker)}
           disabled={isDisabled}
           type="button"
         >
-          <span className={`text-lg ${showStickerPicker ? 'text-yellow-500' : 'text-gray-700'}`}>😊</span>
+          <span className="text-lg transition-transform duration-200">
+            {showStickerPicker ? '😊' : '😊'}
+          </span>
         </button>
+
+        {/* Send Button */}
+        {hasText && (
+          <button
+            className={`m-1 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+              canSend 
+                ? 'bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl shadow-blue-500/25 hover:scale-110 text-white'
+                : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+            }`}
+            onClick={handleSend}
+            disabled={!canSend}
+            type="button"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+        )}
       </div>
-      {!isConnected && (
-        <div className="absolute -top-1 right-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white" />
+
+      {/* Typing Indicator */}
+      {isTyping && (
+        <div className="absolute -bottom-6 left-4 flex items-center text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex space-x-1 mr-2">
+            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          <span className="font-medium">typing...</span>
+        </div>
+      )}
+
+      {/* Connection Status Text */}
+      {isDisabled && (
+        <div className="absolute -bottom-6 right-4 text-xs text-red-500 dark:text-red-400 font-medium">
+          {!isConnected ? 'Connection lost' : 'Not a member'}
         </div>
       )}
     </div>
   );
 };
 
-export default ChatInput; 
+export default ChatInput;

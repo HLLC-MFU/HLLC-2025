@@ -33,10 +33,24 @@ const MessageList = ({
   const { user } = useProfile();
   const currentUsername = user?.username || '';
 
-  // flatten all messages for replyTo enrichment (sort จากเก่าไปใหม่)
+  // flatten all messages for replyTo enrichment (sort from oldest to newest)
   const allMessages = useMemo(() => {
-    return messages
-      .flat()
+    const flattened = messages.flat();
+    
+    // Use a Map to deduplicate messages by ID
+    const uniqueMessages = new Map();
+    
+    // Process messages from oldest to newest, so newer duplicates will overwrite older ones
+    flattened
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .forEach(msg => {
+        if (msg?.id) {
+          uniqueMessages.set(msg.id, msg);
+        }
+      });
+    
+    // Convert back to array and sort again to ensure correct order
+    return Array.from(uniqueMessages.values())
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }, [messages]);
 
