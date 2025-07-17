@@ -18,6 +18,7 @@ import {
 } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from '../../users/schemas/user.schema';
 import { Assessment, AssessmentDocument } from '../schema/assessment.schema';
+import { SseService } from 'src/module/sse/sse.service';
 @Injectable()
 export class AssessmentAnswersService {
   constructor(
@@ -29,50 +30,78 @@ export class AssessmentAnswersService {
 
     @InjectModel(Assessment.name)
     private assessmentModel: Model<AssessmentDocument>,
+
+    private readonly sseService: SseService,
   ) {}
 
   async create(createAssessmentAnswerDto: CreateAssessmentAnswerDto) {
     const { user, answers } = createAssessmentAnswerDto;
+    const userId = new Types.ObjectId(user);
 
-    const userExists = await this.userModel.exists({ _id: user });
-    if (!userExists) throw new NotFoundException('User not found');
+    // Fetch assessment answers and verify user in a single call if possible
+    const existingDoc = await this.assessmentAnswerModel
+      .findOne({ user: userId })
+      .select('answers.assessment')
+      .lean();
 
-    const filter = { user: new Types.ObjectId(user) };
+    // Only check user existence if there's no answer document
+    if (!existingDoc) {
+      const userExists = await this.userModel.exists({ _id: userId });
+      if (!userExists) throw new NotFoundException('User not found');
+    }
 
-    const existingAssessments = new Set(
-      (
-        await this.assessmentAnswerModel
-          .findOne(filter)
-          .select('answers.assessment')
-          .lean()
-      )?.answers.map((a) => a.assessment.toString()) ?? [],
+    // Build a Set of existing assessments (string ids)
+    const existingSet = new Set(
+      existingDoc?.answers.map((a) => a.assessment.toString()) ?? [],
     );
 
-    const newAnswers = answers.filter(
-      (a) => !existingAssessments.has(a.assessment),
-    );
-    if (!newAnswers.length)
+    // Filter new answers not yet stored
+    const filteredNewAnswers: { assessment: Types.ObjectId; answer: string }[] =
+      [];
+    for (const a of answers) {
+      if (!existingSet.has(a.assessment)) {
+        filteredNewAnswers.push({
+          assessment: new Types.ObjectId(a.assessment),
+          answer: a.answer,
+        });
+      }
+    }
+
+    if (!filteredNewAnswers.length) {
       throw new BadRequestException(
         'Assessment answers already exist for this user',
       );
+    }
 
-    const update = {
-      $addToSet: {
-        answers: {
-          $each: newAnswers.map((a) => ({
-            assessment: new Types.ObjectId(a.assessment),
-            answer: a.answer,
-          })),
+    // Perform DB update
+    const result = await queryUpdateOneByFilter<AssessmentAnswer>(
+      this.assessmentAnswerModel,
+      { user: userId },
+      {
+        $addToSet: {
+          answers: { $each: filteredNewAnswers },
         },
       },
-    };
-
-    return await queryUpdateOneByFilter<AssessmentAnswer>(
-      this.assessmentAnswerModel,
-      filter,
-      update,
       { upsert: true },
     );
+
+    const eventPayload = {
+      type: 'REFETCH_DATA',
+      path: '/activities/progress',
+    };
+
+    console.log(
+      '[SSE] sending event payload:',
+      userId.toString(),
+      eventPayload,
+    );
+
+    this.sseService.sendToUser(userId.toString(), {
+      type: 'REFETCH_DATA',
+      path: '/activities/progress',
+    });
+
+    return result;
   }
 
   async findAll(query: Record<string, string>) {

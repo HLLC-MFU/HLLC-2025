@@ -2,9 +2,9 @@ import { ScrollShadow } from "@heroui/react";
 
 export default function EvoucherCodesSkeleton() {
     return (
-        <div className="flex flex-col animate-pulse">
-            <ScrollShadow className="h-[600px] overflow-y-auto pt-6 pb-10" size={40} hideScrollBar>
-                <div className="flex flex-col items-center gap-8">
+        <div className="flex flex-col h-full animate-pulse">
+            <ScrollShadow className="h-[90%] overflow-y-auto pt-6 pb-10" size={40} hideScrollBar>
+                <div className="grid justify-center sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 items-center gap-8">
                     {Array.from({ length: 6 }).map((_, index) => (
                         <div
                             key={index}

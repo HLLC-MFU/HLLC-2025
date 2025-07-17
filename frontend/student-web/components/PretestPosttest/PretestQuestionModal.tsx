@@ -78,8 +78,9 @@ export default function PretestQuestionModal({
             {prePostQuestions.length === 0 ? (
               <p>Pretest Questions Loading ...</p>
             ) : (
-              prePostQuestions
-                .filter(p => p.displayType === 'pretest' || p.displayType === 'both')
+              [...prePostQuestions]
+                .filter(p => p.displayType === 'pretest')
+                .sort((a, b) => a.order - b.order)
                 .map(p => (
                   <Form key={p._id} className="flex flex-col gap-4">
                     <p className="font-bold">
@@ -99,12 +100,17 @@ export default function PretestQuestionModal({
                           ''
                         }
                         onChange={e => {
-                          const updated = answers.map(ans =>
-                            ans.pretest === p._id
-                              ? { ...ans, answer: e.target.value }
-                              : ans,
-                          );
-                          setAnswers(updated);
+                          const newValue = e.target.value;
+                          const existing = answers.find(ans => ans.pretest === p._id);
+
+                          if (existing) {
+                            const updated = answers.map(ans =>
+                              ans.pretest === p._id ? { ...ans, answer: newValue } : ans
+                            );
+                            setAnswers(updated);
+                          } else {
+                            setAnswers([...answers, { pretest: p._id, answer: newValue }]);
+                          }
                         }}
                       />
                     )}
@@ -119,12 +125,16 @@ export default function PretestQuestionModal({
                               ?.answer || ''
                           }
                           onValueChange={val => {
-                            const updated = answers.map(ans =>
-                              ans.pretest === p._id
-                                ? { ...ans, answer: val }
-                                : ans,
-                            );
-                            setAnswers(updated);
+                            const existing = answers.find(ans => ans.pretest === p._id);
+
+                            if (existing) {
+                              const updated = answers.map(ans =>
+                                ans.pretest === p._id ? { ...ans, answer: val } : ans
+                              );
+                              setAnswers(updated);
+                            } else {
+                              setAnswers([...answers, { pretest: p._id, answer: val }]);
+                            }
                           }}
                         >
                           <Radio value="1">1</Radio>

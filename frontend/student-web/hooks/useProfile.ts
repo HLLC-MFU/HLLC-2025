@@ -35,6 +35,7 @@ interface ProfileStore {
   error: string | null;
   fetchUser: () => Promise<void>;
   clearUser: () => void;
+  setUser: (user: User) => void;
   _fetched: boolean; // internal flag
 }
 
@@ -103,6 +104,7 @@ export const useProfile = create<ProfileStore>()(
           error: null,
           _fetched: false,
         }),
+        setUser: (user: User) => set({ user }),
     }),
     {
       name: 'profile-store',
