@@ -52,7 +52,6 @@ export function usePrepostQuestion() {
             const res = await apiRequest<{ data: boolean }>('/pretest-answers/user', 'GET');
             setHasPretestAnswers(res.data?.data ?? false);
         } catch (err) {
-            console.error(err);
             setHasPretestAnswers(false);
         } finally {
             setLoading(false);
@@ -64,10 +63,8 @@ export function usePrepostQuestion() {
         try {
             const res = await apiRequest<{ data: boolean }>('/posttest-answers/user', 'GET');
             setHasPosttestAnswers(res.data?.data ?? false);
-            console.log('posttest fetch data =>', res);
 
         } catch (err) {
-            console.error(err);
             setHasPosttestAnswers(false);
         } finally {
             setLoading(false);
