@@ -470,7 +470,7 @@ func (h *AsyncHelper) processCacheMessageBatch(batch []DatabaseJob) error {
 func (h *AsyncHelper) processNotificationJob(job NotificationJob, workerID int) {
 
 	// Empty message avoidable
-	if job.Message == nil || job.Message.Message == "" {
+	if job.Message == nil || job.Message.Message == "" || job.Message.RoomID.IsZero() {
 		log.Printf("[AsyncHelper] Skipping notification for empty message %s", job.Message.ID.Hex())
 		job.Service.UpdateMessageStatus(job.Message.ID, "notification_sent", false)
 		h.checkMessageCompletion(job.Message.ID)

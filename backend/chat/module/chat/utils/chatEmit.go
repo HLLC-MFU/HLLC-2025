@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -36,8 +37,25 @@ func NewChatEventEmitter(hub *Hub, bus *kafka.Bus, redis *redis.Client, mongo *m
 }
 
 func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessage, metadata interface{}) error {
-	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s Text=%s",
+	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s Text='%s'",
 		msg.ID.Hex(), msg.RoomID.Hex(), msg.Message)
+
+	// **NEW: Add validation check**
+	if msg == nil {
+		log.Printf("[ERROR] EmitMessage: message is nil")
+		return fmt.Errorf("message is nil")
+	}
+	
+	if strings.TrimSpace(msg.Message) == "" && 
+		msg.StickerID == nil && 
+		strings.TrimSpace(msg.FileName) == "" && 
+		strings.TrimSpace(msg.Image) == "" &&
+		msg.EvoucherInfo == nil && 
+		len(msg.MentionInfo) == 0 && 
+		msg.ModerationInfo == nil {
+		log.Printf("[ERROR] EmitMessage: completely empty message detected")
+		return fmt.Errorf("message cannot be empty")
+	}
 
 	// Get user data
 	userInfo, err := e.getUserInfo(ctx, msg.UserID)
@@ -482,21 +500,31 @@ func (e *ChatEventEmitter) getReplyToMessage(ctx context.Context, replyToID prim
 
 // emitEventStructured handles the new unified Event structure
 func (e *ChatEventEmitter) emitEventStructured(ctx context.Context, msg *model.ChatMessage, event model.Event) error {
+	log.Printf("[TRACE] emitEventStructured called for message ID=%s Room=%s EventType=%s",
+		msg.ID.Hex(), msg.RoomID.Hex(), event.Type)
 
 	// Empty message avoidable
-	if msg.Message == "" || msg.RoomID.IsZero() {
-		log.Printf("[ChatEventEmitter] Skipping empty message %s in event %s", msg.ID.Hex(), event.Type)
-		return nil
+	if msg == nil || msg.RoomID.IsZero() || msg.ID.IsZero() {
+		log.Printf("[ERROR] emitEventStructured: invalid message data: RoomID=%s, MessageID=%s",
+			msg.RoomID.Hex(), msg.ID.Hex())
+		return fmt.Errorf("invalid message data: RoomID=%s, MessageID=%s",
+			msg.RoomID.Hex(), msg.ID.Hex())
 	}
 
 	// For WebSocket broadcasting, marshal to bytes (needed for WebSocket protocol)
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
+		log.Printf("[ERROR] emitEventStructured: failed to marshal structured event: %v", err)
 		return fmt.Errorf("failed to marshal structured event: %w", err)
 	}
 
+	log.Printf("[TRACE] emitEventStructured: broadcasting to room %s with %d bytes", 
+		msg.RoomID.Hex(), len(eventBytes))
+
 	// Broadcast directly to room instead of using BroadcastEvent
 	e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventBytes)
+
+	log.Printf("[TRACE] emitEventStructured: WebSocket broadcast completed for room %s", msg.RoomID.Hex())
 
 	// For Kafka, send structured payload directly (no double marshaling)
 	roomTopic := getRoomTopic(msg.RoomID.Hex())

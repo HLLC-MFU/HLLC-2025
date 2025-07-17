@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -119,9 +120,26 @@ func NewChatService(
 }
 /* Helper function for Validate Empty Message */
 func isValidChatMessage(msg *model.ChatMessage) bool {
-	return msg != nil &&
-		(msg.Message != "" || msg.StickerID != nil || msg.FileName != "" ||
-			msg.EvoucherInfo != nil || msg.MentionInfo != nil || msg.ModerationInfo != nil)
+	if msg == nil {
+		log.Printf("[ChatService] Message is nil")
+		return false
+	}
+	
+	// Check if message has any meaningful content
+	hasContent := false
+	
+	// Check text message
+	if strings.TrimSpace(msg.Message) != "" {
+		hasContent = true
+		log.Printf("[ChatService] Message has text content: '%s'", strings.TrimSpace(msg.Message))
+	}
+	
+	if !hasContent {
+		log.Printf("[ChatService] Message has no meaningful content - user: %s, room: %s", 
+			msg.UserID.Hex(), msg.RoomID.Hex())
+	}
+	
+	return hasContent
 }
 
 // **Interface implementations for AsyncHelper**

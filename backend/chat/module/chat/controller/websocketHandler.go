@@ -472,6 +472,12 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 
 		messageText := strings.TrimSpace(string(msg))
 
+		// **NEW: Check for empty messages before processing**
+		if messageText == "" {
+			log.Printf("[WebSocket] Skipping empty message from user %s in room %s", userID, roomID)
+			continue
+		}
+
 		// **NEW: Check schedule before processing any message**
 		room, err := h.roomService.GetRoomById(ctx, roomObjID)
 		if err != nil {
@@ -615,6 +621,8 @@ func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.C
 		ReplyToID: &replyToID,
 		Timestamp: time.Now(),
 	}
+
+	
 	// ส่งข้อความ reply ไปยังห้อง
 	metadata := map[string]interface{}{
 		"type": "reply",
