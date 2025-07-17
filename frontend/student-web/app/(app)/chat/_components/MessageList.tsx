@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import SwipeableMessageBubble from './SwipeableMessageBubble';
 import SystemMessage from './SystemMessage';
 import TypingIndicator from './TypingIndicator';
@@ -39,6 +39,14 @@ const MessageList = ({
       .flat()
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }, [messages]);
+
+  // DEBUG: log messages ที่จะ render
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line no-console
+      console.log('[MessageList] messages to render:', allMessages);
+    }
+  }, [allMessages]);
 
   // ฟังก์ชัน scroll ไปยังข้อความต้นทาง
   const handleReplyPreviewClick = (replyToId: string) => {

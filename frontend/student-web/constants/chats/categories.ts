@@ -7,6 +7,4 @@ export const Categories = [
   { name: 'Gaming', color: '#ef4444' },
   { name: 'Education', color: '#06b6d4' },
   { name: 'Entertainment', color: '#ec4899' },
-  { name: 'Business', color: '#84cc16' },
-  { name: 'Health', color: '#f97316' },
 ]; 

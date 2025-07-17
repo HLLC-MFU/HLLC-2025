@@ -55,11 +55,61 @@ interface MembersState {
   hasMore: boolean;
 }
 
-export const useChatRoom = () => {
+interface UseChatRoomReturn {
+  room: ChatRoom | null;
+  isMember: boolean;
+  messageText: string;
+  setMessageText: (text: string) => void;
+  loading: boolean;
+  error: string | null;
+  joining: boolean;
+  showEmojiPicker: boolean;
+  setShowEmojiPicker: (show: boolean) => void;
+  isRoomInfoVisible: boolean;
+  setIsRoomInfoVisible: (show: boolean) => void;
+  replyTo: Message | undefined;
+  setReplyTo: (message?: Message) => void;
+  showStickerPicker: boolean;
+  setShowStickerPicker: (show: boolean) => void;
+  isConnected: boolean;
+  wsError: Error | null;
+  connectedUsers: any[];
+  typing: string[];
+  inputRef: React.RefObject<HTMLInputElement>;
+  userId: string;
+  roomId: string;
+  groupMessages: any[];
+  mentionSuggestions: any[];
+  isMentioning: boolean;
+  members: any[];
+  handleJoin: () => void;
+  handleSendMessage: () => void;
+  handleImageUpload: (file: File) => void;
+  handleSendSticker: (sticker: any) => void;
+  handleTyping: () => void;
+  handleMentionSelect: (user: any) => void;
+  handleTextInput: (text: string) => void;
+  initializeRoom: () => void;
+  loadMembers: (page: number, append: boolean) => void;
+  handleUnsendMessage: (message: Message) => void;
+}
+
+interface UseChatRoomProps {
+  user: {
+    _id: string;
+    name?: {
+      first?: string;
+      middle?: string;
+      last?: string;
+    };
+    username?: string;
+  };
+}
+
+export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
   const params = useParams();
-  const { user } = useProfile();
-  const flatListRef = useRef(null);
-  const inputRef = useRef(null);
+  const flatListRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const userId = user?._id || '';
   // FIX: use 'id' param for dynamic route
   const roomId = (params.id || params.roomId) as string;
@@ -99,6 +149,9 @@ export const useChatRoom = () => {
     hasMore: true,
   });
 
+  // On mount and after join, fetch /api/rooms/{roomId} and use isMember from response
+  const [isMember, setIsMember] = useState(false);
+
   // Track initialization state to prevent multiple calls
   const isInitialized = useRef(false);
   const initializationInProgress = useRef(false);
@@ -106,11 +159,11 @@ export const useChatRoom = () => {
 
   const {
     isConnected,
-    error: wsError,
-    sendMessage: wsSendMessage,
-    messages: wsMessages,
     connectedUsers,
     typing,
+    error: wsError,
+    messages: wsMessages,
+    sendMessage: wsSendMessage,
     connect: wsConnect,
     disconnect: wsDisconnect,
     ws,
@@ -230,98 +283,42 @@ export const useChatRoom = () => {
     }
   }, [roomId, params.room, params.isMember, updateChatState, addMessage]);
 
-  // Connect to WebSocket only when room is initialized and user is a member
-  const connectToWebSocket = useCallback(async () => {
-    // ใช้ is_member จาก backend แทนการเช็คจาก members array
-    const isMember = !!(chatState.room && chatState.room.is_member);
-    if (!isInitialized.current || !isMember) {
-      console.log('Cannot connect: room not initialized or user not a member', {
-        isInitialized: isInitialized.current,
-        isMember
-      });
-      return;
-    }
-
-    if (isConnected) {
-      console.log('WebSocket already connected, skipping connection...');
-      return;
-    }
-
-    console.log('Connecting to WebSocket...');
-    await wsConnect(roomId);
-  }, [chatState.room, isConnected, wsConnect, roomId]);
-
-  // Modified handleTyping to avoid triggering while mentioning
-  const handleTyping = () => {
-    if (!mentionState.isMentioning) {
-      originalHandleTyping();
-    }
-  };
-
-  // Restore handleJoin function (fix linter error)
-  const handleJoin = async () => {
+  // Remove joinedRoomIds logic
+  // On mount and after join, fetch /api/rooms/{roomId} and use isMember from response
+  const fetchRoomMembership = useCallback(async () => {
     try {
-      const isMember = !!(chatState.room && chatState.room.is_member);
-      if (!chatState.room || isMember || chatState.joining) return;
-      updateChatState({ joining: true });
-      const result = await chatService.joinRoom(roomId);
-      if (result.success && result.room) {
-        updateChatState({ room: result.room });
-        await connectToWebSocket();
-      } else {
-        throw new Error(result.message || ERROR_MESSAGES.JOIN_FAILED);
-      }
-    } catch (error) {
-      console.error('Error joining room:', error);
-      updateChatState({ error: ERROR_MESSAGES.JOIN_FAILED });
-    } finally {
-      updateChatState({ joining: false });
-    }
-  };
-
-  // Initialize room on mount - only once
-  useEffect(() => {
-    const setup = async () => {
-      // Reset initialization state when roomId changes
-      isInitialized.current = false;
-      initializationInProgress.current = false;
-      membersLoaded.current = false; // reset members loaded state
-      
-      // Reset state when room changes
-      updateChatState({
-        room: null,
-        error: null,
-        loading: true,
+      const token = await getToken('accessToken');
+      const res = await fetch(`${CHAT_BASE_URL}/api/rooms/${roomId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      
-      // Disconnect from previous WebSocket
-      if (ws && ws.readyState === WS_OPEN) {
-        console.log('Disconnecting from previous WebSocket...');
-        ws.close();
-      }
-      
-      // Call disconnect to clean up WebSocket state
-      wsDisconnect();
-      
-      await initializeRoom();
-    };
-
-    setup();
-
-    return () => {
-      if (ws && ws.readyState === WS_OPEN) ws.close();
-      wsDisconnect();
-    };
-  }, [roomId, initializeRoom, ws, wsDisconnect]); // Add initializeRoom, ws, wsDisconnect as dependencies
-
-  // Connect to WebSocket when room is ready and user is a member
-  useEffect(() => {
-    // ใช้ is_member จาก backend แทนการเช็คจาก members array
-    const isMember = !!(chatState.room && chatState.room.is_member);
-    if (isInitialized.current && isMember && !isConnected) {
-      connectToWebSocket();
+      if (!res.ok) throw new Error('Failed to fetch room info');
+      const data = await res.json();
+      const member = !!(data && data.data && data.data.isMember);
+      setIsMember(member);
+      console.log('[DEBUG] /api/rooms/{roomId} isMember:', member, 'roomId:', roomId);
+    } catch (err) {
+      setIsMember(false);
+      console.error('[DEBUG] Failed to fetch /api/rooms/{roomId}', err);
     }
-  }, [roomId, userId, chatState.room, isConnected, connectToWebSocket]);
+  }, [roomId]);
+
+  // Fetch membership on mount and when roomId changes
+  useEffect(() => {
+    fetchRoomMembership();
+  }, [fetchRoomMembership]);
+
+  // Connect to WebSocket as soon as roomId and userId are available and user is a member
+  useEffect(() => {
+    if (roomId && userId && !isConnected && isMember) {
+      wsConnect(roomId);
+    }
+    // No cleanup needed here; handled by wsDisconnect elsewhere
+  }, [roomId, userId, isConnected, wsConnect, isMember]);
+
+  // Debug: log isMember and roomId whenever they change
+  useEffect(() => {
+    console.log('[DEBUG] isMember:', isMember, 'roomId:', roomId);
+  }, [isMember, roomId]);
 
   // Debug: log wsMessages and groupMessages whenever they change
   useEffect(() => {
@@ -332,45 +329,121 @@ export const useChatRoom = () => {
 
   const handleSendMessage = useCallback(async () => {
     const trimmedMessage = chatState.messageText.trim();
-    // ใช้ is_member จาก backend แทนการเช็คจาก members array
-    const isMember = !!(chatState.room && chatState.room.is_member);
-    if (!trimmedMessage || !isMember || !isConnected) return;
+    if (!trimmedMessage || !isMember || !isConnected) {
+      console.log('[ChatRoom] Message not sent - validation failed', {
+        hasText: !!trimmedMessage,
+        isMember,
+        isConnected,
+        messageText: chatState.messageText
+      });
+      return;
+    }
     
     try {
-      const myUser = user ? {
+      if (!user) {
+        console.error('[ChatRoom] Cannot send message - user not available');
+        return;
+      }
+      
+      const myUser = {
         _id: user._id,
         name: {
           first: user.name?.first || '',
           middle: user.name?.middle || '',
           last: user.name?.last || '',
         },
-        username: user.username || '',
-      } : undefined;
-      if (!myUser) return;
+        username: user.username || ''
+      };
+      
+      // Create temporary message for optimistic UI update
       const tempMessage = createTempMessage(trimmedMessage, myUser, replyState.replyTo);
-      console.log('[DEBUG] handleSendMessage: tempMessage', tempMessage);
-      addMessage(tempMessage);
-      console.log('[DEBUG] handleSendMessage: after addMessage, wsMessages', wsMessages);
-      // Debug log สำหรับ reply
-      console.log('[DEBUG] handleSendMessage', {
-        messageText: trimmedMessage,
+      console.log('[ChatRoom] Creating temporary message:', {
+        id: tempMessage.id,
+        text: tempMessage.text,
         replyTo: replyState.replyTo?.id,
-        replyToId: replyState.replyTo?.id,
+        timestamp: new Date().toISOString()
       });
-      // Send message with /reply <messageID> <ข้อความ> if replyTo exists
-      let messageToSend = trimmedMessage;
-      if (replyState.replyTo && replyState.replyTo.id) {
-        messageToSend = `/reply ${replyState.replyTo.id} ${trimmedMessage}`;
-      }
-      console.log('[DEBUG] messageToSend', messageToSend);
-      wsSendMessage(messageToSend);
+      
+      // Add the message to local state immediately for instant feedback
+      console.log('[ChatRoom] Adding message to local state...');
+      addMessage(tempMessage);
+      
+      // Clear the input field and reply state
+      console.log('[ChatRoom] Clearing input and reply state');
       updateChatState({ messageText: '' });
       updateReplyState({ replyTo: undefined });
+      
+      // Prepare the message payload as a string for WebSocket
+      const messagePayload = JSON.stringify({
+        type: replyState.replyTo ? 'reply' : 'message',
+        payload: {
+          message: trimmedMessage,
+          ...(replyState.replyTo?.id && { replyTo: replyState.replyTo.id }),
+          // Include user info for the server
+          user: {
+            _id: myUser._id,
+            name: myUser.name,
+            username: myUser.username
+          },
+          messageId: tempMessage.id, // Include the same message ID for tracking
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      // Log the message payload (parsed from JSON string for logging)
+      const parsedPayload = JSON.parse(messagePayload);
+      console.log('[ChatRoom] Prepared WebSocket message payload:', {
+        type: parsedPayload.type,
+        payload: {
+          ...parsedPayload.payload,
+          message: parsedPayload.payload.message.length > 50 
+            ? parsedPayload.payload.message.substring(0, 50) + '...' 
+            : parsedPayload.payload.message
+        },
+        timestamp: parsedPayload.payload.timestamp,
+        messageId: parsedPayload.payload.messageId
+      });
+      
+      try {
+        // Send the message through WebSocket
+        console.log(`[ChatRoom][${new Date().toISOString()}] Sending message to WebSocket...`);
+        const success = await wsSendMessage(messagePayload);
+        
+        if (!success) {
+          console.error('[ChatRoom] Failed to send message - WebSocket returned failure');
+          updateChatState({
+            ...chatState,
+            error: ERROR_MESSAGES.SEND_FAILED,
+            messageText: chatState.messageText // Keep the message text on error
+          });
+        } else {
+          const parsed = JSON.parse(messagePayload);
+          console.log(`[ChatRoom][${new Date().toISOString()}] Message sent successfully`, {
+            messageId: parsed.payload.messageId,
+            type: parsed.type
+          });
+        }
+      } catch (sendError) {
+        console.error('[ChatRoom] Error sending message:', {
+          error: sendError,
+          message: sendError instanceof Error ? sendError.message : 'Unknown error',
+          stack: sendError instanceof Error ? sendError.stack : undefined
+        });
+        updateChatState({
+          ...chatState,
+          error: ERROR_MESSAGES.SEND_FAILED,
+          messageText: chatState.messageText // Keep the message text on error
+        });
+      }
+      
     } catch (error) {
-      console.error('Error sending message:', error);
-      updateChatState({ error: ERROR_MESSAGES.SEND_FAILED });
+      console.error('Error in handleSendMessage:', error);
+      updateChatState({ 
+        error: ERROR_MESSAGES.SEND_FAILED,
+        messageText: chatState.messageText // Keep the message text on error
+      });
     }
-  }, [chatState.messageText, chatState.room, isConnected, wsSendMessage, userId, addMessage, replyState.replyTo, updateChatState, updateReplyState, wsMessages]);
+  }, [chatState.messageText, chatState.room, isConnected, wsSendMessage, userId, addMessage, replyState.replyTo, updateChatState, updateReplyState, wsMessages, user, roomId, isMember]);
 
   const handleImageUpload = useCallback(async () => {
     // TODO: Implement file selection logic for web (e.g., use an <input type="file"> in your component and pass the file here)
@@ -488,18 +561,47 @@ export const useChatRoom = () => {
     }
   }, [membersState.hasMore, membersState.loading, membersState.page, loadMembers]);
 
-  // Handler for unsend message
-  const handleUnsendMessage = useCallback(async (message: Message) => {
-    try {
-      const command = `/unsend ${message.id}`;
-      console.log('[Unsend] Sending command:', command);
-      wsSendMessage(command);
-      console.log('[Unsend] Command sent, performing optimistic update for messageId:', message.id);
-      // Remove the message from state (optimistic update)
-      addMessage({ ...(message as any), isDeleted: true });
-    } catch (error) {
+// Handler for unsend message
+const handleUnsendMessage = useCallback(async (message: Message) => {
+  try {
+    const command = `/unsend ${message.id}`;
+    console.log('[Unsend] Sending command:', command);
+    wsSendMessage(command);
+    console.log('[Unsend] Command sent, performing optimistic update for messageId:', message.id);
+    // Remove the message from state (optimistic update)
+    addMessage({ ...(message as any), isDeleted: true });
+  } catch (error) {
     }
   }, [wsSendMessage, addMessage]);
+
+  // Modified handleTyping to avoid triggering while mentioning
+  const handleTyping = () => {
+    if (!mentionState.isMentioning) {
+      originalHandleTyping();
+    }
+  };
+
+  // After successful join, re-fetch membership
+  const handleJoin = async () => {
+    try {
+      if (!chatState.room || isMember || chatState.joining) return;
+      updateChatState({ joining: true });
+      const result = await chatService.joinRoom(roomId);
+      if (result.success && result.room) {
+        updateChatState({ room: result.room });
+        await fetchRoomMembership(); // Re-fetch membership after join
+        console.log('[DEBUG] handleJoin: joined room, re-fetched isMember');
+        // No need to call connectToWebSocket, socket will auto-connect
+      } else {
+        throw new Error(result.message || ERROR_MESSAGES.JOIN_FAILED);
+      }
+    } catch (error) {
+      console.error('Error joining room:', error);
+      updateChatState({ error: ERROR_MESSAGES.JOIN_FAILED });
+    } finally {
+      updateChatState({ joining: false });
+    }
+  };
 
   // Expose state and handlers
   return {
@@ -511,12 +613,11 @@ export const useChatRoom = () => {
     userId,
     roomId,
     isConnected,
-    wsError,
     connectedUsers,
-    typing,
+    wsError: wsError ? new Error(wsError) : null, // Convert string error to Error object
+    typing: typing.map(user => user.id), // Convert to string array of user IDs
+    groupMessages: groupMessages(), // Call the function to get grouped messages
     inputRef,
-    flatListRef,
-    groupMessages,
     initializeRoom,
     handleJoin,
     handleSendMessage,
@@ -530,13 +631,8 @@ export const useChatRoom = () => {
     setIsRoomInfoVisible: (show: boolean) => updateUIState({ isRoomInfoVisible: show }),
     setReplyTo: (message?: Message) => updateReplyState({ replyTo: message }),
     setShowStickerPicker: (show: boolean) => updateUIState({ showStickerPicker: show }),
-    // เพิ่ม getter isMember
-    isMember: (() => {
-      const isMember = !!(chatState.room && chatState.room.is_member);
-      return isMember;
-    })(),
-    loadMembers,
-    loadMoreMembers,
-    handleUnsendMessage,
-  };
-}; 
+    isMember,
+  loadMembers,
+  handleUnsendMessage,
+};
+};

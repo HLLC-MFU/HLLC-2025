@@ -46,7 +46,7 @@ export default function ChatRoomPage() {
 
   // Function to get room name based on current language
   const getRoomName = (room: any) => {
-    if (!room?.name) return t('chat.chatRoom');
+    if (!room?.name.en) return t('chat.chatRoom');
     
     const currentLang = i18n.language;
     if (currentLang === 'th' && room.name.th) {

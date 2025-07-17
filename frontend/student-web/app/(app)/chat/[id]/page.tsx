@@ -27,7 +27,7 @@ export default function ChatRoomPage() {
   const { user } = useProfile();
 
   const getRoomName = (room: any) => {
-    if (!room?.name) return t('chat.chatRoom');
+    if (!room?.name.end) return t('chat.chatRoom');
     const currentLang = i18n.language;
     if (currentLang === 'th' && room.name.th) {
       return room.name.th;
@@ -36,6 +36,14 @@ export default function ChatRoomPage() {
     }
     return room.name.th || room.name.en || t('chat.chatRoom');
   };
+
+  const chatRoom = useChatRoom({
+    user: {
+      _id: user?._id || '',
+      name: user?.name,
+      username: user?.username
+    }
+  });
 
   const {
     room,
@@ -74,7 +82,7 @@ export default function ChatRoomPage() {
     initializeRoom,
     loadMembers,
     handleUnsendMessage,
-  } = useChatRoom();
+  } = chatRoom;
 
   const canSendEvoucher = () => {
     return false;
@@ -97,6 +105,7 @@ export default function ChatRoomPage() {
   }, [room, loading, loadMembers, params]);
 
   const handleSendMessageWithScroll = () => {
+    console.log('[DEBUG] handleSendMessageWithScroll called', { isMember, isConnected, messageText });
     handleSendMessage();
     setTimeout(() => {
       if (flatListRef.current) {
@@ -118,7 +127,7 @@ export default function ChatRoomPage() {
     <div className="fixed inset-0 flex flex-col w-full h-full min-h-screen from-blue-100 via-blue-200 to-blue-300 backdrop-blur-2xl overflow-hidden">
       {/* Header */}
       <div className="w-full max-w-2xl mx-auto flex flex-col flex-1 h-full justify-between">
-        <div className="flex items-center p-4 border-b border-white/30 bg-white/20 backdrop-blur-md rounded-t-3xl shadow-xl mt-4">
+        <div className="flex items-center p-4 border-b border-white/30 bg-white/40 backdrop-blur-lg rounded-3xl shadow-xl border border-white/30 mt-4">
           <button
             className="mr-4 p-2 rounded hover:bg-white/30"
             onClick={() => router.replace('/chat')}
@@ -129,7 +138,7 @@ export default function ChatRoomPage() {
             className="flex-1 cursor-pointer"
             onClick={() => setIsRoomInfoVisible(true)}
           >
-            <span className="text-lg font-semibold text-gray-900 truncate block">
+            <span className="text-lg font-semibold text-gray-900 truncate block drop-shadow">
               {getRoomName(room)}
             </span>
             <div className="flex items-center gap-2 mt-1">
@@ -167,11 +176,11 @@ export default function ChatRoomPage() {
         {/* Messages List */}
         <div className="flex-1 relative w-full h-full overflow-hidden">
           <div className="absolute inset-0 w-full h-full flex flex-col justify-end">
-            <div className="flex-1 overflow-y-auto scrollbar-none px-2 py-4 bg-white/30 backdrop-blur-2xl rounded-3xl shadow-2xl mx-2 mt-2 mb-28" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex-1 overflow-y-auto scrollbar-none px-2 py-4 bg-white/30 backdrop-blur-lg backdrop-saturate-150 rounded-3xl shadow-2xl border border-white/30 mx-2 mt-2 mb-28" style={{ WebkitOverflowScrolling: 'touch' }}>
               <MessageList
-                messages={groupMessages()}
+                messages={groupMessages}
                 userId={userId}
-                typing={typing}
+                typing={typing ? typing.map(id => ({ id })) : []}
                 flatListRef={flatListRef}
                 onReply={setReplyTo}
                 scrollToBottom={() => {
@@ -209,13 +218,17 @@ export default function ChatRoomPage() {
 
         {/* Input Area - glassy, ติดขอบล่าง */}
         <div className="fixed bottom-0 left-0 w-full flex justify-center z-20 pointer-events-none">
-          <div className="w-full max-w-2xl px-2 pb-4 pointer-events-auto">
-            <div className="bg-white/40 backdrop-blur-2xl rounded-2xl shadow-2xl">
-              <ChatInput
+        <div className="w-full max-w-2xl px-4 pb-4 pointer-events-auto">
+          <div className="bg-white/40 backdrop-blur rounded-2xl shadow-xl border border-white/30">
+            <ChatInput
                 messageText={messageText}
                 handleTextInput={handleTextInput}
                 handleSendMessage={handleSendMessageWithScroll}
-                handleImageUpload={handleImageUpload}
+                handleImageUpload={() => {
+                  // You may want to trigger a file input click here, or show a modal
+                  // For now, just call the original handler with a dummy file or leave as a TODO
+                  // TODO: Implement file picker and call handleImageUpload(file)
+                }}
                 handleTyping={handleTyping}
                 isMember={isMember}
                 isConnected={isConnected}

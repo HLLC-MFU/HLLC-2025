@@ -13,18 +13,18 @@ const tabs = [
 
 export const ChatTabBar = ({ language, activeTab, onTabChange }: ChatTabBarProps) => {
   return (
-    <div className="mx-5 mb-4 rounded-xl overflow-hidden shadow-sm relative bg-white/10 border border-white/20 flex flex-row items-center p-1">
+    <div className="mx-5 mb-4 rounded-2xl overflow-hidden shadow-xl relative bg-white/40 backdrop-blur-lg backdrop-saturate-150 ring-1 ring-white/40 border border-white/30 flex flex-row items-center p-1 transition-all">
       {tabs.map(({ key, label, icon }, idx) => {
         const isActive = activeTab === key;
         return (
           <button
             key={key}
-            className={`flex-1 flex flex-row items-center justify-center gap-2 py-3 rounded-lg transition-colors duration-200 ${isActive ? 'bg-green-600' : ''}`}
+            className={`flex-1 flex flex-row items-center justify-center gap-2 py-3 rounded-lg transition-colors duration-200 ${isActive ? 'bg-green-600 text-white drop-shadow-lg' : 'bg-transparent text-white/80'}`}
             onClick={() => onTabChange(key as 'my' | 'discover')}
             type="button"
           >
             <span>{icon}</span>
-            <span className={`text-base font-semibold ${isActive ? 'text-white' : 'text-white/70'}`}>{label(language)}</span>
+            <span className={`text-base font-semibold`}>{label(language)}</span>
           </button>
         );
       })}

@@ -36,29 +36,67 @@ export function createMessage(data: any, isHistory = false): Message {
     isRead: false,
     isTemp: false
   };
+  // เพิ่ม log ข้อมูล input
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log('[createMessage] raw data:', JSON.parse(JSON.stringify(data)));
+  }
   if (data.file_url) {
     const fileUrl = data.file_url.startsWith('http') 
       ? data.file_url 
       : `${CHAT_BASE_URL}/uploads/${data.file_url}`;
-    return {
+    const msg = {
       ...baseMessage,
       fileUrl,
       fileName: data.file_name,
       fileType: data.file_type,
       type: 'file' as const,
-      username: data.username || data.senderName || data.user_id || data.userId || ''
+      username: data.username || data.senderName || data.user_id || data.userId || '',
+      text: data.text || '[no text]'
     };
+    if (typeof window !== 'undefined') {
+      console.log('[createMessage] file message:', msg);
+    }
+    return msg;
   }
   if (data.stickerId || (data.image && !data.message)) {
-    return {
+    const msg = {
       ...baseMessage,
       image: data.image,
       stickerId: data.stickerId,
       type: 'sticker' as const,
-      username: data.username || data.senderName || data.user_id || data.userId || ''
+      username: data.username || data.senderName || data.user_id || data.userId || '',
+      text: data.text || '[sticker]'
     };
+    if (typeof window !== 'undefined') {
+      console.log('[createMessage] sticker message:', msg);
+    }
+    return msg;
   }
   let messageContent = data.message;
+  // Expo-style: If messageContent is a stringified JSON, parse and extract payload.message recursively
+  let parseDepth = 0;
+  while (typeof messageContent === 'string' && messageContent.trim().startsWith('{') && messageContent.trim().endsWith('}') && parseDepth < 3) {
+    try {
+      const parsed = JSON.parse(messageContent);
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.payload && parsed.payload.message) {
+          messageContent = parsed.payload.message;
+        } else if (parsed.message) {
+          messageContent = parsed.message;
+        } else {
+          break;
+        }
+      } else if (typeof parsed === 'string') {
+        messageContent = parsed;
+      } else {
+        break;
+      }
+      parseDepth++;
+    } catch (e) {
+      break;
+    }
+  }
   let replyTo = undefined;
   if (data.replyTo) {
     replyTo = {
@@ -83,28 +121,41 @@ export function createMessage(data: any, isHistory = false): Message {
     };
   }
   if (data.evoucherInfo) {
-    return {
+    const msg = {
       ...baseMessage,
       type: 'evoucher' as const,
       evoucherInfo: data.evoucherInfo,
-      text: data.message || (data.evoucherInfo.message && (data.evoucherInfo.message.en || data.evoucherInfo.message.th)) || '',
+      text: data.message || (data.evoucherInfo.message && (data.evoucherInfo.message.en || data.evoucherInfo.message.th)) || '[evoucher]',
       username: data.username || data.senderName || data.user_id || data.userId || ''
     };
+    if (typeof window !== 'undefined') {
+      console.log('[createMessage] evoucher message:', msg);
+    }
+    return msg;
   }
   if (data.type === 'evoucher') {
-    return {
+    const msg = {
       ...baseMessage,
       type: 'evoucher' as const,
       evoucherInfo: data.evoucherInfo,
-      text: data.message || (data.evoucherInfo && data.evoucherInfo.message && (data.evoucherInfo.message.en || data.evoucherInfo.message.th)) || '',
+      text: data.message || (data.evoucherInfo && data.evoucherInfo.message && (data.evoucherInfo.message.en || data.evoucherInfo.message.th)) || '[evoucher]',
       username: data.username || data.senderName || data.user_id || data.userId || ''
     };
+    if (typeof window !== 'undefined') {
+      console.log('[createMessage] evoucher message (type):', msg);
+    }
+    return msg;
   }
-  return {
+  // mention, upload, reply, message ปกติ
+  const msg = {
     ...baseMessage,
-    text: messageContent,
-    type: 'message' as const,
+    text: messageContent || data.text || '[no text]',
+    type: (data.type || 'message') as any,
     replyTo,
     username: data.username || data.senderName || data.user_id || data.userId || ''
   };
+  if (typeof window !== 'undefined') {
+    console.log('[createMessage] default message:', msg);
+  }
+  return msg;
 } 

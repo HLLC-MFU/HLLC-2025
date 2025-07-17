@@ -19,7 +19,7 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
   }
   return (
     <div
-      className="flex flex-row items-center bg-white/10 border border-white/30 rounded-2xl p-4 mb-3 shadow"
+      className="flex flex-row items-center bg-white/40 backdrop-blur-lg backdrop-saturate-150 ring-1 ring-white/40 border border-white/30 rounded-2xl p-5 mb-3 shadow-xl transition-all"
       style={{ width: (width - 52) / 2, minHeight: 80 }}
       onClick={() => { console.log('RoomListItem pressed', room.id); onPress(); }}
     >
@@ -33,17 +33,17 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
         </div>
       </div>
       <div className="flex-1 space-y-1">
-        <div className="text-base font-bold text-white truncate">
+        <div className="text-base font-bold text-white/90 drop-shadow truncate">
           {language === 'th' ? room.name?.th || 'Unnamed' : room.name?.en || 'Unnamed'}
         </div>
         <div className="flex flex-row items-center gap-4 mt-0.5">
           <div className="flex flex-row items-center gap-1">
-            <Users size={13} color="#ffffff70" />
-            <span className="text-xs text-white/70 ml-1">{room.members_count ?? 0} Members</span>
+            <Users size={13} color="#ffffffb0" />
+            <span className="text-xs text-white/80 ml-1">{room.members_count ?? 0} Members</span>
           </div>
           <div className="flex flex-row items-center gap-1">
-            <Clock size={12} color="#ffffff70" />
-            <span className="text-xs text-white/70 ml-1">
+            <Clock size={12} color="#ffffffb0" />
+            <span className="text-xs text-white/80 ml-1">
               {room.type === 'readonly'
                 ? (language === 'th' ? 'อ่านอย่างเดียว' : 'Read-only')
                 : room.type === 'normal'
