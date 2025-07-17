@@ -6,6 +6,7 @@ import { apiRequest } from "@/utils/api";
 export function useAppearance() {
     const [appearance, setAppearance] = useState<Appearance>();
     const [assets, setAssets] = useState<Record<string, string>>();
+    const [colors, setColors] = useState<Record<string, string>>({});
     const { user } = useProfile();
     const schoolId = user?.data?.[0]?.metadata?.major?.school?._id ?? null;
 
@@ -23,6 +24,7 @@ export function useAppearance() {
 
             setAppearance(res.data);
             setAssets(res.data.data[0].assets);
+            setColors(res.data.data[0].colors || {});
         } catch (err) {
             const message = err instanceof Error ? err.message : "Unexpected error";
             // set({ error: message, loading: false, hasFetched: true });
@@ -36,5 +38,6 @@ export function useAppearance() {
     return {
         appearance,
         assets,
+        colors,
     };
 }

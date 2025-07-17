@@ -13,7 +13,7 @@ export default function BackgroundScreen({
 
   const uri = background
     ? { uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${background}` }
-    : require('@/assets/images/lobby.jpeg');
+    : require('@/assets/images/lobby_3.jpeg');
 
   const isVideo = background?.endsWith('.mp4');
 
