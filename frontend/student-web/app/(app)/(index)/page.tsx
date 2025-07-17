@@ -1,22 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, Coins, Flower, Footprints } from 'lucide-react';
+import { Bell, Flower } from 'lucide-react';
+import { addToast } from '@heroui/react';
+import { useRouter } from 'next/navigation';
+
 import GlassButton from '@/components/ui/glass-button';
 import { ConfirmationModal } from '@/components/PretestPosttest/ConfirmModal';
 import PretestQuestionModal from '@/components/PretestPosttest/PretestQuestionModal';
 import { usePrepostQuestion } from '@/hooks/usePrePostQuestion';
 import { PrepostQuestions } from '@/types/prepostQuestion';
-import { addToast } from '@heroui/react';
 import PosttestQuestionModal from '@/components/PretestPosttest/PosttestQuestionModal';
-import useProgress from '@/hooks/useProgress';
-import { useRouter } from 'next/navigation';
-
+import { useSseStore } from '@/stores/useSseStore';
 
 const baseImageUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function HomePage() {
-  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const [notificationModalVisible, setNotificationModalVisible] =
+    useState(false);
   const {
     pretestAnswersInput,
     posttestAnswersInput,
@@ -30,11 +31,16 @@ export default function HomePage() {
     hasPretestAnswers,
     hasPosttestAnswers,
   } = usePrepostQuestion();
-  const { progress } = useProgress();
+  const progress = useSseStore(state => state.progress.progressPercentage);
+
   const [isPretestModalOpen, setIsPretestModalOpen] = useState(false);
   const [isPosttestModalOpen, setIsPosttestModalOpen] = useState(false);
-  const [selectedPretestQuestions, setSelectedPretestQuestions] = useState<PrepostQuestions[]>([]);
-  const [selectedPosttestQuestions, setSelectedPosttestQuestions] = useState<PrepostQuestions[]>([]);
+  const [selectedPretestQuestions, setSelectedPretestQuestions] = useState<
+    PrepostQuestions[]
+  >([]);
+  const [selectedPosttestQuestions, setSelectedPosttestQuestions] = useState<
+    PrepostQuestions[]
+  >([]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isPosttestConfirmOpen, setIsPosttestConfirmOpen] = useState(false);
   const router = useRouter();
@@ -43,11 +49,16 @@ export default function HomePage() {
     const filteredQuestions = prepostQuestion.filter(
       q => q.displayType === 'pretest' || q.displayType === 'both',
     );
+
     setSelectedPretestQuestions(filteredQuestions);
     const initialAnswers = filteredQuestions.map(q => {
-      const existingAnswer = pretestAnswersInput.find(ans => ans.pretest === q._id);
+      const existingAnswer = pretestAnswersInput.find(
+        ans => ans.pretest === q._id,
+      );
+
       return existingAnswer || { pretest: q._id, answer: '' };
     });
+
     setPretestAnswersInput(initialAnswers);
     setIsPretestModalOpen(true);
   };
@@ -56,10 +67,14 @@ export default function HomePage() {
     const filteredQuestions = prepostQuestion.filter(
       q => q.displayType === 'posttest' || q.displayType === 'both',
     );
+
     setSelectedPosttestQuestions(filteredQuestions);
 
     const initialAnswers = filteredQuestions.map(q => {
-      const existingAnswer = posttestAnswersInput.find(ans => ans.posttest === q._id);
+      const existingAnswer = posttestAnswersInput.find(
+        ans => ans.posttest === q._id,
+      );
+
       return existingAnswer || { posttest: q._id, answer: '' };
     });
 
@@ -84,7 +99,6 @@ export default function HomePage() {
       openPosttestModal();
     }
   }, [hasPretestAnswers, hasPosttestAnswers, progress?.progressPercentage]);
-
 
   const handleSubmit = async () => {
     if (!pretestAnswersInput || pretestAnswersInput.length === 0) {
@@ -136,6 +150,7 @@ export default function HomePage() {
         title: 'No Answer to Submit.',
         color: 'danger',
       });
+
       return;
     }
 
@@ -188,7 +203,6 @@ export default function HomePage() {
     progress: null,
   };
 
-
   return (
     <div
       className="relative flex flex-col max-h-full w-full bg-cover bg-center bg-no-repeat text-white px-4 pt-6 md:pt-12 pb-28"
@@ -215,8 +229,8 @@ export default function HomePage() {
 
       <PretestQuestionModal
         answers={pretestAnswersInput}
-        prePostQuestions={selectedPretestQuestions}
         isOpen={isPretestModalOpen}
+        prePostQuestions={selectedPretestQuestions}
         setAnswers={setPretestAnswersInput}
         onClose={() => {
           if (hasPretestAnswers === false) {
@@ -224,6 +238,7 @@ export default function HomePage() {
               title: 'You must complete the pretest first.',
               color: 'warning',
             });
+
             return;
           }
           setIsPretestModalOpen(false);
@@ -234,8 +249,8 @@ export default function HomePage() {
 
       <PosttestQuestionModal
         answers={posttestAnswersInput}
-        prePostQuestions={selectedPosttestQuestions}
         isOpen={isPosttestModalOpen}
+        prePostQuestions={selectedPosttestQuestions}
         setAnswers={setPosttestAnswersInput}
         onClose={() => {
           if (hasPosttestAnswers === false) {
@@ -243,6 +258,7 @@ export default function HomePage() {
               title: 'You must complete the posttest first.',
               color: 'warning',
             });
+
             return;
           }
           setIsPosttestModalOpen(false);

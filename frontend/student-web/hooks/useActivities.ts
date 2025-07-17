@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 
-import { useSSE } from './useSSE';
-
 import { apiRequest } from '@/utils/api';
-import { Activities } from '@/types/activities';
 import { Assessment } from '@/types/assessment';
 import { AssessmentAnswer } from '@/types/assessmentAnswer';
+import { useSseStore } from '@/stores/useSseStore';
 
 export function useActivities(activityId: string | null) {
-  const [activities, setActivities] = useState<Activities[]>([]);
+  const activities = useSseStore(state => state.activities);
+  const fetchActivitiesByUser = useSseStore(
+    state => state.fetchActivitiesByUser,
+  );
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [assessmentAnswers, setAssessmentAnswers] = useState<
     AssessmentAnswer[]
@@ -18,28 +19,7 @@ export function useActivities(activityId: string | null) {
   >([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchActivitiesByUser = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiRequest<{ data: Activities[] }>(
-        '/activities/user',
-        'GET',
-      );
-
-      setActivities(Array.isArray(res.data?.data) ? res.data.data : []);
-    } catch (err) {
-      setError(
-        err && typeof err === 'object' && 'message' in err
-          ? (err as { message?: string }).message ||
-          'Failed to fetch activities by user.'
-          : 'Failed to fetch activities by user.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchUserProgress = useSseStore(state => state.fetchUserProgress);
 
   const fetchAssessmentByActivity = async (id: string) => {
     setLoading(true);
@@ -62,7 +42,7 @@ export function useActivities(activityId: string | null) {
       setError(
         err && typeof err === 'object' && 'message' in err
           ? (err as { message?: string }).message ||
-          'Failed to fetch assessments by activity.'
+              'Failed to fetch assessments by activity.'
           : 'Failed to fetch assessments by activity.',
       );
     } finally {
@@ -87,7 +67,7 @@ export function useActivities(activityId: string | null) {
             const updated = [...prev, res.data as AssessmentAnswer];
 
             resolve(updated);
-
+            fetchUserProgress();
             return updated;
           });
         });
@@ -100,20 +80,6 @@ export function useActivities(activityId: string | null) {
       setLoading(false);
     }
   };
-
-  useSSE(payload => {
-    if (payload.type === 'REFETCH_DATA') {
-      switch (payload.path) {
-        case '/activities/user':
-          fetchActivitiesByUser();
-          break;
-        default:
-          break;
-      }
-    } else {
-      return;
-    }
-  });
 
   useEffect(() => {
     fetchActivitiesByUser();

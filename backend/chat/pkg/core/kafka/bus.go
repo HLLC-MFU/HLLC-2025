@@ -190,13 +190,6 @@ func (b *Bus) Emit(ctx context.Context, topic, key string, payload any) error {
 		return err
 	}
 
-	// ตรวจสอบว่า message ว่างหรือไม่
-	if isEmptyKafkaMessage(value) {
-		// ไม่ส่ง message ว่างไปยัง Kafka
-		log.Printf("[Kafka] Skipping emit empty message to topic %s", topic)
-		return nil
-	}
-
 	writer, err := b.getWriter(topic)
 	if err != nil {
 		return fmt.Errorf("failed to get writer for topic %s: %v", topic, err)
