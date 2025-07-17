@@ -80,74 +80,83 @@ export default function AssessmentModal({
             {assessment.length === 0 ? (
               <p>Assessment Loading ...</p>
             ) : (
-              assessment.map(a => (
-                <Form key={a._id} className="flex flex-col gap-4">
-                  <p className="font-bold">
-                    {a.order}.{a.question.en}
-                  </p>
-
-                  {a.type === 'text' && (
-                    <Input
-                      isRequired
-                      errorMessage={errors[a._id]}
-                      isInvalid={!!errors[a._id]}
-                      label="Your Answer"
-                      labelPlacement="outside"
-                      placeholder="Enter your answer"
-                      value={
-                        answers.find(ans => ans.assessment === a._id)?.answer ||
-                        ''
-                      }
-                      onChange={e => {
-                        const updated = answers.map(ans =>
-                          ans.assessment === a._id
-                            ? { ...ans, answer: e.target.value }
-                            : ans,
-                        );
-
-                        setAnswers(updated);
-                      }}
-                    />
-                  )}
-
-                  {a.type === 'rating' && (
-                    <>
-                      <RadioGroup
-                        label="Select your satisfaction"
-                        orientation="horizontal"
-                        value={
-                          answers.find(ans => ans.assessment === a._id)
-                            ?.answer || ''
-                        }
-                        onValueChange={val => {
-                          const updated = answers.map(ans =>
-                            ans.assessment === a._id
-                              ? { ...ans, answer: val }
-                              : ans,
-                          );
-
-                          setAnswers(updated);
-                        }}
-                      >
-                        <Radio value="1">1</Radio>
-                        <Radio value="2">2</Radio>
-                        <Radio value="3">3</Radio>
-                        <Radio value="4">4</Radio>
-                        <Radio value="5">5</Radio>
-                      </RadioGroup>
-                      {errors[a._id] && (
-                        <p className="text-red-500 text-sm">{errors[a._id]}</p>
-                      )}
-                    </>
-                  )}
-
-                  {a.type !== 'text' && a.type !== 'rating' && (
-                    <p className="text-sm text-gray-500">
-                      Unsupported: {a.type}
+              [...assessment]
+                .sort((a, b) => a.order - b.order)
+                .map(a => (
+                  <Form key={a._id} className="flex flex-col gap-4">
+                    <p className="font-bold">
+                      {a.order}.{a.question.en}
                     </p>
-                  )}
-                </Form>
-              ))
+
+                    {a.type === 'text' && (
+                      <Input
+                        isRequired
+                        errorMessage={errors[a._id]}
+                        isInvalid={!!errors[a._id]}
+                        label="Your Answer"
+                        labelPlacement="outside"
+                        placeholder="Enter your answer"
+                        value={
+                          answers.find(ans => ans.assessment === a._id)?.answer ||
+                          ''
+                        }
+                        onChange={e => {
+                          const newVal = e.target.value;
+                          const index = answers.findIndex(ans => ans.assessment === a._id);
+
+                          if (index !== -1) {
+                            const updated = answers.map(ans =>
+                              ans.assessment === a._id ? { ...ans, answer: newVal } : ans
+                            );
+                            setAnswers(updated);
+                          } else {
+                            setAnswers([...answers, { assessment: a._id, answer: newVal }]);
+                          }
+                        }}
+                      />
+                    )}
+
+                    {a.type === 'rating' && (
+                      <>
+                        <RadioGroup
+                          label="Select your satisfaction"
+                          orientation="horizontal"
+                          value={
+                            answers.find(ans => ans.assessment === a._id)
+                              ?.answer || ''
+                          }
+                          onValueChange={val => {
+                            const index = answers.findIndex(ans => ans.assessment === a._id);
+
+                            if (index !== -1) {
+                              const updated = answers.map(ans =>
+                                ans.assessment === a._id ? { ...ans, answer: val } : ans
+                              );
+                              setAnswers(updated);
+                            } else {
+                              setAnswers([...answers, { assessment: a._id, answer: val }]);
+                            }
+                          }}
+                        >
+                          <Radio value="1">1</Radio>
+                          <Radio value="2">2</Radio>
+                          <Radio value="3">3</Radio>
+                          <Radio value="4">4</Radio>
+                          <Radio value="5">5</Radio>
+                        </RadioGroup>
+                        {errors[a._id] && (
+                          <p className="text-red-500 text-sm">{errors[a._id]}</p>
+                        )}
+                      </>
+                    )}
+
+                    {a.type !== 'text' && a.type !== 'rating' && (
+                      <p className="text-sm text-gray-500">
+                        Unsupported: {a.type}
+                      </p>
+                    )}
+                  </Form>
+                ))
             )}
           </ModalBody>
           <ModalFooter>

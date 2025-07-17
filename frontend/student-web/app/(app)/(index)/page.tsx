@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { Bell, Coins, Flower, Footprints } from 'lucide-react';
 import GlassButton from '@/components/ui/glass-button';
-import { ConfirmationModal } from '@/components/PretestPosttest/ConfirmModal';
 import PretestQuestionModal from '@/components/PretestPosttest/PretestQuestionModal';
 import { usePrepostQuestion } from '@/hooks/usePrePostQuestion';
 import { PrepostQuestions } from '@/types/prepostQuestion';
@@ -36,12 +35,11 @@ export default function HomePage() {
   const [selectedPretestQuestions, setSelectedPretestQuestions] = useState<PrepostQuestions[]>([]);
   const [selectedPosttestQuestions, setSelectedPosttestQuestions] = useState<PrepostQuestions[]>([]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isPosttestConfirmOpen, setIsPosttestConfirmOpen] = useState(false);
   const router = useRouter();
 
   const openPretestModal = () => {
     const filteredQuestions = prepostQuestion.filter(
-      q => q.displayType === 'pretest' || q.displayType === 'both',
+      q => q.displayType === 'pretest',
     );
     setSelectedPretestQuestions(filteredQuestions);
     const initialAnswers = filteredQuestions.map(q => {
@@ -54,7 +52,7 @@ export default function HomePage() {
 
   const openPosttestModal = () => {
     const filteredQuestions = prepostQuestion.filter(
-      q => q.displayType === 'posttest' || q.displayType === 'both',
+      q => q.displayType === 'posttest',
     );
     setSelectedPosttestQuestions(filteredQuestions);
 
@@ -86,7 +84,7 @@ export default function HomePage() {
   }, [hasPretestAnswers, hasPosttestAnswers, progress?.progressPercentage]);
 
 
-  const handleSubmit = async () => {
+  const handlePretestSubmit = async () => {
     if (!pretestAnswersInput || pretestAnswersInput.length === 0) {
       addToast({
         title: 'No Answer to Submit.',
@@ -171,11 +169,6 @@ export default function HomePage() {
     }
   };
 
-  const handleConfirmModal = async () => {
-    await handleSubmit();
-    setIsConfirmOpen(false);
-  };
-
   const steps = 9000;
   // const progressLoading = false;
   const deviceMismatch = false;
@@ -230,7 +223,7 @@ export default function HomePage() {
           setIsPretestModalOpen(false);
           setSelectedPretestQuestions([]);
         }}
-        onSubmit={() => setIsConfirmOpen(true)}
+        onSubmit={() => handlePretestSubmit()}
       />
 
       <PosttestQuestionModal
@@ -249,26 +242,7 @@ export default function HomePage() {
           setIsPosttestModalOpen(false);
           setSelectedPosttestQuestions([]);
         }}
-        onSubmit={() => setIsPosttestConfirmOpen(true)}
-      />
-
-      <ConfirmationModal
-        isOpen={isConfirmOpen}
-        subtitle="Are you sure you want to submit your answers? You won't be able to change them after submission."
-        title="Do you want to submit your answers?"
-        onClose={() => setIsConfirmOpen(false)}
-        onConfirm={handleConfirmModal}
-      />
-
-      <ConfirmationModal
-        isOpen={isPosttestConfirmOpen}
-        subtitle="Are you sure you want to submit your POSTTEST answers? You won't be able to change them after submission."
-        title="Do you want to submit your POSTTEST answers?"
-        onClose={() => setIsPosttestConfirmOpen(false)}
-        onConfirm={async () => {
-          await handlePosttestSubmit();
-          setIsPosttestConfirmOpen(false);
-        }}
+        onSubmit={() => handlePosttestSubmit()}
       />
     </div>
   );

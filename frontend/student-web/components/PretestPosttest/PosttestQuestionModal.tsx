@@ -78,8 +78,9 @@ export default function PosttestQuestionModal({
                         {prePostQuestions.length === 0 ? (
                             <p>Posttest Questions Loading ...</p>
                         ) : (
-                            prePostQuestions
-                                .filter(p => p.displayType === 'posttest' || p.displayType === 'both')
+                            [...prePostQuestions]
+                                .filter(p => p.displayType === 'posttest')
+                                .sort((a, b) => a.order - b.order)
                                 .map(p => (
                                     <Form key={p._id} className="flex flex-col gap-4">
                                         <p className="font-bold">
@@ -99,13 +100,19 @@ export default function PosttestQuestionModal({
                                                     ''
                                                 }
                                                 onChange={e => {
-                                                    const updated = answers.map(ans =>
-                                                        ans.posttest === p._id
-                                                            ? { ...ans, answer: e.target.value }
-                                                            : ans,
-                                                    );
-                                                    setAnswers(updated);
+                                                    const newValue = e.target.value;
+                                                    const existing = answers.find(ans => ans.posttest === p._id);
+
+                                                    if (existing) {
+                                                        const updated = answers.map(ans =>
+                                                            ans.posttest === p._id ? { ...ans, answer: newValue } : ans
+                                                        );
+                                                        setAnswers(updated);
+                                                    } else {
+                                                        setAnswers([...answers, { posttest: p._id, answer: newValue }]);
+                                                    }
                                                 }}
+
                                             />
                                         )}
 
@@ -119,12 +126,16 @@ export default function PosttestQuestionModal({
                                                             ?.answer || ''
                                                     }
                                                     onValueChange={val => {
-                                                        const updated = answers.map(ans =>
-                                                            ans.posttest === p._id
-                                                                ? { ...ans, answer: val }
-                                                                : ans,
-                                                        );
-                                                        setAnswers(updated);
+                                                        const existing = answers.find(ans => ans.posttest === p._id);
+
+                                                        if (existing) {
+                                                            const updated = answers.map(ans =>
+                                                                ans.posttest === p._id ? { ...ans, answer: val } : ans
+                                                            );
+                                                            setAnswers(updated);
+                                                        } else {
+                                                            setAnswers([...answers, { posttest: p._id, answer: val }]);
+                                                        }
                                                     }}
                                                 >
                                                     <Radio value="1">1</Radio>
