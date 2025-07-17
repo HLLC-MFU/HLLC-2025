@@ -21,6 +21,12 @@ const (
 )
 
 type (
+	// RoomSchedule สำหรับการตั้งเวลาเปิดปิดห้อง
+	RoomSchedule struct {
+		StartAt *time.Time `bson:"startAt,omitempty" json:"startAt,omitempty"` // เวลาเริ่มเปิดห้อง
+		EndAt   *time.Time `bson:"endAt,omitempty" json:"endAt,omitempty"`     // เวลาปิดห้อง
+	}
+
 	Room struct {
 		ID        primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
 		Name      common.LocalizedName `bson:"name" json:"name"`
@@ -33,6 +39,7 @@ type (
 		CreatedAt time.Time           `bson:"createdAt" json:"createdAt"`
 		UpdatedAt time.Time           `bson:"updatedAt" json:"updatedAt"`
 		Metadata  map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"`
+		Schedule  *RoomSchedule       `bson:"schedule,omitempty" json:"schedule,omitempty"` // เพิ่มฟิลด์ schedule
 	}
 
 	RoomEvent struct {
@@ -145,4 +152,76 @@ func (r *Room) ShouldAutoAddNewUsers() bool {
 	}
 	autoAdd, exists := r.Metadata["autoAdd"]
 	return exists && autoAdd == true
+}
+
+// IsScheduleEnabled ตรวจสอบว่าห้องเปิดใช้งาน schedule หรือไม่
+func (r *Room) IsScheduleEnabled() bool {
+	return r.Schedule != nil && (r.Schedule.StartAt != nil || r.Schedule.EndAt != nil)
+}
+
+// IsRoomAccessible ตรวจสอบว่าห้องสามารถเข้าได้ตามเวลาที่กำหนดหรือไม่
+func (r *Room) IsRoomAccessible(now time.Time) bool {
+	// ถ้าห้องไม่ active ให้ return false
+	if !r.IsActive() {
+		return false
+	}
+
+	// ถ้าไม่มี schedule ให้เข้าได้ตามปกติ
+	if !r.IsScheduleEnabled() {
+		return true
+	}
+
+	schedule := r.Schedule
+
+	// ตรวจสอบเวลาเริ่มต้น (ให้ margin 1 นาที)
+	if schedule.StartAt != nil && now.Before(schedule.StartAt.Add(-time.Minute)) {
+		return false
+	}
+
+	// ตรวจสอบเวลาสิ้นสุด (ให้ margin 1 นาที)
+	if schedule.EndAt != nil && now.After(schedule.EndAt.Add(time.Minute)) {
+		return false
+	}
+
+	return true
+}
+
+// IsRoomAccessibleForWebSocket ตรวจสอบการเข้าถึงสำหรับ WebSocket (เข้มงวดกว่าเดิม)
+func (r *Room) IsRoomAccessibleForWebSocket(now time.Time) bool {
+	// ถ้าห้องไม่ active ให้ return false
+	if !r.IsActive() {
+		return false
+	}
+
+	// ถ้าไม่มี schedule ให้เข้าได้ตามปกติ
+	if !r.IsScheduleEnabled() {
+		return true
+	}
+
+	schedule := r.Schedule
+
+	// ตรวจสอบเวลาเริ่มต้น (ให้ margin 1 นาที)
+	if schedule.StartAt != nil && now.Before(schedule.StartAt.Add(-time.Minute)) {
+		return false
+	}
+
+	// ตรวจสอบเวลาสิ้นสุด (ให้ margin 30 วินาที)
+	if schedule.EndAt != nil && now.After(schedule.EndAt.Add(30*time.Second)) {
+		return false
+	}
+
+	return true
+}
+
+// GetScheduleStatus ดึงสถานะของ schedule
+func (r *Room) GetScheduleStatus(now time.Time) string {
+	if !r.IsScheduleEnabled() {
+		return "no_schedule"
+	}
+
+	if r.IsRoomAccessible(now) {
+		return "open"
+	}
+
+	return "closed"
 }

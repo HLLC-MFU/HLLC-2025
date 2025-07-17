@@ -131,7 +131,7 @@ var defaults = map[string]string{
 	"MONGO_URI":              "mongodb://localhost:27017",
 	"MONGO_DATABASE":         "hllc-2025",
 	"KAFKA_BROKERS":          "localhost:9092",
-	"UPLOAD_PATH":            "uploads",
+	"UPLOAD_PATH":            "/uploads",
 }
 
 func getEnv(key string) string {

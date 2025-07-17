@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { addToast } from "@heroui/react";
 
-import { RestrictionAction } from "@/types/chat";
+import type { RestrictionAction } from "@/types/chat";
 import { apiGolangRequest } from "@/utils/api";
 
 export function useRestriction() {
@@ -11,14 +11,13 @@ export function useRestriction() {
     
     /**
      * Ban a user from a room
-     * @param data - The data to ban the user
-     * @returns The restriction data
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * @param data - The restriction data for banning the user
+     * @returns Promise<void>
      */
-    const banUser = async (data: RestrictionAction) => {
+    const banUser = async (data: RestrictionAction): Promise<void> => {
         setLoading(true);
+        setError(null);
         try {
-
             const res = await apiGolangRequest<{data: RestrictionAction}>(
                 "/restriction/ban",
                 "POST",
@@ -27,28 +26,34 @@ export function useRestriction() {
 
             if (res.data?.data) {
                 setRestriction(res.data.data);
+                addToast({
+                    title: 'User banned successfully!',
+                    color: 'success',
+                });
             }
         } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to ban user.'
+                : 'Failed to ban user.';
+            
+            setError(errorMessage);
             addToast({
-                title: 'Failed to ban user. Plesae try again.',
+                title: 'Failed to ban user. Please try again.',
                 color: 'danger',
             });
-            setError(err && typeof err === 'object' && 'message' in err
-                ? (err as { message?: string }).message || 'Failed to ban user.'
-                : 'Failed to ban user.');
         } finally {
             setLoading(false);
         }
     };
 
     /**
-     * Mute a user from a room
-     * @param data - The data to mute the user
-     * @returns The restriction data
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * Mute a user in a room
+     * @param data - The restriction data for muting the user
+     * @returns Promise<void>
      */
-    const muteUser = async (data: RestrictionAction) => {
+    const muteUser = async (data: RestrictionAction): Promise<void> => {
         setLoading(true);
+        setError(null);
         try {
             const res = await apiGolangRequest<{data: RestrictionAction}>(
                 "/restriction/mute",
@@ -58,15 +63,58 @@ export function useRestriction() {
 
             if (res.data?.data) {
                 setRestriction(res.data.data);
+                addToast({
+                    title: 'User muted successfully!',
+                    color: 'success',
+                });
             }
         } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to mute user.'
+                : 'Failed to mute user.';
+            
+            setError(errorMessage);
             addToast({
-                title: 'Failed to mute user. Plesae try again.',
+                title: 'Failed to mute user. Please try again.',
                 color: 'danger',
             });
-            setError(err && typeof err === 'object' && 'message' in err
-                ? (err as { message?: string }).message || 'Failed to mute user.'
-                : 'Failed to mute user.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /**
+     * Kick a user from a room
+     * @param data - The restriction data for kicking the user
+     * @returns Promise<void>
+     */
+    const kickUser = async (data: RestrictionAction): Promise<void> => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await apiGolangRequest<{data: RestrictionAction}>(
+                "/restriction/kick",
+                "POST",
+                data
+            );
+
+            if (res.data?.data) {
+                setRestriction(res.data.data);
+                addToast({
+                    title: 'User kicked successfully!',
+                    color: 'success',
+                });
+            }
+        } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to kick user.'
+                : 'Failed to kick user.';
+            
+            setError(errorMessage);
+            addToast({
+                title: 'Failed to kick user. Please try again.',
+                color: 'danger',
+            });
         } finally {
             setLoading(false);
         }
@@ -74,12 +122,12 @@ export function useRestriction() {
 
     /**
      * Unban a user from a room
-     * @param data - The data to unban the user
-     * @returns The restriction data
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * @param data - Object containing userId and roomId
+     * @returns Promise<void>
      */
-    const unbanUser = async (data: { userId: string; roomId: string }) => {
+    const unbanUser = async (data: { userId: string; roomId: string }): Promise<void> => {
         setLoading(true);
+        setError(null);
         try {
             const res = await apiGolangRequest<{data: RestrictionAction}>(
                 "/restriction/unban",
@@ -89,28 +137,34 @@ export function useRestriction() {
 
             if (res.data?.data) {
                 setRestriction(res.data.data);
+                addToast({
+                    title: 'User unbanned successfully!',
+                    color: 'success',
+                });
             }
         } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to unban user.'
+                : 'Failed to unban user.';
+            
+            setError(errorMessage);
             addToast({
                 title: 'Failed to unban user. Please try again.',
                 color: 'danger',
             });
-            setError(err && typeof err === 'object' && 'message' in err
-                ? (err as { message?: string }).message || 'Failed to unban user.'
-                : 'Failed to unban user.');
         } finally {
             setLoading(false);
         }
     };
 
     /**
-     * Unmute a user from a room
-     * @param data - The data to unmute the user
-     * @returns The restriction data
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * Unmute a user in a room
+     * @param data - Object containing userId and roomId
+     * @returns Promise<void>
      */
-    const unmuteUser = async (data: { userId: string; roomId: string }) => {
+    const unmuteUser = async (data: { userId: string; roomId: string }): Promise<void> => {
         setLoading(true);
+        setError(null);
         try {
             const res = await apiGolangRequest<{data: RestrictionAction}>(
                 "/restriction/unmute",
@@ -120,15 +174,21 @@ export function useRestriction() {
 
             if (res.data?.data) {
                 setRestriction(res.data.data);
+                addToast({
+                    title: 'User unmuted successfully!',
+                    color: 'success',
+                });
             }
         } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to unmute user.'
+                : 'Failed to unmute user.';
+            
+            setError(errorMessage);
             addToast({
                 title: 'Failed to unmute user. Please try again.',
                 color: 'danger',
             });
-            setError(err && typeof err === 'object' && 'message' in err
-                ? (err as { message?: string }).message || 'Failed to unmute user.'
-                : 'Failed to unmute user.');
         } finally {
             setLoading(false);
         }
@@ -138,15 +198,15 @@ export function useRestriction() {
      * Get restriction status for a user in a room
      * @param roomId - The room ID
      * @param userId - The user ID
-     * @returns The restriction status
+     * @returns Promise<any | null>
      */
-    const getRestrictionStatus = async (roomId: string, userId: string) => {
+    const getRestrictionStatus = async (roomId: string, userId: string): Promise<any | null> => {
         try {
             const res = await apiGolangRequest<{data: any}>(
                 `/restriction/status/${roomId}/${userId}`,
                 "GET"
             );
-            return res.data?.data;
+            return res.data?.data || null;
         } catch (err) {
             console.error('Failed to get restriction status:', err);
             return null;
@@ -156,9 +216,9 @@ export function useRestriction() {
     /**
      * Get all restriction statuses in a room (optimized for large member lists)
      * @param roomId - The room ID
-     * @returns Map of user ID to restriction status
+     * @returns Promise<Record<string, any>>
      */
-    const getRoomRestrictions = async (roomId: string) => {
+    const getRoomRestrictions = async (roomId: string): Promise<Record<string, any>> => {
         try {
             const res = await apiGolangRequest<{data: Record<string, any>}>(
                 `/restriction/room/${roomId}/restrictions`,
@@ -171,37 +231,12 @@ export function useRestriction() {
         }
     };
 
-    const kickUser = async (data: RestrictionAction) => {
-        setLoading(true);
-        try {
-            const res = await apiGolangRequest<{data: RestrictionAction}>(
-                "/restriction/kick",
-                "POST",
-                data
-            );
-
-            if (res.data?.data) {
-                setRestriction(res.data.data);
-            }
-        } catch (err) {
-            addToast({
-                title: 'Failed to kick user. Plesae try again.',
-                color: 'danger',
-            });
-            setError(err && typeof err === 'object' && 'message' in err
-                ? (err as { message?: string }).message || 'Failed to kick user.'
-                : 'Failed to kick user.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     /**
      * Get restriction history with filters
      * @param queryString - Query parameters for filtering
-     * @returns The restriction history data
+     * @returns Promise<any>
      */
-    const getRestrictionHistory = async (queryString: string) => {
+    const getRestrictionHistory = async (queryString: string): Promise<any> => {
         try {
             const res = await apiGolangRequest<{
                 data: any[];
@@ -224,15 +259,15 @@ export function useRestriction() {
 
     return {
         loading,
+        restriction,
+        error,
         banUser,
         muteUser,
+        kickUser,
         unbanUser,
         unmuteUser,
         getRestrictionStatus,
         getRoomRestrictions,
-        kickUser,
         getRestrictionHistory,
-        error,
-        restriction,
     };
 }
