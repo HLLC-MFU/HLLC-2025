@@ -266,7 +266,7 @@ export default function ChatRoomPage() {
                     flatListRef.current?.scrollToEnd({ animated: true })
                   }
                 >
-                  <Text style={{ color: '#fff', fontSize: 16 }}>{t('chat.scrollToBottom')}</Text>
+                  <Text style={{ color: '#fff', fontSize: 16 }}></Text>
                 </TouchableOpacity>
               )}
             </View>

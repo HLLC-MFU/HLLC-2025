@@ -83,11 +83,11 @@ const MessageBubble = memo(({
 
   const getStickerImageUrl = useCallback((imagePath: string) => {
     if (imagePath.startsWith('http')) return imagePath;
-    return `${API_BASE_URL}/uploads/${imagePath}`;
+    return `${IMAGE_BASE_URL}/uploads/${imagePath}`;
   }, []);
 
   const getMessageTextStyle = useCallback(() => (
-    `text-[15px] leading-[1.33] ${!isMyMessage ? 'text-gray-900 dark:text-gray-100' : 'text-white'}`
+    `text-[15.5px] leading-[1.5] ${!isMyMessage ? 'text-gray-900 dark:text-gray-100' : 'text-white'}`
   ), [isMyMessage]);
 
   const renderWithMentions = useCallback((text: string, currentUsername: string) => {
@@ -115,28 +115,42 @@ const MessageBubble = memo(({
       const isClaiming = claiming[message.id ?? ''] || false;
       const displayLang = 'th';
       return (
-        <div className={`rounded-xl border-2 p-4 my-2 min-w-[220px] max-w-[300px] transition-all duration-200 ${
+        <div className={`rounded-xl border-2 p-4 my-2 min-w-[240px] max-w-[300px] transition-all duration-300 ${
           isClaimed 
-            ? 'border-green-400 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20' 
-            : 'border-yellow-400 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20'
-        }`}>
+            ? 'border-green-400/80 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30' 
+            : 'border-yellow-400/80 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20'
+        } shadow-md hover:shadow-lg hover:-translate-y-0.5`}>
           <div className="flex items-center mb-3">
-            <span className="text-2xl mr-3">{isClaimed ? '🎉' : '🎟️'}</span>
-            <span className={`font-bold text-sm ${isClaimed ? 'text-green-600 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
+            <span className="text-2xl mr-3 transform hover:scale-110 transition-transform duration-200">
+              {isClaimed ? '🎉' : '🎟️'}
+            </span>
+            <span className={`font-bold text-sm ${
+              isClaimed 
+                ? 'text-green-600 dark:text-green-400' 
+                : 'text-yellow-700 dark:text-yellow-400'
+            }`}>
               {message.evoucherInfo.message?.[displayLang] || ''}
             </span>
           </div>
           {isClaimed ? (
-            <div className="mt-3 p-3 bg-green-200/50 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-300 font-semibold text-center text-sm">
+            <div className="mt-3 p-3 bg-green-100/70 dark:bg-green-900/40 rounded-lg text-green-700 dark:text-green-300 font-semibold text-center text-sm border border-green-200/50 dark:border-green-800/50">
               คุณได้รับ E-Voucher แล้ว!
             </div>
           ) : (
             <button
-              className="mt-3 w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 font-semibold rounded-lg px-4 py-2.5 hover:from-yellow-300 hover:to-yellow-400 transition-all duration-200 shadow-sm hover:shadow-md text-sm"
+              className="mt-3 w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 font-semibold rounded-lg px-4 py-2.5 hover:from-yellow-300 hover:to-yellow-400 transition-all duration-200 shadow-sm hover:shadow-md text-sm transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed"
               disabled={isClaimed || isClaiming}
               onClick={() => setClaimed(prev => ({ ...prev, [message.id ?? '']: true }))}
             >
-              {isClaiming ? 'กำลังเคลม...' : 'กดเพื่อรับ E-Voucher'}
+              {isClaiming ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-yellow-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  กำลังดำเนินการ...
+                </span>
+              ) : 'กดเพื่อรับ E-Voucher'}
             </button>
           )}
         </div>
@@ -227,12 +241,11 @@ const MessageBubble = memo(({
   const renderReplyPreview = useCallback(() => {
     if (!enrichedReplyTo) return null;
     
-    const replyText = enrichedReplyTo.text || (enrichedReplyTo.image ? 'Image' : 'File');
     const isReplyingToSelf = enrichedReplyTo.user?._id === message.user?._id;
     
     return (
       <div 
-        className={`w-full flex ${isMyMessage ? 'justify-end' : 'justify-start'} mb-1`}
+        className={`w-full flex ${isMyMessage ? 'justify-end' : 'justify-start'} mb-1.5`}
         onClick={(e) => {
           e.stopPropagation();
           if (enrichedReplyTo.id && onReplyPreviewClick) {
@@ -241,58 +254,74 @@ const MessageBubble = memo(({
         }}
       >
         <div 
-          className={`max-w-[85%] bg-blue-50/70 dark:bg-blue-900/20 rounded-lg p-3 border-l-4 ${
-            isMyMessage ? 'border-blue-400' : 'border-gray-400'
-          } cursor-pointer hover:bg-blue-100/70 dark:hover:bg-blue-900/30 transition-all duration-200 shadow-sm`}
+          className={`max-w-[85%] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-3 border ${
+            isMyMessage 
+              ? 'border-blue-200/80 dark:border-blue-900/60 hover:border-blue-300/80 dark:hover:border-blue-800/80' 
+              : 'border-gray-200/80 dark:border-gray-700/60 hover:border-gray-300/80 dark:hover:border-gray-600/80'
+          } cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md`}
         >
-          <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 font-medium mb-1.5">
-            <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center text-xs font-medium mb-1.5">
+            <svg 
+              className={`w-3.5 h-3.5 mr-1.5 flex-shrink-0 ${
+                isMyMessage ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
+              }`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
             </svg>
-            <span className="truncate">
+            <span className={`truncate ${
+              isMyMessage 
+                ? 'text-blue-600 dark:text-blue-400' 
+                : 'text-gray-600 dark:text-gray-300'
+            }`}>
               {isMyMessage 
                 ? `Replying to ${isReplyingToSelf ? 'yourself' : getDisplayName(enrichedReplyTo.user) || 'user'}`
                 : `${getDisplayName(message.user) || 'Someone'} replied to ${isReplyingToSelf ? 'themselves' : getDisplayName(enrichedReplyTo.user) || 'you'}`}
             </span>
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-300 truncate pl-4 border-l-2 border-blue-200 dark:border-blue-700">
+          <div className={`text-sm truncate pl-4 border-l-2 ${
+            isMyMessage 
+              ? 'border-blue-200 dark:border-blue-800 text-gray-700 dark:text-gray-200' 
+              : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'
+          }`}>
             {enrichedReplyTo.notFound ? (
-              <span className="text-gray-400 italic">[Message not found]</span>
+              <span className="text-gray-400 dark:text-gray-500 italic text-xs">[Message not found]</span>
             ) : (
-              <>
-                {enrichedReplyTo.type === 'file' && enrichedReplyTo.fileType?.startsWith('image/') && (
+              <div className="space-y-1.5">
+                {enrichedReplyTo.type === 'file' && enrichedReplyTo.fileType?.startsWith('image/') ? (
                   <div className="flex items-center">
-                    <span className="inline-flex items-center justify-center w-4 h-4 mr-1.5 text-gray-400">
+                    <span className={`inline-flex items-center justify-center w-4 h-4 mr-2 ${
+                      isMyMessage ? 'text-blue-400' : 'text-gray-400'
+                    }`}>
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-3.5 h-3.5">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </span>
-                    <span className="text-gray-500 text-sm">
+                    <span className="text-sm truncate">
                       {enrichedReplyTo.fileName || 'Image'}
                     </span>
                   </div>
-                )}
-                {enrichedReplyTo.type === 'file' && !enrichedReplyTo.fileType?.startsWith('image/') && (
+                ) : enrichedReplyTo.type === 'file' && !enrichedReplyTo.fileType?.startsWith('image/') ? (
                   <div className="flex items-center">
-                    <span className="inline-flex items-center justify-center w-4 h-4 mr-1.5 text-gray-400">
+                    <span className={`inline-flex items-center justify-center w-4 h-4 mr-2 ${
+                      isMyMessage ? 'text-blue-400' : 'text-gray-400'
+                    }`}>
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-3.5 h-3.5">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </span>
-                    <span className="text-sm text-gray-600 dark:text-gray-300 truncate">
+                    <span className="text-sm truncate">
                       {enrichedReplyTo.fileName || 'File'}
                     </span>
                   </div>
-                )}
-                {enrichedReplyTo.text && (
-                  <span className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2">
-                    {enrichedReplyTo.text}
+                ) : (
+                  <span className="text-sm line-clamp-2">
+                    {renderWithMentions(enrichedReplyTo.text || '', currentUsername) || 'Empty message'}
                   </span>
                 )}
-                {(enrichedReplyTo.type === 'message' || !enrichedReplyTo.type) && (
-                  <span>{renderWithMentions(enrichedReplyTo.text || '', currentUsername) || 'Empty message'}</span>
-                )}
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -303,7 +332,7 @@ const MessageBubble = memo(({
   return (
     <div
       className={`w-full flex flex-col ${isMyMessage ? 'items-end' : 'items-start'} ${
-        isFirstInGroup ? 'mt-4' : 'mt-1'
+        isFirstInGroup ? 'mt-4' : 'mt-1.5'
       }`}
       onContextMenu={handleLongPress}
       onMouseEnter={() => setIsHovered(true)}
@@ -313,34 +342,37 @@ const MessageBubble = memo(({
       <div className={`flex items-start w-full ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
         {!isMyMessage && showAvatar && (
           <div 
-            className={`flex-shrink-0 ${isMyMessage ? 'ml-2' : 'mr-3'} self-end transition-all duration-200`}
-            style={{ opacity: isLastInGroup ? 1 : 0 }}
+            className={`flex-shrink-0 ${isMyMessage ? 'ml-3' : 'mr-3'} self-end transition-all duration-200`}
+            style={{ 
+              opacity: isLastInGroup ? 1 : 0,
+              transform: isLastInGroup ? 'translateY(0)' : 'translateY(8px)'
+            }}
           >
             <Avatar 
               name={getDisplayName(message.user)} 
-              size={32}
+              size={36}
             />
           </div>
         )}
         <div className={`flex flex-col max-w-[85%] ${isMyMessage ? 'items-end' : 'items-start'}`}>
           {!isMyMessage && message.user?.username && isFirstInGroup && (
-            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 ml-1 font-medium">
+            <span className="text-xs text-white text-white-400 mb-1.5 ml-1.5 font-medium tracking-wide">
               {message.user.username}
             </span>
           )}
           <div
-            className={`relative px-4 py-2.5 rounded-2xl shadow-sm transition-all duration-200 ${
+            className={`relative px-4 py-2.5 rounded-2xl transition-all duration-300 ease-out ${
               isMyMessage 
-                ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-500/20' 
-                : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'
+                ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/10' 
+                : 'bg-white dark:bg-gray-700 text-white dark:text-white border border-gray-100 dark:border-gray-600 shadow-sm shadow-gray-200/50 dark:shadow-gray-900/30'
             } ${
               isMyMessage 
-                ? 'rounded-br-md' 
-                : 'rounded-bl-md'
+                ? 'rounded-br-sm' 
+                : 'rounded-bl-sm'
             } ${
               message.type === 'sticker' || message.stickerId 
                 ? 'bg-transparent shadow-none p-2' 
-                : 'hover:shadow-md'
+                : 'hover:shadow-md hover:-translate-y-0.5'
             } ${
               isHovered ? 'scale-[1.01]' : ''
             }`}
@@ -348,8 +380,12 @@ const MessageBubble = memo(({
             {renderContent()}
           </div>
           {isLastInGroup && (
-            <div className={`flex flex-row items-center mt-1.5 ${isMyMessage ? 'justify-end' : 'ml-1'}`}>
-              <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
+            <div className={`flex flex-row items-center mt-1.5 ${isMyMessage ? 'justify-end' : 'ml-1.5'} space-x-1.5`}>
+              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-md transition-colors duration-200 ${
+                isMyMessage 
+                  ? 'text-gray-500 dark:text-gray-400' 
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}>
                 {formatTime(message.timestamp)}
               </span>
               {statusElement}

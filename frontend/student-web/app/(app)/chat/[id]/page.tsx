@@ -123,6 +123,16 @@ export default function ChatRoomPage() {
     }
   };
 
+  const getDisplayName = (user: any) => {
+    if (!user) return 'Unknown User';
+    if (user.name) {
+      const name = user.name;
+      if (typeof name === 'string') return name;
+      if (name.first || name.last) return `${name.first || ''} ${name.last || ''}`.trim();
+    }
+    return user.username || 'User';
+  };
+
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     const isAtBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 20;
@@ -133,10 +143,12 @@ export default function ChatRoomPage() {
   if (error) return <ErrorView message={error} onRetry={initializeRoom} />;
 
   return (
-    <div className="fixed inset-0 flex flex-col w-full h-full min-h-screen from-blue-100 via-blue-200 to-blue-300 backdrop-blur-2xl overflow-hidden">
-      {/* Header */}
-      <div className="w-full max-w-2xl mx-auto flex flex-col flex-1 h-full justify-between">
-        <div className="flex items-center p-4 border-b border-white/30 bg-white/40 backdrop-blur-lg rounded-3xl shadow-xl border border-white/30 mt-4">
+    <div className="fixed inset-0 flex flex-col w-full h-full min-h-screen from-blue-100 via-blue-100 to-blue-200 overflow-hidden">
+      {/* Main Container */}
+      <div className="w-full h-full flex justify-center items-center p-2 sm:p-4">
+        <div className="w-full max-w-4xl h-[90vh] max-h-[900px] bg-white/50 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/30 flex flex-col">
+          {/* Header */}
+          <div className="flex items-center p-4 border-b border-white/30 bg-white/50">
           <button
             className="mr-4 p-2 rounded hover:bg-white/30"
             onClick={() => router.replace('/chat')}
@@ -185,7 +197,33 @@ export default function ChatRoomPage() {
         {/* Messages List */}
         <div className="flex-1 relative w-full h-full overflow-hidden">
           <div className="absolute inset-0 w-full h-full flex flex-col justify-end">
-            <div className="flex-1 overflow-y-auto scrollbar-none px-2 py-4 bg-white/30 backdrop-blur-lg backdrop-saturate-150 rounded-3xl shadow-2xl border border-white/30 mx-2 mt-2 mb-28" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex-1 overflow-y-auto scrollbar-none px-4 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {/* Reply Preview */}
+              {replyTo && (
+                <div className="mx-4 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100 shadow-sm">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-blue-600">
+                          Replying to {replyTo.user?._id === userId ? 'yourself' : getDisplayName(replyTo.user)}
+                        </span>
+                        <button 
+                          onClick={() => setReplyTo(undefined)}
+                          className="text-gray-400 hover:text-gray-600 p-1 -mr-1 hover:bg-gray-100 rounded-full transition-colors"
+                          aria-label="Cancel reply"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-700 line-clamp-2">
+                        {replyTo.text || 'Photo or file'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <MessageList
                 messages={groupMessages}
                 userId={userId}
@@ -203,14 +241,17 @@ export default function ChatRoomPage() {
               />
               {showScrollToBottom && (
                 <button
-                  className="fixed bottom-32 right-8 bg-white/60 rounded-full px-4 py-2 text-blue-700 shadow-lg z-10"
+                  className="fixed bottom-28 right-4 bg-white/90 hover:bg-white backdrop-blur-sm rounded-full px-4 py-2.5 text-sm font-medium text-blue-700 shadow-lg z-10 transition-all duration-200 flex items-center gap-2 border border-blue-100 hover:shadow-md"
                   onClick={() => {
                     if (flatListRef.current) {
                       flatListRef.current.scrollTop = flatListRef.current.scrollHeight;
                     }
                   }}
                 >
-                  {t('chat.scrollToBottom')}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                  <span>Scroll to Bottom</span>
                 </button>
               )}
             </div>
@@ -225,10 +266,9 @@ export default function ChatRoomPage() {
           />
         )}
 
-        {/* Input Area - glassy, ติดขอบล่าง */}
-        <div className="fixed bottom-0 left-0 w-full flex justify-center z-20 pointer-events-none">
-        <div className="w-full max-w-2xl px-4 pb-4 pointer-events-auto">
-          <div className="bg-white/40 backdrop-blur rounded-2xl shadow-xl border border-white/30">
+        {/* Input Area */}
+        <div className="border-t border-white/30 bg-white/50 backdrop-blur-lg p-4">
+          <div className="max-w-2xl mx-auto">
             <ChatInput
                 messageText={messageText}
                 handleTextInput={handleTextInput}
@@ -253,6 +293,7 @@ export default function ChatRoomPage() {
         </div>
       </div>
 
+      
       {/* Room Info Modal */}
       <RoomInfoModal
         room={room as ChatRoom}

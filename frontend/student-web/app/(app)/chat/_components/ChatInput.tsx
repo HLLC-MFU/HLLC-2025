@@ -85,10 +85,10 @@ const ChatInput = ({
   };
 
   return (
-    <div className="relative mb-6 mx-3">
+    <div className="relative mb-6 mx-4">
       {/* Reply Preview */}
       {replyTo && (
-        <div className="flex items-center bg-gradient-to-r from-blue-50/90 to-indigo-50/90 dark:from-blue-900/20 dark:to-indigo-900/20 backdrop-blur-sm rounded-t-2xl p-3 mx-0.5 border-b border-blue-200/50 dark:border-blue-700/50 shadow-sm">
+        <div className="flex items-center bg-gradient-to-r from-blue-50/90 to-indigo-50/90 dark:from-blue-900/20 dark:to-indigo-900/20 backdrop-blur-sm rounded-t-2xl p-3 border-b border-blue-200/50 dark:border-blue-700/50 shadow-sm">
           <div className="flex-1 min-w-0">
             <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 font-semibold mb-1">
               <svg className="w-4 h-4 mr-2 text-blue-500 dark:text-blue-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,7 +127,7 @@ const ChatInput = ({
       )}
 
       {/* Main Input Container */}
-      <div className={`relative flex items-end rounded-3xl p-1.5 min-h-[52px] border-2 transition-all duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg hover:shadow-xl ${
+      <div className={`relative flex items-center rounded-3xl p-1.5 min-h-[56px] border-2 transition-all duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg hover:shadow-xl ${
         isFocused 
           ? 'border-blue-400 dark:border-blue-500 shadow-blue-500/20 bg-white/90 dark:bg-gray-800/90' 
           : 'border-gray-200/50 dark:border-gray-600/50'
@@ -145,105 +145,111 @@ const ChatInput = ({
           </div>
         )}
 
-        {/* Add/Image Button */}
-        {canSendImage && (
-          <button
-            className={`m-1 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
-              isDisabled 
-                ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed' 
-                : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800 dark:hover:to-blue-700 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 shadow-sm hover:shadow-md'
-            }`}
-            onClick={handleImageUpload}
-            disabled={isDisabled}
-            type="button"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
-        )}
-
-        {/* Text Input */}
-        <div className="flex-1 relative">
-          <input
-            ref={inputRef}
-            type="text"
-            value={messageText}
-            onChange={(e) => handleTextInput(e.target.value)}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            onKeyPress={handleKeyPress}
-            placeholder={isDisabled ? 'กำลังเชื่อมต่อ...' : 'พิมพ์ข้อความ...'}
-            className={`w-full bg-transparent text-gray-900 dark:text-gray-100 text-[15px] px-3 py-2.5 min-h-[40px] outline-none font-medium placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed ${
-              isDisabled ? 'cursor-not-allowed' : ''
-            }`}
-            disabled={isDisabled}
-            maxLength={1000}
-          />
-          
-          {/* Character Counter */}
-          {messageText.length > 800 && (
-            <div className={`absolute -bottom-5 right-0 text-xs font-medium ${
-              messageText.length > 950 ? 'text-red-500' : 'text-yellow-500'
-            }`}>
-              {messageText.length}/1000
-            </div>
+        <div className="flex items-center w-full px-1">
+          {/* Add/Image Button */}
+          {canSendImage && (
+            <button
+              className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
+                isDisabled 
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/50 dark:hover:to-blue-700/50 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 shadow-sm hover:shadow-md'
+              }`}
+              onClick={handleImageUpload}
+              disabled={isDisabled}
+              type="button"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
           )}
+
+          {/* Text Input */}
+          <div className="flex-1 mx-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={messageText}
+              onChange={(e) => handleTextInput(e.target.value)}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              onKeyPress={handleKeyPress}
+              placeholder={isDisabled ? 'กำลังเชื่อมต่อ...' : 'พิมพ์ข้อความ...'}
+              className={`w-full bg-transparent text-gray-900 dark:text-gray-100 text-[15px] py-2.5 min-h-[40px] outline-none font-medium placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed ${
+                isDisabled ? 'cursor-not-allowed' : ''
+              }`}
+              disabled={isDisabled}
+              maxLength={1000}
+            />
+            
+            {/* Character Counter */}
+            {messageText.length > 800 && (
+              <div className={`absolute bottom-0 right-16 text-xs font-medium ${
+                messageText.length > 950 ? 'text-red-500' : 'text-yellow-500'
+              }`}>
+                {messageText.length}/1000
+              </div>
+            )}
+          </div>
+
+          {/* Emoji/Sticker Button */}
+          <div className="flex items-center space-x-1">
+            <button
+              className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
+                showStickerPicker 
+                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 scale-110' 
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:scale-110'
+              } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow-md'}`}
+              onClick={() => setShowStickerPicker(!showStickerPicker)}
+              disabled={isDisabled}
+              type="button"
+            >
+              <span className="text-lg transition-transform duration-200">
+                {showStickerPicker ? '😊' : '😊'}
+              </span>
+            </button>
+
+            {/* Send Button */}
+            <button
+              className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
+                canSend 
+                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl shadow-blue-500/25 hover:scale-110 text-white'
+                  : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+              }`}
+              onClick={handleSend}
+              disabled={!canSend}
+              type="submit"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {/* Emoji/Sticker Button */}
-        <button
-          className={`m-1 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
-            showStickerPicker 
-              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 scale-110' 
-              : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:scale-110'
-          } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow-md'}`}
-          onClick={() => setShowStickerPicker(!showStickerPicker)}
-          disabled={isDisabled}
-          type="button"
-        >
-          <span className="text-lg transition-transform duration-200">
-            {showStickerPicker ? '😊' : '😊'}
-          </span>
-        </button>
-
-        {/* Send Button */}
-        {hasText && (
-          <button
-            className={`m-1 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
-              canSend 
-                ? 'bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl shadow-blue-500/25 hover:scale-110 text-white'
-                : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-            }`}
-            onClick={handleSend}
-            disabled={!canSend}
-            type="button"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-          </button>
-        )}
       </div>
 
-      {/* Typing Indicator */}
-      {isTyping && (
-        <div className="absolute -bottom-6 left-4 flex items-center text-xs text-gray-500 dark:text-gray-400">
-          <div className="flex space-x-1 mr-2">
-            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+      {/* Typing and Status Container */}
+      <div className="absolute -bottom-6 left-0 right-0 flex justify-between items-center px-4">
+        {/* Typing Indicator */}
+        {isTyping && (
+          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded-full shadow-sm">
+            <div className="flex space-x-1 mr-2">
+              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <span className="font-medium">กำลังพิมพ์...</span>
           </div>
-          <span className="font-medium">typing...</span>
-        </div>
-      )}
+        )}
 
-      {/* Connection Status Text */}
-      {isDisabled && (
-        <div className="absolute -bottom-6 right-4 text-xs text-red-500 dark:text-red-400 font-medium">
-          {!isConnected ? 'Connection lost' : 'Not a member'}
-        </div>
-      )}
+        {/* Connection Status Text */}
+        {isDisabled && (
+          <div className="text-xs text-red-500 dark:text-red-400 font-medium bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded-full shadow-sm">
+            {!isConnected ? 'การเชื่อมต่อมีปัญหา' : 'กรุณาเข้าร่วมกลุ่มก่อน'}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

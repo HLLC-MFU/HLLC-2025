@@ -11,8 +11,10 @@ export function onMessage(event: MessageEvent, args: any) {
   try {
     const data = JSON.parse(event.data);
     console.log('[WebSocket] Received message:', data);
-    // แสดงเฉพาะ message ที่มี type, payload, room ครบ
-    if (!(data.type && data.payload && data.payload.room)) {
+    // แสดงเฉพาะ message ที่มี type, payload, และ room (ใน data หรือ data.payload) หรือถ้าเป็น sticker ให้ allow
+    const hasRoom = data.room || (data.payload && data.payload.room);
+    const isSticker = data.type === 'sticker' && (data.payload.sticker || data.payload.image);
+    if (!(data.type && data.payload && (hasRoom || isSticker))) {
       return;
     }
     
