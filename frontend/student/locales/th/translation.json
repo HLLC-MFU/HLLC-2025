@@ -107,7 +107,8 @@
         "subtitle": "กำลังมา เร็วๆนี้...",
         "backward": "ย้อนกลับ",
         "detailTab": "รายละเอียด",
-        "TimelineTab": "ไทม์ไลน์"
+        "TimelineTab": "ไทม์ไลน์",
+        "noActivitiesFound": "ไม่พบกิจกรรม"
     },
     "evoucher": {
         "title": "คูปอง",
