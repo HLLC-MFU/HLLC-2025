@@ -24,7 +24,7 @@ export default function EvoucherPage() {
   };
 
     if (loading) return (
-        <div className="flex flex-col gap-6 px-6">
+        <div className="flex flex-col gap-6">
             <Input
                 aria-label="Search"
                 classNames={{
@@ -48,7 +48,7 @@ export default function EvoucherPage() {
     )
 
     return (
-        <div className="flex flex-col h-full gap-6 px-6">
+        <div className="flex flex-col h-full gap-6">
             {/* Search Bar */}
             <Input
                 aria-label="Search"

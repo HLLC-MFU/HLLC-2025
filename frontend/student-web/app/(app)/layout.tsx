@@ -8,13 +8,14 @@ import ProgressBar from '@/components/ui/progressBar';
 import useProgress from '@/hooks/useProgress';
 import { useSSE } from '@/hooks/useSSE';
 import { addToast } from '@heroui/react';
-import { BellRing } from 'lucide-react';
 import { useActivities } from '@/hooks/useActivities';
 import { useNotification } from '@/hooks/useNotification';
+import { useAppearances } from '@/hooks/useAppearances';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-    const router = useRouter();
+  const router = useRouter();
+  const { assets } = useAppearances();
   const { fetchActivitiesByUser } = useActivities(null);
   const { fetchNotification } = useNotification();
 
@@ -49,14 +50,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     pathname === '/community' || pathname.startsWith('/community/coin-hunting');
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden pb-24">
-      <Image
-        fill
-        priority
-        alt="Background"
-        className="absolute inset-0 object-cover z-0"
-        src={lobby}
-      />
+    <div className="fixed h-dvh w-full overflow-hidden pb-24">
+      {assets && assets.background ? (
+        assets.background.endsWith('.mp4') ? (
+          <video
+          autoPlay 
+          muted 
+          loop 
+          playsInline
+          className="absolute inset-0 w-screen h-screen object-cover z-0"
+          src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.background}`}
+          />
+        ) : (
+          <Image
+            fill
+            priority
+            alt="Background"
+            className="absolute inset-0 object-cover z-0"
+            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.background}`}
+          />
+        )
+      ) : (
+        <Image
+          fill
+          priority
+          alt="Background"
+          className="absolute inset-0 object-cover z-0"
+          src={lobby}
+        />
+      )}
 
       <div
         className="absolute inset-0 z-10 pointer-events-none transition-all duration-500"
@@ -69,9 +91,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       />
 
       <div className="relative z-20 flex h-full flex-col text-foreground">
-        <div className="fixed top-0 left-0 right-0 z-50 mx-4">
+        <div className="fixed top-0 left-0 right-0 z-40">
           {!hideProgressSummary && (
-            <ProgressBar progress={progressPercentage} onClickAvatar={() => router.push('/profile')}/>
+            <ProgressBar
+              progress={progressPercentage}
+              avatarUrl={(assets && assets.profile)
+                ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.profile}`
+                : ""
+              }
+              onClickAvatar={() => router.push('/profile')}
+            />
           )}
         </div>
 

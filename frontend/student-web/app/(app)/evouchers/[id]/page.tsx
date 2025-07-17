@@ -46,7 +46,7 @@ export default function EvoucherDetailPage() {
     }
 
     if (isLoading) return (
-        <div className="flex flex-col gap-6 px-6">
+        <div className="flex flex-col gap-6">
             <div className="flex items-center gap-4 animate-pulse">
                 <ArrowLeft size={28} color="white" onClick={router.back} />
                 <div className="w-[200px] h-[30px] rounded-2xl shadow-xl bg-white/20"/>
@@ -74,7 +74,7 @@ export default function EvoucherDetailPage() {
     )
 
     return (
-        <div className="flex flex-col h-full gap-6 px-6">
+        <div className="flex flex-col h-full gap-6">
             {/* Header */}
             <div className="flex items-center gap-4">
                 <ArrowLeft size={28} color="white" onClick={router.back} />
