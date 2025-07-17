@@ -11,6 +11,10 @@ export function onMessage(event: MessageEvent, args: any) {
   try {
     const data = JSON.parse(event.data);
     console.log('[WebSocket] Received message:', data);
+    // แสดงเฉพาะ message ที่มี type, payload, room ครบ
+    if (!(data.type && data.payload && data.payload.room)) {
+      return;
+    }
     
     // กรณี backend ส่ง type: 'message' (ไม่มี eventType) - รวมทั้ง history messages
     if (data.type === 'message' && data.payload && data.payload.message) {

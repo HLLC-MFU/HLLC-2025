@@ -359,10 +359,6 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
     const tempMessage = createTempMessage(trimmedMessage, myUser, replyState.replyTo);
     console.log('[ChatRoom] Creating temporary message:', tempMessage);
 
-    // Add the message to local state immediately for instant feedback
-    console.log('[ChatRoom] Adding message to local state...');
-    addMessage(tempMessage);
-
     // Clear the input field and reply state
     console.log('[ChatRoom] Clearing input and reply state');
     updateChatState({ messageText: '' });
