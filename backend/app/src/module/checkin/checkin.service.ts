@@ -76,15 +76,19 @@ export class CheckinService {
     };
 
     if (staffRole !== 'ADMINISTRATOR') {
-      const invalidTargets = invalidRoles[staffRole] || [];
+      if (userObjectId.toString() === staffObjectId.toString()) {
+        throw new BadRequestException('Cannot check-in yourself');
+      }
+      const baseRole = ['STAFF', 'SMO'].find((r) => staffRole.startsWith(r));
+      if (!baseRole) {
+        throw new BadRequestException(
+          'You are not allowed to check-in other users',
+        );
+      }
+      const invalidTargets = invalidRoles[baseRole] || [];
       if (invalidTargets.some((r) => targetRole.startsWith(r))) {
         throw new BadRequestException(
           `${staffRole} cannot check-in ${targetRole}`,
-        );
-      }
-      if (!['STAFF', 'SMO'].includes(staffRole)) {
-        throw new BadRequestException(
-          'You are not allowed to check-in other users',
         );
       }
     }
