@@ -6,11 +6,12 @@ import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { Checkin, CheckinDocument } from './schema/checkin.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { Activities, ActivityDocument } from 'src/module/activities/schemas/activities.schema';
-import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
+import { validateCheckinTime } from './utils/checkin.util';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { NotificationsService } from '../notifications/notifications.service';
-import { decryptItem } from '../auth/utils/crypto';
+
 import { SseService } from '../sse/sse.service';
+import { queryAll, queryFindOne } from 'src/pkg/helper/query.util';
 
 @Injectable()
 export class CheckinService {
@@ -160,7 +161,7 @@ export class CheckinService {
       ],
     });
 
-    this.sseService.sendToUser(userDoc._id.toString() ,{
+    this.sseService.sendToUser(userDoc._id.toString(), {
       type: 'CHECKED_IN',
       data: {
         userId: userDoc._id,
@@ -173,24 +174,29 @@ export class CheckinService {
     return checkIn;
   }
 
-  async findCheckedInUser(activityId: string) {
-    const activityObjectId = new Types.ObjectId(activityId);
-    const checkin = await this.checkinModel
-      .find({ activity: activityObjectId })
-      .populate('user')
-      .populate('staff');
-    return checkin;
+  async findAll(query: Record<string, string>) {
+    return queryAll<Checkin>({
+      model: this.checkinModel,
+      query,
+      filterSchema: {},
+      populateFields: () => Promise.resolve([{ path: 'activity' }]),
+    });
   }
-}
 
-function hasAdminPermission(perms?: string[]) {
-  if (!Array.isArray(perms)) return false;
-  return perms.some(p => {
-    try {
-      return decryptItem(p) === '*';
-    } catch (err) {
-      console.warn('Decrypt failed:', err);
-      return false;
-    }
-  });
+  async findOne(
+    id: string,
+  ): Promise<{ data: Checkin[] | null; message: string }> {
+    const result = await queryFindOne(this.checkinModel, { _id: id });
+    return result;
+  }
+
+  async findAllByActivities(activityId: string) {
+    const checkin = await this.checkinModel.find({ activity: new Types.ObjectId(activityId), })
+      .populate('activity')
+      .populate({
+        path: 'user',
+        select: ['username']
+      })
+    return checkin
+  }
 }
