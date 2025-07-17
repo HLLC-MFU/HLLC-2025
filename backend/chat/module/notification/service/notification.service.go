@@ -178,7 +178,7 @@ func (ns *NotificationService) createAndSendNotification(ctx context.Context, re
 		payload = ns.createMentionNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
 		
 	case chatModel.MessageTypeReply:
-		payload = ns.createReplyNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
+		payload = ns.createReplyNotification(ctx, notificationRoom, notificationSender, notificationMessage, message, receiverID)
 		
 	case chatModel.MessageTypeRestriction:
 		// Determine specific restriction type from message content
@@ -262,25 +262,62 @@ func (ns *NotificationService) createMentionNotification(room chatModel.Notifica
 }
 
 // createReplyNotification creates a reply notification with reply info
-func (ns *NotificationService) createReplyNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string) chatModel.NotificationPayload {
-	// Add reply info to message
+func (ns *NotificationService) createReplyNotification(ctx context.Context, room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string) chatModel.NotificationPayload {
+	// Get the original message that was replied to
+	var replyToMessage *model.ChatMessage
 	if chatMessage.ReplyToID != nil {
-		replyInfo := chatModel.NotificationReplyInfo{
-			MessageID: chatMessage.ReplyToID.Hex(),
+		log.Printf("[NotificationService] Getting reply message for ID: %s", chatMessage.ReplyToID.Hex())
+		// Get the original message from database
+		chatService := queries.NewBaseService[model.ChatMessage](ns.collection.Database().Collection("chat-messages"))
+		result, err := chatService.FindOne(ctx, bson.M{"_id": chatMessage.ReplyToID})
+		if err == nil && len(result.Data) > 0 {
+			replyToMessage = &result.Data[0]
+			log.Printf("[NotificationService] Found reply message: ID=%s, UserID=%s, Message=%s", 
+				replyToMessage.ID.Hex(), replyToMessage.UserID.Hex(), replyToMessage.Message)
+		} else {
+			log.Printf("[NotificationService] Failed to get reply message: %v", err)
 		}
-		message.ReplyTo = &replyInfo
 	}
 	
-	return chatModel.NewReplyNotification(room, sender, message, chatModel.NotificationReplyInfo{
+	// Get the user who was replied to
+	var replyToUser *SimpleUser
+	if replyToMessage != nil {
+		replyToUser, _ = ns.getUserById(ctx, replyToMessage.UserID.Hex())
+		if replyToUser != nil {
+			log.Printf("[NotificationService] Found reply user: ID=%s, Username=%s", 
+				replyToUser.ID, replyToUser.Username)
+		} else {
+			log.Printf("[NotificationService] Failed to get reply user info")
+		}
+	}
+	
+	// Create enhanced reply info
+	replyInfo := chatModel.NotificationReplyInfo{
 		MessageID: chatMessage.ReplyToID.Hex(),
-	}, receiverID)
-}
-
-// createRestrictionNotification creates a restriction notification (legacy)
-func (ns *NotificationService) createRestrictionNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string, restrictionType string) chatModel.NotificationPayload {
-	// Set the specific restriction type in the message
-	message.Type = restrictionType
-	return chatModel.NewRestrictionNotification(room, sender, message, receiverID)
+	}
+	
+	// Add reply message content if available
+	if replyToMessage != nil {
+		replyInfo.Message = replyToMessage.Message
+		replyInfo.ReplyUserID = replyToMessage.UserID.Hex()
+		if replyToUser != nil {
+			replyInfo.ReplyUserName = replyToUser.Username
+		}
+		log.Printf("[NotificationService] Final reply info: MessageID=%s, Message=%s, ReplyUserID=%s, ReplyUserName=%s", 
+			replyInfo.MessageID, replyInfo.Message, replyInfo.ReplyUserID, replyInfo.ReplyUserName)
+	}
+	
+	// Add reply info to message
+	message.ReplyTo = &replyInfo
+	
+	// Create enhanced room info with name and image
+	enhancedRoom := chatModel.NotificationRoom{
+		ID:    room.ID,
+		Name:  room.Name,
+		Image: room.Image,
+	}
+	
+	return chatModel.NewReplyNotification(enhancedRoom, sender, message, replyInfo, receiverID)
 }
 
 // createSpecificRestrictionNotification creates a specific restriction notification based on type
@@ -333,10 +370,11 @@ func (ns *NotificationService) createUnsendNotification(room chatModel.Notificat
 	unsendMessage := chatModel.CreateNotificationMessage(
 		chatMessage.ID.Hex(),
 		sender.Username + " has unsent the message",
-		chatModel.MessageTypeUnsend,
+		chatModel.MessageTypeUnsend, // FIXED: Use MessageTypeUnsend constant
 		chatMessage.Timestamp,
 	)
 	
+	// Use the proper constructor function
 	return chatModel.NewUnsendNotification(room, sender, unsendMessage, receiverID)
 }
 
@@ -488,7 +526,7 @@ func (ns *NotificationService) getRoomMembers(ctx context.Context, roomID primit
 func (ns *NotificationService) determineMessageType(message *model.ChatMessage) string {
 	// Check for unsend first (has IsDeleted flag)
 	if message.IsDeleted != nil && *message.IsDeleted {
-		return chatModel.MessageTypeUnsend
+		return chatModel.MessageTypeUnsend // FIXED: Return unsend_message for unsend messages
 	}
 	// Check for upload first (has Image but no StickerID)
 	if message.Image != "" && message.StickerID == nil {

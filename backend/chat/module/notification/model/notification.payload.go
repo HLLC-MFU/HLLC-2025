@@ -13,7 +13,7 @@ const (
 	MessageTypeSticker     = "sticker"
 	MessageTypeMention     = "mention"
 	MessageTypeEvoucher    = "evoucher"
-	MessageTypeUnsend      = "unsend"
+	MessageTypeUnsend      = "unsend_message"
 	MessageTypeRestriction = "restriction"
 	MessageTypeUpload      = "upload"
 	MessageTypeReaction    = "reaction"
@@ -76,10 +76,10 @@ type NotificationStickerInfo struct {
 }
 
 type NotificationReplyInfo struct {
-	MessageID    string `json:"messageId"`
-	Message      string `json:"message,omitempty"`
-	SenderID     string `json:"senderId,omitempty"`
-	SenderName   string `json:"senderName,omitempty"`
+	MessageID      string `json:"messageId"`
+	Message        string `json:"message,omitempty"`
+	ReplyUserID    string `json:"ReplyUserID,omitempty"`
+	ReplyUserName  string `json:"ReplyUserName,omitempty"`
 }
 
 type NotificationReactionInfo struct {

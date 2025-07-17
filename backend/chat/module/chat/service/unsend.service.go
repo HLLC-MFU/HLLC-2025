@@ -78,6 +78,11 @@ func (s *ChatService) UnsendMessage(ctx context.Context, messageID, userID primi
 		log.Printf("[ChatService] Successfully emitted unsend event for message %s", messageID.Hex())
 	}
 
+	// **FIXED: Update messageData with IsDeleted flag before sending to notification service**
+	messageData.IsDeleted = &isDeleted
+	messageData.DeletedAt = &now
+	messageData.DeletedBy = &userID
+
 	// Send notifications to offline users
 	if s.notificationService != nil {
 		// Get online users in this room
@@ -111,28 +116,52 @@ func (s *ChatService) emitUnsendEvent(ctx context.Context, messageData *model.Ch
 		return err
 	}
 
-	// สร้าง payload สำหรับ unsend event (WebSocket)
-	payload := model.ChatUnsendPayload{
-		Room: model.RoomInfo{
-			ID: messageData.RoomID.Hex(),
-		},
-		User: model.UserInfo{
-			ID:       user.ID.Hex(),
-			Username: user.Username,
-			Name: map[string]interface{}{
-				"first":  user.Name.First,
-				"middle": user.Name.Middle,
-				"last":   user.Name.Last,
+	// ดึงข้อมูล room เพื่อให้ได้ name เต็ม
+	roomCollection := s.collection.Database().Collection("rooms")
+	var room struct {
+		ID    primitive.ObjectID    `bson:"_id"`
+		Name  map[string]string     `bson:"name"`
+		Image string                `bson:"image"`
+	}
+	
+	err = roomCollection.FindOne(ctx, bson.M{"_id": messageData.RoomID}).Decode(&room)
+	if err != nil {
+		log.Printf("[ChatService] Failed to get room info for unsend event: %v", err)
+		return err
+	}
+
+	// สร้าง payload แบบเดียวกับ message ปกติ
+	payload := map[string]interface{}{
+		
+		"room": map[string]interface{}{
+			"_id":   room.ID.Hex(),
+			"image": room.Image,
+			"name": map[string]interface{}{
+				"en": room.Name["en"],
+				"th": room.Name["th"],
 			},
 		},
-		MessageID:   messageData.ID.Hex(),
-		MessageType: s.getMessageType(messageData),
-		Timestamp:   time.Now(),
+		"user": map[string]interface{}{
+			"_id":       user.ID.Hex(),
+			"name": map[string]interface{}{
+				"first":  user.Name.First,
+				"last":   user.Name.Last,
+				"middle": user.Name.Middle,
+			},
+			"username": user.Username,
+		},
+		"message": map[string]interface{}{
+			"_id":       messageData.ID.Hex(),
+			"message":   user.Username + " has unsent the message",
+			"type":      "unsend_message", // FIXED: Use MessageTypeUnsend constant
+			"timestamp": time.Now(),
+		},
+		"timestamp": time.Now(),
 	}
 
 	// สร้าง event สำหรับ WebSocket
 	event := model.Event{
-		Type:      model.EventTypeUnsendMessage,
+		Type: "unsend_message", // FIXED: Use MessageTypeUnsend constant
 		Payload:   payload,
 		Timestamp: time.Now(),
 	}
@@ -148,10 +177,11 @@ func (s *ChatService) emitUnsendEvent(ctx context.Context, messageData *model.Ch
 
 	// --- ส่ง delete event ไปที่ chat-room-<roomId> topic เพื่อแจ้งให้ frontend ลบข้อความออกจาก UI ---
 	deleteEvent := model.Event{
-		Type: model.EventTypeUnsendMessage,
+		Type: "unsend",
 		Payload: struct {
 			MessageID string         `json:"messageId"`
 			User      model.UserInfo `json:"user"`
+			Message   string         `json:"message"`
 			Timestamp time.Time      `json:"timestamp"`
 		}{
 			MessageID: messageData.ID.Hex(),
@@ -164,6 +194,7 @@ func (s *ChatService) emitUnsendEvent(ctx context.Context, messageData *model.Ch
 					"last":   user.Name.Last,
 				},
 			},
+			Message:   user.Username + " has unsent the message",
 			Timestamp: time.Now(),
 		},
 		Timestamp: time.Now(),
@@ -175,21 +206,5 @@ func (s *ChatService) emitUnsendEvent(ctx context.Context, messageData *model.Ch
 		log.Printf("[ChatService] Successfully emitted message_deleted event to Kafka")
 	}
 
-
-
 	return nil
 }
-
-// getMessageType กำหนดประเภทของข้อความ
-func (s *ChatService) getMessageType(msg *model.ChatMessage) string {
-	if msg.StickerID != nil {
-		return model.MessageTypeSticker
-	} else if msg.ReplyToID != nil {
-		return model.MessageTypeReply
-	} else if len(msg.MentionInfo) > 0 {
-		return model.MessageTypeMention
-	} else if msg.EvoucherInfo != nil {
-		return model.MessageTypeEvoucher
-	}
-	return model.MessageTypeText
-} 

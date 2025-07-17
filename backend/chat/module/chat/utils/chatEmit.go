@@ -486,6 +486,13 @@ func (e *ChatEventEmitter) getReplyToMessage(ctx context.Context, replyToID prim
 
 // emitEventStructured handles the new unified Event structure
 func (e *ChatEventEmitter) emitEventStructured(ctx context.Context, msg *model.ChatMessage, event model.Event) error {
+
+	// Empty message avoidable
+	if msg.Message == "" || msg.RoomID.IsZero() {
+		log.Printf("[ChatEventEmitter] Skipping empty message %s in event %s", msg.ID.Hex(), event.Type)
+		return nil
+	}
+
 	// For WebSocket broadcasting, marshal to bytes (needed for WebSocket protocol)
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
