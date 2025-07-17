@@ -48,6 +48,17 @@ export async function apiRequest<T>(
         statusCode: responseData.statusCode,
         message: responseData.message,
       };
+    } else if (
+      responseData.message &&
+      typeof responseData.remainingCooldownMs !== 'undefined' &&
+      responseData.message.toLowerCase().includes('cooldown')
+    ) {
+      // กรณี cooldown error
+      return {
+        data: { remainingCooldownMs: responseData.remainingCooldownMs } as any,
+        statusCode: response.status,
+        message: responseData.message,
+      };
     } else if (response.ok) {
       return {
         data: responseData,

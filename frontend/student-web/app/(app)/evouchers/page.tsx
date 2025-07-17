@@ -24,7 +24,7 @@ export default function EvoucherPage() {
   };
 
     if (loading) return (
-        <div className="flex flex-col gap-6 px-6">
+        <div className="flex flex-col gap-6">
             <Input
                 aria-label="Search"
                 classNames={{
@@ -48,7 +48,7 @@ export default function EvoucherPage() {
     )
 
     return (
-        <div className="flex flex-col h-full gap-6 px-6">
+        <div className="flex flex-col h-full gap-6">
             {/* Search Bar */}
             <Input
                 aria-label="Search"
@@ -70,8 +70,8 @@ export default function EvoucherPage() {
             />
 
             {/* Sponsors Group */}
-            <ScrollShadow className="h-[90%] overflow-y-auto" size={40} hideScrollBar>
-                <div className="grid grid-cols-2 gap-8">
+            <ScrollShadow className="h-[90%] overflow-y-auto pb-10" size={40} hideScrollBar>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
                     {filteredSponsors.map((sponsor, index) => {
                         if (sponsor?.logo?.logoPhoto) {
                             return (

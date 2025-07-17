@@ -36,7 +36,7 @@ func NewChatEventEmitter(hub *Hub, bus *kafka.Bus, redis *redis.Client, mongo *m
 }
 
 func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessage, metadata interface{}) error {
-	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s Text=%s", 
+	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s Text=%s",
 		msg.ID.Hex(), msg.RoomID.Hex(), msg.Message)
 
 	// Get user data
@@ -79,7 +79,7 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 	// Otherwise, determine message type from metadata or message content
 	var messageType string
 	var eventType string
-	
+
 	if metadataMap, ok := metadata.(map[string]interface{}); ok && metadataMap["type"] != nil {
 		messageType = metadataMap["type"].(string)
 		eventType = messageType
@@ -87,7 +87,7 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 		eventType = model.EventTypeSticker
 		messageType = model.MessageTypeSticker
 	} else if msg.ReplyToID != nil {
-		eventType = model.EventTypeReply  
+		eventType = model.EventTypeReply
 		messageType = model.MessageTypeReply
 	} else {
 		eventType = model.EventTypeMessage
@@ -144,7 +144,7 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 			Payload:   manualPayload,
 			Timestamp: msg.Timestamp,
 		}
-		
+
 		return e.emitEventStructured(ctx, msg, event)
 	} else if msg.Image != "" {
 		// File upload message
@@ -161,7 +161,7 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 				"message":   messageInfo.Message,
 				"timestamp": messageInfo.Timestamp,
 			},
-			"filename": msg.Image,
+			"filename":  msg.Image,
 			"timestamp": msg.Timestamp,
 		}
 
@@ -170,7 +170,7 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 			Payload:   manualPayload,
 			Timestamp: msg.Timestamp,
 		}
-		
+
 		return e.emitEventStructured(ctx, msg, event)
 	} else {
 		// Text or reply message
@@ -237,18 +237,14 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 			Payload:   manualPayload,
 			Timestamp: msg.Timestamp,
 		}
-		
+
 		return e.emitEventStructured(ctx, msg, event)
 	}
 }
 
-
-
-
-
 func (e *ChatEventEmitter) EmitTyping(ctx context.Context, roomID, userID string) error {
 	event := ChatEvent{
-		Type:      "typing",
+		Type: "typing",
 		Payload: map[string]string{
 			"roomId": roomID,
 			"userId": userID,
@@ -262,7 +258,7 @@ func (e *ChatEventEmitter) EmitTyping(ctx context.Context, roomID, userID string
 
 func (e *ChatEventEmitter) EmitUserJoined(ctx context.Context, roomID, userID string) error {
 	event := ChatEvent{
-		Type:      "user_joined",
+		Type: "user_joined",
 		Payload: map[string]string{
 			"roomId": roomID,
 			"userId": userID,
@@ -364,11 +360,11 @@ func (e *ChatEventEmitter) getRoomInfo(ctx context.Context, roomID primitive.Obj
 
 func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.ObjectID) (model.UserInfo, error) {
 	log.Printf("[DEBUG] Getting user info for ID: %s", userID.Hex())
-	
+
 	// **USE SIMPLE QUERY WITHOUT POPULATE TO AVOID ROLE DECODING ISSUES**
 	userService := queries.NewBaseService[userModel.User](e.mongo.Collection("users"))
 	result, err := userService.FindOne(ctx, bson.M{"_id": userID})
-	
+
 	if err != nil {
 		log.Printf("[WARN] Failed to query user %s: %v, using fallback", userID.Hex(), err)
 		// **FIXED: Never return error, always return valid user info**
@@ -382,7 +378,7 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 			},
 		}, nil
 	}
-	
+
 	if len(result.Data) == 0 {
 		log.Printf("[WARN] User %s not found in database, using fallback", userID.Hex())
 		// **FIXED: Never return error, always return valid user info**
@@ -398,9 +394,9 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 	}
 
 	user := result.Data[0]
-	
+
 	// **LOG RAW DATA FOR DEBUGGING**
-	log.Printf("[DEBUG] Raw user data: ID=%s, Username='%s', Name.First='%s', Name.Middle='%s', Name.Last='%s'", 
+	log.Printf("[DEBUG] Raw user data: ID=%s, Username='%s', Name.First='%s', Name.Middle='%s', Name.Last='%s'",
 		user.ID.Hex(), user.Username, user.Name.First, user.Name.Middle, user.Name.Last)
 
 	// **BUILD USER INFO WITH VALIDATION**
@@ -409,7 +405,7 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 		log.Printf("[WARN] User %s has empty username, using fallback", userID.Hex())
 		user.Username = "user_" + userID.Hex()[:8] // Use first 8 chars of ID as fallback
 	}
-	
+
 	if user.Name.First == "" && user.Name.Last == "" {
 		log.Printf("[WARN] User %s has empty name, using fallback", userID.Hex())
 		user.Name.First = "User"
@@ -419,15 +415,15 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 	userInfo := model.UserInfo{
 		ID:       user.ID.Hex(),
 		Username: user.Username,
-		Name:     map[string]interface{}{
-			"first":  user.Name.First,
+		Name: map[string]interface{}{
+			"first": user.Name.First,
 			"middle": func() string {
 				if user.Name.Middle == "" {
 					return ""
 				}
 				return user.Name.Middle
 			}(),
-			"last":   user.Name.Last,
+			"last": user.Name.Last,
 		},
 	}
 
@@ -461,13 +457,13 @@ func (e *ChatEventEmitter) getReplyToMessage(ctx context.Context, replyToID prim
 	// Get the original message being replied to
 	replyToService := queries.NewBaseService[model.ChatMessage](e.mongo.Collection("chat-messages"))
 	replyResult, err := replyToService.FindOne(ctx, bson.M{"_id": replyToID})
-	
+
 	if err != nil || len(replyResult.Data) == 0 {
 		return nil, err
 	}
 
 	replyMsg := replyResult.Data[0]
-	
+
 	// Determine message type
 	var messageType string
 	if replyMsg.StickerID != nil {
@@ -515,7 +511,7 @@ func (e *ChatEventEmitter) emitEventStructured(ctx context.Context, msg *model.C
 
 // EmitMentionMessage emits a message event with mention information
 func (e *ChatEventEmitter) EmitMentionMessage(ctx context.Context, msg *model.ChatMessage, mentionInfo []model.MentionInfo) error {
-	log.Printf("[TRACE] EmitMentionMessage called for message ID=%s Room=%s with %d mentions", 
+	log.Printf("[TRACE] EmitMentionMessage called for message ID=%s Room=%s with %d mentions",
 		msg.ID.Hex(), msg.RoomID.Hex(), len(mentionInfo))
 
 	// Get user data
@@ -559,7 +555,7 @@ func (e *ChatEventEmitter) EmitMentionMessage(ctx context.Context, msg *model.Ch
 			"message":   messageInfo.Message,
 			"timestamp": messageInfo.Timestamp,
 		},
-		"mentions": mentionInfo,
+		"mentions":  mentionInfo,
 		"timestamp": msg.Timestamp,
 	}
 
@@ -568,16 +564,14 @@ func (e *ChatEventEmitter) EmitMentionMessage(ctx context.Context, msg *model.Ch
 		Payload:   manualPayload,
 		Timestamp: msg.Timestamp,
 	}
-	
+
 	return e.emitEventStructured(ctx, msg, event)
 }
 
-
-
 // EmitEvoucherMessage emits an evoucher message event
 func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.ChatMessage) error {
-		log.Printf("[TRACE] EmitEvoucherMessage called for message ID=%s Room=%s", 
-			msg.ID.Hex(), msg.RoomID.Hex())
+	log.Printf("[TRACE] EmitEvoucherMessage called for message ID=%s Room=%s",
+		msg.ID.Hex(), msg.RoomID.Hex())
 
 	// Get user data
 	userInfo, err := e.getUserInfo(ctx, msg.UserID)
@@ -621,8 +615,8 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 			"timestamp": messageInfo.Timestamp,
 		},
 		"evoucherInfo": map[string]interface{}{
-			"message":     msg.EvoucherInfo.Message,
-			"claimUrl":    msg.EvoucherInfo.ClaimURL,
+			"message":      msg.EvoucherInfo.Message,
+			"claimUrl":     msg.EvoucherInfo.ClaimURL,
 			"sponsorImage": msg.EvoucherInfo.SponsorImage,
 		},
 		"timestamp": msg.Timestamp,
@@ -641,7 +635,7 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 
 // EmitEvoucherClaimed emits an evoucher claimed event
 func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.ChatMessage, claimedByUserID primitive.ObjectID) error {
-	log.Printf("[ChatEventEmitter] Emitting evoucher claimed event for message %s by user %s", 
+	log.Printf("[ChatEventEmitter] Emitting evoucher claimed event for message %s by user %s",
 		msg.ID.Hex(), claimedByUserID.Hex())
 
 	// Get user info for the person who claimed
@@ -677,10 +671,10 @@ func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.C
 			"timestamp": msg.Timestamp,
 		},
 		"evoucherInfo": map[string]interface{}{
-			"message":     msg.EvoucherInfo.Message,
-			"claimUrl":    msg.EvoucherInfo.ClaimURL,
+			"message":      msg.EvoucherInfo.Message,
+			"claimUrl":     msg.EvoucherInfo.ClaimURL,
 			"sponsorImage": msg.EvoucherInfo.SponsorImage,
-			"claimedBy":   msg.EvoucherInfo.ClaimedBy,
+			"claimedBy":    msg.EvoucherInfo.ClaimedBy,
 		},
 		"timestamp": time.Now(),
 	}
@@ -698,7 +692,7 @@ func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.C
 		log.Printf("[ChatEventEmitter] Failed to marshal evoucher claimed event: %v", err)
 		return err
 	}
-	
+
 	e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventData)
 	log.Printf("[ChatEventEmitter] Broadcasted evoucher claimed event to room %s", msg.RoomID.Hex())
 
@@ -719,20 +713,20 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 
 	// Create sender info
 	senderInfo := model.UserInfo{
-		ID: sender.ID.Hex(),
+		ID:       sender.ID.Hex(),
 		Username: sender.Username,
 		Name: map[string]interface{}{
-			"first": sender.Name.First,
+			"first":  sender.Name.First,
 			"middle": sender.Name.Middle,
-			"last": sender.Name.Last,
+			"last":   sender.Name.Last,
 		},
 	}
 
 	// Create restriction info
 	restrictionInfo := model.RestrictionInfo{
-		ID: restriction.ID.Hex(),
-		RoomID: restriction.RoomID.Hex(),
-		UserID: restriction.UserID.Hex(),
+		ID:          restriction.ID.Hex(),
+		RoomID:      restriction.RoomID.Hex(),
+		UserID:      restriction.UserID.Hex(),
 		Restriction: restriction.Restriction,
 	}
 
@@ -781,12 +775,12 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 		Payload: map[string]interface{}{
 			"room": e.buildRoomPayload(roomInfo),
 			"user": map[string]interface{}{
-				"_id": senderInfo.ID,
+				"_id":      senderInfo.ID,
 				"username": senderInfo.Username,
-				"name": senderInfo.Name,
+				"name":     senderInfo.Name,
 			},
 			"restriction": restrictionInfo,
-			"message": messageInfo,
+			"message":     messageInfo,
 		},
 		Timestamp: msg.Timestamp,
 	}

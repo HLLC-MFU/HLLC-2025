@@ -5,4 +5,5 @@
 export interface SsePayload {
   type: string;
   data?: Record<string, any>;
+  path?: string; // Optional path to identify the source of the event
 }

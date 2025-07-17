@@ -181,6 +181,9 @@ export class AuthService {
       secret: await bcrypt.hash(metadata.secret, 10),
     };
 
+    // 🆕 Hash and save refreshToken
+    user.refreshToken = await bcrypt.hash(refreshToken, 10);
+
     await user.save();
 
     return {

@@ -1,7 +1,9 @@
 {
   "coinHunting": {
     "guardianCrystals": "14 ผลึกผู้พิทักษ์",
-    "specialRewards": "รางวัลพิเศษ"
+    "specialRewards": "รางวัลพิเศษ",
+    "checkInNow": "เช็คอินเลย",
+    "collected": "เก็บเหรียญแล้ว"
   },
   "qrcode": {
     "scanError": "เกิดข้อผิดพลาดระหว่างการสแกน",
