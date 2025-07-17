@@ -27,12 +27,14 @@ export default function useCoinHunting() {
     modal: ModalType;
     selectedMarker: (typeof markers)[0] | null;
     evoucher: { code: string } | null;
-    alertType: "already-collected" | "no-evoucher" | "too-far" | null;
+    alertType: "already-collected" | "no-evoucher" | "too-far" | "cooldown" | null;
+    remainingCooldownMs?: number;
   }>({
     modal: null,
     selectedMarker: null,
     evoucher: null,
     alertType: null,
+    remainingCooldownMs: undefined,
   });
 
   // รวม UI state ที่เกี่ยวข้องไว้ใน object เดียว
@@ -184,8 +186,8 @@ export default function useCoinHunting() {
     setState(s => ({ ...s, evoucher: null, modal: 'stamp' }));
   };
 
-  const handleAlert = (type: "already-collected" | "no-evoucher" | "too-far") => {
-    setState(s => ({ ...s, alertType: type, modal: 'alert' }));
+  const handleAlert = (type: "already-collected" | "no-evoucher" | "too-far" | "cooldown", remainingCooldownMs?: number) => {
+    setState(s => ({ ...s, alertType: type, modal: 'alert', remainingCooldownMs }));
   };
 
   const closeModal = () => setState(s => ({ ...s, modal: null }));
@@ -211,6 +213,7 @@ export default function useCoinHunting() {
     selectedMarker: state.selectedMarker,
     evoucher: state.evoucher,
     alertType: state.alertType,
+    remainingCooldownMs: state.remainingCooldownMs,
     stampCount: uiState.stampCount,
     scanning: uiState.scanning,
     setScanning,

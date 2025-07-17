@@ -170,7 +170,12 @@ export default function QRCodeScreen() {
         } else if (res.statusCode === 403 || (res.message && res.message.toLowerCase().includes('too far'))) {
           goToCoinHuntingModal({ modal: 'alert', type: 'too-far' });
         } else if (res.statusCode === 429 || (res.message && res.message.toLowerCase().includes('cooldown'))) {
-          goToCoinHuntingModal({ modal: 'alert', type: 'cooldown' });
+          const remainingCooldownMs = res.remainingCooldownMs || 0;
+          goToCoinHuntingModal({ 
+            modal: 'alert', 
+            type: 'cooldown',
+            remainingCooldownMs
+          });
         } else {
           showErrorAlert(res.message || 'Check in failed', resetScanner);
         }

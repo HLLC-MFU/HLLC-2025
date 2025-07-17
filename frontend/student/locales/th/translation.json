@@ -158,7 +158,9 @@
         "online": "ออนไลน์"
     },
     "coinHunting": {
-        "collection": "คอลเลกชัน"
+        "collection": "คอลเลกชัน",
+        "checkInNow": "เช็คอินเลย",
+        "collected": "เก็บเหรียญแล้ว"
     },
     "assessment": {
         "title": "แบบประเมินกิจกรรม",

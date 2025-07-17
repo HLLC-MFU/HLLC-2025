@@ -17,6 +17,7 @@ export default function CoinHuntingScreen() {
     selectedMarker,
     evoucher,
     alertType,
+    remainingCooldownMs,
     stampCount,           
     handleMarkerPress,
     handleCheckIn,
@@ -44,10 +45,10 @@ export default function CoinHuntingScreen() {
       handleScannerSuccessWithRefresh(params.code ? { code: params.code as string } : undefined);
       router.replace('/coin-hunting');
     } else if (params.modal === 'alert' && params.type) {
-      handleAlert(params.type as any);
+      handleAlert(params.type as any, params.remainingCooldownMs ? Number(params.remainingCooldownMs) : undefined);
       router.replace('/coin-hunting');
     }
-  }, [params.modal, params.type, params.code, handleScannerSuccessWithRefresh]);
+  }, [params.modal, params.type, params.code, params.remainingCooldownMs, handleScannerSuccessWithRefresh]);
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -68,6 +69,7 @@ export default function CoinHuntingScreen() {
       <MarkerDetailModal
         visible={modal === 'marker-detail'}
         marker={selectedMarker}
+        collectedIds={collectedIds}
         onClose={closeModal}
         onCheckIn={handleCheckIn}
       />
@@ -83,6 +85,7 @@ export default function CoinHuntingScreen() {
         type="alert"
         onClose={closeModal}
         alertType={alertType ?? undefined}
+        remainingCooldownMs={remainingCooldownMs}
       />
       <StampModal
         visible={modal === 'stamp'}

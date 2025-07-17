@@ -159,7 +159,9 @@
         "online": "Online"
     },
     "coinHunting": {
-        "collection": "Collection"
+        "collection": "Collection",
+        "checkInNow": "Check in Now",
+        "collected": "Collected"
     },
     "assessment": {
         "title": "Assessment Activity",
