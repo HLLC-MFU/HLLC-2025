@@ -50,7 +50,7 @@ export class PosttestAnswersService {
       .find({
         _id: { $in: questionIds },
         displayType: {
-          $in: [PrepostQuestionTypes.BOTH, PrepostQuestionTypes.POST],
+          $in: [PrepostQuestionTypes.POST],
         },
       })
       .select('_id')
