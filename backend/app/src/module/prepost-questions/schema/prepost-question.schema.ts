@@ -14,12 +14,14 @@ export class PrepostQuestion {
   @Prop({ require: true, type: String, enum: PrepostTypes })
   type: PrepostTypes;
 
-  @Prop({ require: true, type: Object, unique: true })
+  @Prop({ require: true, type: Object })
   question: Localization;
 
-  @Prop({ require: true, type: Number, default: 1, unique: true })
+  @Prop({ require: true, type: Number, default: 1 })
   order: number;
 }
 
 export const PrepostQuestionSchema =
   SchemaFactory.createForClass(PrepostQuestion);
+
+PrepostQuestionSchema.index({ displayType: 1, order: 1 }, { unique: true })

@@ -1,9 +1,10 @@
 import { Suspense } from 'react';
 import CoinHuntingPageInner from './CoinHuntingPageInner';
+import SkeletonCoinHuntingPage from './SkeletonCoinHuntingPage';
 
 export default function CoinHuntingPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<SkeletonCoinHuntingPage />}>
       <CoinHuntingPageInner />
     </Suspense>
   );

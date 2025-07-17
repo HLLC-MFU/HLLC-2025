@@ -50,7 +50,7 @@ export class PretestAnswersService {
       .find({
         _id: { $in: questionIds },
         displayType: {
-          $in: [PrepostQuestionTypes.BOTH, PrepostQuestionTypes.PRE],
+          $in: [PrepostQuestionTypes.PRE],
         },
       })
       .select('_id')
@@ -107,6 +107,17 @@ export class PretestAnswersService {
       model: this.pretestAnswerModel,
       query,
       filterSchema: {},
+      populateFields: () => Promise.resolve([{ path: 'answers.pretest' }, {
+        path: 'user',
+        populate: {
+          path: 'metadata.major',
+          model: 'Major',
+          populate: {
+            path: 'school',
+            model:'School'
+          }
+        },
+      },]),
     });
   }
 
@@ -120,12 +131,12 @@ export class PretestAnswersService {
     return await queryDeleteOne(this.pretestAnswerModel, id);
   }
 
-  async averageAllPretests(): Promise<
+  async averageAllPretests(query: Record<string, string>): Promise<
     { pretest: PrepostQuestion; average: number; count: number }[]
   > {
     const results = await queryAll<PretestAnswer>({
       model: this.pretestAnswerModel,
-      query: {},
+      query,
       filterSchema: {},
       populateFields: () => Promise.resolve([{ path: 'answers.pretest' }]),
     });
@@ -154,11 +165,13 @@ export class PretestAnswersService {
       }
     }
 
-    return Array.from(scoreMap.entries()).map(([pretest, { sum, count }]) => ({
-      pretest,
-      average: sum / count,
-      count,
-    }));
+    return Array.from(scoreMap.entries())
+      .slice(0, query.limit ? Number(query.limit) : undefined)
+      .map(([pretest, { sum, count }]) => ({
+        pretest,
+        average: sum / count,
+        count,
+      }));
   }
 
   async findByUserId(userId: string) {

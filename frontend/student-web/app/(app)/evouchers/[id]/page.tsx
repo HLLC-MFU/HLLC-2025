@@ -102,8 +102,8 @@ export default function EvoucherDetailPage() {
             />
 
             {/* User Evoucher */}
-            <ScrollShadow className="h-[90%] overflow-y-auto" size={40} hideScrollBar>
-                <div className="flex flex-col items-center gap-8">
+            <ScrollShadow className="h-[90%] overflow-y-auto pb-10" size={40} hideScrollBar>
+                <div className="grid justify-center sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 items-center gap-8">
                     {filteredEvoucherCode.map((code, index) => {
                         const evoucherCode = code.evoucher?.sponsor === id ? code : null;
                         if (evoucherCode?.evoucher?.photo?.home) {

@@ -11,8 +11,7 @@ import {
   AssessmentSchema,
 } from '../assessments/schema/assessment.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
-import { ActivitiesModule } from '../activities/activities.module';
-
+import { SseService } from '../sse/sse.service';
 
 @Module({
   imports: [
@@ -21,10 +20,10 @@ import { ActivitiesModule } from '../activities/activities.module';
       { name: Assessment.name, schema: AssessmentSchema },
       { name: User.name, schema: UserSchema },
     ]),
-    forwardRef(() => AssessmentAnswersModule)
+    forwardRef(() => AssessmentAnswersModule),
   ],
   controllers: [AssessmentAnswersController],
-  providers: [AssessmentAnswersService],
+  providers: [AssessmentAnswersService, SseService],
   exports: [AssessmentAnswersService],
 })
-export class AssessmentAnswersModule { }
+export class AssessmentAnswersModule {}

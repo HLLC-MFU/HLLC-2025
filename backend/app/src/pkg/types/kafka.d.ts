@@ -8,14 +8,73 @@ export type MessageType =
   | 'evoucher'
   | 'unsend'
   | 'restriction'
-  | 'upload'
-  | 'reaction';
+  | 'upload';
+
+type BaseMessage = {
+  _id: string;
+  message: string;
+  type: MessageType;
+  timestamp: string;
+};
+
+type ReplyMessage = BaseMessage & {
+  type: 'reply';
+  replyTo: {
+    messageId: string;
+  };
+};
+
+type MentionMessage = BaseMessage & {
+  type: 'mention';
+  mentionInfo: {
+    userId: string;
+    username: string;
+  }[];
+};
+
+type StickerMessage = BaseMessage & {
+  type: 'sticker';
+  stickerInfo: {
+    _id: string;
+    image: string;
+  };
+};
+
+type UploadMessage = BaseMessage & {
+  type: 'upload';
+  uploadInfo: {
+    fileName: string;
+  };
+};
+
+type EvoucherMessage = BaseMessage & {
+  type: 'evoucher';
+  evoucherInfo: {
+    message: Localization;
+    claimUrl: string;
+    sponsorImage: string;
+  };
+};
+
+type RestrictionMessage = BaseMessage & {
+  type: 'restriction';
+};
+
+export type ChatMessage =
+  | BaseMessage
+  | ReplyMessage
+  | MentionMessage
+  | StickerMessage
+  | UploadMessage
+  | EvoucherMessage
+  | RestrictionMessage;
 
 export type ChatNotificationPayload = {
   type: MessageType;
   room: {
     _id: string;
     name: Localization;
+    image: string;
   };
   sender: {
     _id: string;
@@ -25,17 +84,12 @@ export type ChatNotificationPayload = {
       middle: string;
       last: string;
     };
-    role: {
+    role?: {
       _id: string;
       name: string;
     };
   };
-  message: {
-    _id: string;
-    message: string;
-    type: MessageType;
-    timestamp: string;
-  };
+  message: ChatMessage;
   receiver: string;
   timestamp: string;
 };

@@ -1,7 +1,9 @@
 {
   "coinHunting": {
     "guardianCrystals": "14 Guardian Crystals",
-    "specialRewards": "Special Rewards"
+    "specialRewards": "Special Rewards",
+    "checkInNow": "Check in Now",
+    "collected": "Collected"
   },
   "qrcode": {
     "scanError": "An error occurred while scanning",
