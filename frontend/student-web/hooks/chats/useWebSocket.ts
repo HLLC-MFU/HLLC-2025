@@ -101,6 +101,17 @@ function onMessage(event: MessageEvent, args: any) {
           msg = data.payload.message;
       }
       if (msg) {
+        // --- ตัด message.message ให้เหลือข้อความจริง ถ้าเป็น JSON string ---
+        if (msg && typeof msg.message === 'string') {
+          try {
+            const parsed = JSON.parse(msg.message);
+            if (parsed && parsed.payload && typeof parsed.payload.message === 'string') {
+              msg.message = parsed.payload.message;
+            }
+          } catch (e) {
+            // ถ้า parse ไม่ได้ก็ข้ามไป
+          }
+        }
         const newMessage = require('@/hooks/chats/messageUtils').createMessage({
           ...msg,
           user,
@@ -146,12 +157,52 @@ function onMessage(event: MessageEvent, args: any) {
   }
 }
 
+// Helper function: ตัดข้อความจริงจาก JSON string หรือ object ถ้ามี
+function extractPlainMessage(message: any): string {
+  if (typeof message === 'string') {
+    try {
+      const parsed = JSON.parse(message);
+      if (parsed && parsed.payload && typeof parsed.payload.message === 'string') {
+        return parsed.payload.message;
+      }
+    } catch (e) {}
+    return message;
+  }
+  // ถ้า message เป็น object ที่มี field message ซ้อน
+  if (message && typeof message.message === 'string') {
+    try {
+      const parsed = JSON.parse(message.message);
+      if (parsed && parsed.payload && typeof parsed.payload.message === 'string') {
+        return parsed.payload.message;
+      }
+    } catch (e) {}
+    return message.message;
+  }
+  return String(message ?? '');
+}
+
+// Helper function: ตัด field message ใน object ให้เป็น string ธรรมดา
+function extractPlainMessageField(obj: any) {
+  if (obj && typeof obj.message === 'string') {
+    try {
+      const parsed = JSON.parse(obj.message);
+      if (parsed && parsed.payload && typeof parsed.payload.message === 'string') {
+        obj.message = parsed.payload.message;
+      }
+    } catch (e) {
+      // ถ้า parse ไม่ได้ก็ปล่อยผ่าน
+    }
+  }
+  return obj;
+}
+
 export const useWebSocket = (roomId: string): WebSocketHook => {
   const { user } = useProfile();
   const userId = user?._id;
 
-  const [state, setState] = useState<WebSocketState>({
-    ws: null,
+  const wsRef = useRef<WebSocket | null>(null);
+
+  const [state, setState] = useState<Omit<WebSocketState, 'ws'>>({
     isConnected: false,
     error: null,
     messages: [],
@@ -169,7 +220,8 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
   const connectionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { updateState, updateConnectionState } = useStateUtils(setState, connectionState);
+  // Update useStateUtils usage to expect Omit<WebSocketState, 'ws'>
+  const { updateState, updateConnectionState } = useStateUtils(setState as React.Dispatch<React.SetStateAction<any>>, connectionState);
 
   // Add message with deduplication
   const addMessage = useCallback((message: Message | null) => {
@@ -229,7 +281,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     debugLog('[WebSocket] Attempting to connect...', { 
       roomId: rid,
       isConnecting: connectionState.current.isConnecting,
-      hasExistingConnection: !!(state.ws && state.ws.readyState === WebSocket.OPEN)
+      hasExistingConnection: !!(wsRef.current && wsRef.current.readyState === WebSocket.OPEN)
     });
     
     if (!rid) {
@@ -242,7 +294,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       warnLog('Already connecting, skipping');
       return;
     }
-    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       warnLog('WebSocket already open, skipping');
       return;
     }
@@ -275,11 +327,11 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       // Use the correct WebSocket URL format (roomId + token only)
       const wsUrl = getWebSocketUrl(rid, token);
       debugLog('Connecting to WebSocket URL:', wsUrl);
-      if (state.ws) {
-        try { state.ws.close(); } catch {}
-        updateState({ ws: null });
+      if (wsRef.current) {
+        try { wsRef.current.close(); } catch {}
       }
       const socket: any = new WebSocket(wsUrl);
+      wsRef.current = socket; // <-- set wsRef
       debugLog('WebSocket object created:', socket);
       // Enhanced connection timeout handling
       if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
@@ -321,7 +373,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         errorLog('WebSocket onerror:', error);
         updateState({ error: 'WebSocket connection error' });
       };
-      updateState({ ws: socket });
     } catch (error) {
       errorLog('Failed to create WebSocket connection:', error);
       updateState({ error: 'Failed to create WebSocket connection' });
@@ -330,36 +381,38 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         attemptReconnect({ connectionState, reconnectTimeoutRef, state, connect, roomId: rid, MAX_RECONNECT_ATTEMPTS });
       }, RECONNECT_DELAY);
     }
-  }, [state.ws, addMessage, updateState, updateConnectionState, roomId]);
+  }, [addMessage, updateState, updateConnectionState, roomId]); // REMOVE state.ws from deps
 
   // Disconnect logic
   const disconnect = useCallback(() => {
     debugLog('Disconnect called');
-    if (state.ws) {
-      try { state.ws.close(); } catch {}
-      updateState({ ws: null });
+    if (wsRef.current) {
+      try { wsRef.current.close(); } catch {}
+      wsRef.current = null;
     }
     updateConnectionState({ hasAttemptedConnection: false });
-  }, [state.ws, updateState, updateConnectionState]);
+  }, [updateState, updateConnectionState]);
 
-  // Helper to build the correct message format for the backend
-  function buildChatMessagePayload(text: string) {
-    return JSON.stringify({
-      type: 'message',
-      payload: { message: text }
-    });
-  }
-
+  // ลบ buildChatMessagePayload และ logic ที่ wrap message
   // Message sending functions
-  const sendMessage = useCallback(async (message: string | object): Promise<boolean> => {
-    debugLog('[WebSocket] sendMessage called', { message, readyState: state.ws?.readyState });
-    
-    // If not connected, try to reconnect first
-    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+  const sendMessage = useCallback(async (message: any): Promise<boolean> => {
+    // ส่ง message เป็น string ธรรมดาเท่านั้น
+    let cleanMessage: string = '';
+    if (typeof message === 'string') {
+      cleanMessage = message;
+    } else if (message && typeof message.text === 'string') {
+      cleanMessage = message.text;
+    } else {
+      cleanMessage = String(message ?? '');
+    }
+    const ws = wsRef.current;
+    debugLog('[WebSocket] sendMessage called', { message: cleanMessage, readyState: ws?.readyState, ws });
+
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
       errorLog('[WebSocket] Not connected to chat server, attempting to reconnect...');
       try {
         await connect(roomId);
-        if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
           errorLog('[WebSocket] Reconnection failed - still not connected');
           updateState({ error: 'Failed to connect to chat server' });
           return false;
@@ -371,44 +424,11 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         return false;
       }
     }
-    
+
     try {
-      let toSend: string;
-      let messageType = 'unknown';
-      
-      if (typeof message === 'string') {
-        // Wrap plain string in correct format
-        toSend = buildChatMessagePayload(message);
-        messageType = 'text';
-      } else {
-        // If already an object, send as JSON
-        toSend = JSON.stringify(message);
-        messageType = (message as any).type || 'object';
-      }
-      
-      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      sentMessageIds.current.add(messageId);
-      
-      debugLog('[WebSocket] Broadcasting message:', {
-        messageId,
-        type: messageType,
-        content: toSend.length > 100 ? toSend.substring(0, 100) + '...' : toSend,
-        readyState: state.ws.readyState,
-        url: state.ws.url
-      });
-      
-      // Log the exact moment before sending
-      console.log(`[WebSocket][${new Date().toISOString()}] Sending message (${messageId})...`);
-      
-      // Send the message
-      state.ws.send(toSend);
-      
-      // Log after sending
-      console.log(`[WebSocket][${new Date().toISOString()}] Message sent (${messageId})`);
-      debugLog('[WebSocket] Message sent successfully', { messageId });
-      
+      wsRef.current!.send(cleanMessage);
+      debugLog('[WebSocket] Sent successfully', { wsRef: wsRef.current, readyState: wsRef.current?.readyState });
       return true;
-      
     } catch (error) {
       errorLog('[WebSocket] Failed to send message', {
         error,
@@ -418,31 +438,31 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       updateState({ error: 'Failed to send message' });
       return false;
     }
-  }, [state.ws, updateState]);
+  }, [updateState, connect, roomId]);
 
   const sendTyping = useCallback(() => {
     debugLog('sendTyping called');
-    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
-    state.ws.send(JSON.stringify({ eventType: 'typing', payload: { typing: true } }));
-  }, [state.ws]);
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({ eventType: 'typing', payload: { typing: true } }));
+  }, []);
 
   const sendReadReceipt = useCallback((messageId: string) => {
     debugLog('sendReadReceipt called', messageId);
-    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
-    state.ws.send(JSON.stringify({ eventType: 'read_receipt', payload: { messageId } }));
-  }, [state.ws]);
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({ eventType: 'read_receipt', payload: { messageId } }));
+  }, []);
 
   const sendReaction = useCallback((messageId: string, reaction: string) => {
     debugLog('sendReaction called', messageId, reaction);
-    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
-    state.ws.send(JSON.stringify({ eventType: 'message_reaction', payload: { messageId, reaction } }));
-  }, [state.ws]);
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({ eventType: 'message_reaction', payload: { messageId, reaction } }));
+  }, []);
 
   // Auto connect/disconnect on mount/unmount
   useEffect(() => {
     const accessToken = getToken('accessToken');
     debugLog('useEffect [roomId, accessToken] called', { roomId, accessToken });
-    if (roomId && accessToken && !connectionState.current.isConnecting && !state.ws && !state.isConnected && !connectionState.current.hasAttemptedConnection) {
+    if (roomId && accessToken && !connectionState.current.isConnecting && !wsRef.current && !state.isConnected && !connectionState.current.hasAttemptedConnection) {
       updateConnectionState({ hasAttemptedConnection: true });
       connect(roomId);
     }
@@ -450,9 +470,9 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       debugLog('Cleanup useEffect [roomId, accessToken ]');
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
-      if (state.ws) {
-        const socket = state.ws;
-        if (socket.heartbeatInterval) clearInterval(socket.heartbeatInterval);
+      if (wsRef.current) {
+        const socket = wsRef.current;
+        if ((socket as any).heartbeatInterval) clearInterval((socket as any).heartbeatInterval);
         socket.onclose = null;
         socket.onerror = null;
         socket.onmessage = null;
@@ -460,6 +480,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
           try { socket.close(1000, 'Component unmounted'); } catch {}
         }
+        wsRef.current = null;
       }
       updateState({ connectedUsers: [], isConnected: false, error: null });
       updateConnectionState({ isConnecting: false, hasAttemptedConnection: false });
@@ -487,7 +508,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     typing: state.typing,
     connect,
     disconnect,
-    ws: state.ws,
+    ws: wsRef.current,
     addMessage,
   };
 };

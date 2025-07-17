@@ -328,141 +328,80 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
   }, [wsMessages, groupMessages, isConnected, ws]);
 
   const handleSendMessage = useCallback(async () => {
-    const trimmedMessage = chatState.messageText.trim();
-    if (!trimmedMessage || !isMember || !isConnected) {
-      console.log('[ChatRoom] Message not sent - validation failed', {
-        hasText: !!trimmedMessage,
-        isMember,
-        isConnected,
-        messageText: chatState.messageText
-      });
+  const trimmedMessage = chatState.messageText.trim();
+  if (!trimmedMessage || !isMember || !isConnected) {
+    console.log('[ChatRoom] Message not sent - validation failed', {
+      hasText: !!trimmedMessage,
+      isMember,
+      isConnected,
+      messageText: chatState.messageText
+    });
+    return;
+  }
+
+  try {
+    if (!user) {
+      console.error('[ChatRoom] Cannot send message - user not available');
       return;
     }
-    
-    try {
-      if (!user) {
-        console.error('[ChatRoom] Cannot send message - user not available');
-        return;
-      }
-      
-      const myUser = {
-        _id: user._id,
-        name: {
-          first: user.name?.first || '',
-          middle: user.name?.middle || '',
-          last: user.name?.last || '',
-        },
-        username: user.username || ''
-      };
-      
-      // Create temporary message for optimistic UI update
-      const tempMessage = createTempMessage(trimmedMessage, myUser, replyState.replyTo);
-      console.log('[ChatRoom] Creating temporary message:', {
-        id: tempMessage.id,
-        text: tempMessage.text,
-        replyTo: replyState.replyTo?.id,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Add the message to local state immediately for instant feedback
-      console.log('[ChatRoom] Adding message to local state...');
-      addMessage(tempMessage);
-      
-      // Clear the input field and reply state
-      console.log('[ChatRoom] Clearing input and reply state');
-      updateChatState({ messageText: '' });
-      updateReplyState({ replyTo: undefined });
-      
-      // Prepare the message payload as a string for WebSocket
-      const messagePayload = JSON.stringify({
-        type: replyState.replyTo ? 'reply' : 'message',
-        payload: {
-          message: trimmedMessage,
-          ...(replyState.replyTo?.id && { replyTo: replyState.replyTo.id }),
-          // Include user info for the server
-          user: {
-            _id: myUser._id,
-            name: myUser.name,
-            username: myUser.username
-          },
-          messageId: tempMessage.id, // Include the same message ID for tracking
-          timestamp: new Date().toISOString()
-        }
-      });
-      
-      // Log the message payload (parsed from JSON string for logging)
-      const parsedPayload = JSON.parse(messagePayload);
-      console.log('[ChatRoom] Prepared WebSocket message payload:', {
-        type: parsedPayload.type,
-        payload: {
-          ...parsedPayload.payload,
-          message: parsedPayload.payload.message.length > 50 
-            ? parsedPayload.payload.message.substring(0, 50) + '...' 
-            : parsedPayload.payload.message
-        },
-        timestamp: parsedPayload.payload.timestamp,
-        messageId: parsedPayload.payload.messageId
-      });
-      
-      try {
-        // Send the message through WebSocket
-        console.log(`[ChatRoom][${new Date().toISOString()}] Sending message to WebSocket...`);
-        const success = await wsSendMessage(messagePayload);
-        
-        if (!success) {
-          console.error('[ChatRoom] Failed to send message - WebSocket returned failure');
-          updateChatState({
-            ...chatState,
-            error: ERROR_MESSAGES.SEND_FAILED,
-            messageText: chatState.messageText // Keep the message text on error
-          });
-        } else {
-          const parsed = JSON.parse(messagePayload);
-          console.log(`[ChatRoom][${new Date().toISOString()}] Message sent successfully`, {
-            messageId: parsed.payload.messageId,
-            type: parsed.type
-          });
-        }
-      } catch (sendError) {
-        console.error('[ChatRoom] Error sending message:', {
-          error: sendError,
-          message: sendError instanceof Error ? sendError.message : 'Unknown error',
-          stack: sendError instanceof Error ? sendError.stack : undefined
-        });
-        updateChatState({
-          ...chatState,
-          error: ERROR_MESSAGES.SEND_FAILED,
-          messageText: chatState.messageText // Keep the message text on error
-        });
-      }
-      
-    } catch (error) {
-      console.error('Error in handleSendMessage:', error);
-      updateChatState({ 
+
+    const myUser = {
+      _id: user._id,
+      name: {
+        first: user.name?.first || '',
+        middle: user.name?.middle || '',
+        last: user.name?.last || '',
+      },
+      username: user.username || ''
+    };
+
+    // ใช้ฟังก์ชันใหม่ที่จะส่งแค่ข้อความ
+    const tempMessage = createTempMessage(trimmedMessage, myUser, replyState.replyTo);
+    console.log('[ChatRoom] Creating temporary message:', tempMessage);
+
+    // Add the message to local state immediately for instant feedback
+    console.log('[ChatRoom] Adding message to local state...');
+    addMessage(tempMessage);
+
+    // Clear the input field and reply state
+    console.log('[ChatRoom] Clearing input and reply state');
+    updateChatState({ messageText: '' });
+    updateReplyState({ replyTo: undefined });
+
+    // **Directly send the plain string message**
+    let messageToSend = trimmedMessage; // Plain string
+
+    if (replyState.replyTo && replyState.replyTo.id) {
+      // If replying, add the reply ID before the message
+      messageToSend = `/reply ${replyState.replyTo.id} ${trimmedMessage}`;
+    }
+
+    console.log('[ChatRoom] Sending plain string message to WebSocket:', messageToSend);
+
+    // Send the message directly as a string without wrapping in an object
+    const success = await wsSendMessage(messageToSend);
+
+    if (!success) {
+      console.error('[ChatRoom] Failed to send message - WebSocket returned failure');
+      updateChatState({
+        ...chatState,
         error: ERROR_MESSAGES.SEND_FAILED,
         messageText: chatState.messageText // Keep the message text on error
       });
+    } else {
+      console.log(`[ChatRoom][${new Date().toISOString()}] Message sent successfully`);
     }
-  }, [chatState.messageText, chatState.room, isConnected, wsSendMessage, userId, addMessage, replyState.replyTo, updateChatState, updateReplyState, wsMessages, user, roomId, isMember]);
+  } catch (error) {
+    console.error('Error in handleSendMessage:', error);
+    updateChatState({
+      error: ERROR_MESSAGES.SEND_FAILED,
+      messageText: chatState.messageText // Keep the message text on error
+    });
+  }
+}, [chatState.messageText, chatState.room, isConnected, wsSendMessage, userId, addMessage, replyState.replyTo, updateChatState, updateReplyState, wsMessages, user, roomId, isMember]);
+
 
   const handleImageUpload = useCallback(async () => {
-    // TODO: Implement file selection logic for web (e.g., use an <input type="file"> in your component and pass the file here)
-    // For now, this function is a placeholder and does not upload any file.
-    // Remove or implement file selection logic as needed.
-    // Example:
-    // const fileInput = document.createElement('input');
-    // fileInput.type = 'file';
-    // fileInput.accept = 'image/*';
-    // fileInput.onchange = async (e) => {
-    //   const file = e.target.files[0];
-    //   // ...upload logic here...
-    // };
-    // fileInput.click();
-    
-    // Remove the following lines that reference 'result':
-    // const file = { ... };
-    // formData.append('file', file as any);
-    // Instead, expect the file to be passed in or handled elsewhere.
   }, [roomId, userId, addMessage]);
 
   const handleSendSticker = useCallback(async (stickerId: string) => {

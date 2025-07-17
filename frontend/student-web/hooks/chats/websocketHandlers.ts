@@ -14,9 +14,21 @@ export function onMessage(event: MessageEvent, args: any) {
     
     // กรณี backend ส่ง type: 'message' (ไม่มี eventType) - รวมทั้ง history messages
     if (data.type === 'message' && data.payload && data.payload.message) {
-      const msg = data.payload.message;
+      let msg = data.payload.message;
+      // ถ้า msg เป็น object หรือ JSON string ให้แปลงเป็น string
+      if (typeof msg === 'object' && msg !== null) {
+        msg = msg.text || msg.message || JSON.stringify(msg);
+      } else if (typeof msg === 'string') {
+        try {
+          const parsed = JSON.parse(msg);
+          if (parsed && typeof parsed === 'object' && (parsed.text || parsed.message)) {
+            msg = parsed.text || parsed.message;
+          }
+        } catch {}
+      }
       const newMessage = createMessage({
-        ...msg,
+        ...data.payload,
+        message: msg,
         user: data.payload.user,
         user_id: data.payload.user?._id,
         username: data.payload.user?.username,
