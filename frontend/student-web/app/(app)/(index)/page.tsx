@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Bell, Flower } from 'lucide-react';
-import { addToast } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -31,10 +30,10 @@ export default function HomePage() {
       <div className="flex justify-between items-start mb-6">
         <div className="flex gap-2">
           <GlassButton iconOnly onClick={() => router.push('/lamduan-flowers')}>
-            {assets && assets.lamduan ? (
+            {assets && assets.lamduanflowers ? (
               <Image
                 alt="Lamduan"
-                src={`${baseImageUrl}/uploads/${assets.lamduan}`}
+                src={`${baseImageUrl}/uploads/${assets.lamduanflowers}`}
                 width={20}
                 height={20}
               />

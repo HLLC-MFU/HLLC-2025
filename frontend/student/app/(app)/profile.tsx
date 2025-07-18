@@ -10,14 +10,19 @@ import { GraduationCap, University, Eye, EyeOff, Settings, TriangleAlert } from 
 import { Paragraph, Spinner, YStack } from "tamagui";
 import { ReportModal } from "@/components/report/ReportModal";
 import { onContextCreate } from "@/components/profile/Scene";
+import { useAppearance } from "@/hooks/useAppearance";
+import AssetImage from "@/components/global/AssetImage";
+
+const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/`
 
 export default function ProfileScreen() {
   const { user } = useProfile();
+  const { assets } = useAppearance();
+
   const [isViewing, setIsViewing] = useState(true);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
   const [loading, setLoading] = useState(true)
   const [isReportModalVisible, setReportModalVisible] = useState(false);
-  const [reportText, setReportText] = useState("");
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.timing(
@@ -37,18 +42,18 @@ export default function ProfileScreen() {
           <Text style={{ color: 'white' }}>Back</Text>
         </GlassButton>
         <View style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
-          <GlassButton iconOnly>
+          <GlassButton iconOnly onPress={() => setIsViewing(!isViewing)}>
             {isViewing ? (
-              <Eye onPress={() => setIsViewing(false)} color='white' />
+              assets.visible ? <AssetImage uri={imageUrl + assets.visible} /> : <Eye color='white' />
             ) : (
-              <EyeOff onPress={() => setIsViewing(true)} color='white' />
+              assets.invisible ? <AssetImage uri={imageUrl + assets.invisible} /> : <EyeOff color='white' />
             )}
           </GlassButton>
           <GlassButton iconOnly onPress={() => router.replace('/(app)/settings')}>
-            <Settings color='white' />
+            {assets.settings ? <AssetImage uri={imageUrl + assets.settings} /> : <Settings color='white' />}
           </GlassButton>
           <GlassButton iconOnly onPress={() => setReportModalVisible(true)}>
-            <TriangleAlert color='white' />
+            {assets.report ? <AssetImage uri={imageUrl + assets.report} /> : <TriangleAlert color='white' />}
           </GlassButton>
         </View>
       </View>

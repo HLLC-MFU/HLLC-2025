@@ -21,7 +21,6 @@ import PretestModal from '@/components/prepost-modal/PretestModal';
 import PosttestModal from '@/components/prepost-modal/PosttestModal';
 import usePrePostModal from '@/hooks/usePrePostModal';
 
-const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 export default function AppLayout() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
@@ -75,15 +74,6 @@ export default function AppLayout() {
     }
   }, [posttestVisible, pretestQuestions]);
 
-
-  const assetsImage = {
-    background: assets?.background ?? null,
-    profile: assets?.profile ?? null,
-    notification: assets?.notification ?? null,
-    progress: assets?.progress ?? null,
-    signOut: assets?.signOut ?? null,
-    lamduan: assets?.lamduan ?? null,
-  };
   const isIndexPage = pathname === '/' || pathname === '/index';
   const opacity = useRef(new Animated.Value(!isIndexPage ? 1 : 0)).current;
 
@@ -110,8 +100,8 @@ export default function AppLayout() {
   if (!user) return <Redirect href="/(auth)/login" />;
 
   const isCommunityRoute =
-  (/^\/community(\/.*)?$/.test(pathname) && pathname !== '/community/chat') ||
-  /^\/activities\/[^/]+$/.test(pathname);
+    (/^\/community(\/.*)?$/.test(pathname) && pathname !== '/community/chat') ||
+    /^\/activities\/[^/]+$/.test(pathname);
 
 
   LogBox.ignoreLogs([
@@ -120,7 +110,7 @@ export default function AppLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <BackgroundScreen background={assetsImage?.background ?? null}>
+      <BackgroundScreen background={assets?.background ?? null}>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity }]}>
           <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
         </Animated.View>
@@ -157,13 +147,13 @@ export default function AppLayout() {
         }}
       >
         <ProgressBar
-          avatarUrl={assetsImage.profile ?? undefined}
+          avatarUrl={assets.profile ?? ''}
           onClickAvatar={() => router.push('/profile')}
         />
         <GlassButton iconOnly onPress={() => setNotificationModalVisible(true)}>
-          {assetsImage.notification ? (
+          {assets.notification ? (
             <AssetImage
-              uri={`${baseImageUrl}/uploads/${assetsImage.notification}`}
+              uri={`${process.env.EXPO_PUBLIC_API_URL}/uploads/${assets.notification}`}
               style={{ width: 20, height: 20 }}
             />
           ) : (

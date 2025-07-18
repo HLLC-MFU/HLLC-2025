@@ -4,6 +4,7 @@ import { View, TouchableOpacity, Text, Animated, StyleSheet } from 'react-native
 import { BlurView } from 'expo-blur';
 import { AlignJustify } from '@tamagui/lucide-icons';
 import { Easing } from 'react-native';
+import AssetImage from './global/AssetImage';
 
 interface SubFab {
   key: string;
@@ -13,11 +14,16 @@ interface SubFab {
 }
 
 interface GooeyFabMenuProps {
+  assets: Record<string, string>;
   subFabs: SubFab[];
   style?: object;
 }
 
-export default function GooeyFabMenu({ subFabs, style }: GooeyFabMenuProps) {
+export default function GooeyFabMenu({
+  assets,
+  subFabs,
+  style
+}: GooeyFabMenuProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const coinAnim = useRef(new Animated.Value(0)).current;
@@ -78,6 +84,7 @@ export default function GooeyFabMenu({ subFabs, style }: GooeyFabMenuProps) {
       )}
 
       {subFabs.map((fab, idx) => {
+        const asset = assets[fab.key];
         const anim = anims[idx] || anims[0];
         return (
           <Animated.View
@@ -111,7 +118,7 @@ export default function GooeyFabMenu({ subFabs, style }: GooeyFabMenuProps) {
               }}
               activeOpacity={0.9}
             >
-              {fab.icon ? fab.icon : fab.label ? <Text style={styles.stepCounterFabText}>{fab.label}</Text> : null}
+              {asset ? <AssetImage uri={`${process.env.EXPO_PUBLIC_API_URL}/uploads/${asset}`} style={{ width: 24, height: 24 }} /> : fab.icon}
               {fab.label && <Text style={styles.stepCounterFabText}>{fab.label}</Text>}
             </TouchableOpacity>
           </Animated.View>
@@ -125,11 +132,15 @@ export default function GooeyFabMenu({ subFabs, style }: GooeyFabMenuProps) {
           activeOpacity={0.9}
         >
           <BlurView intensity={50} tint="dark" style={[StyleSheet.absoluteFill, styles.fabGradient]}>
-            <AlignJustify
-              size={24}
-              color="#fff"
-              style={{ transform: [{ rotate: isMenuOpen ? '45deg' : '0deg' }] }}
-            />
+            {assets.menu ? (
+              <AssetImage uri={`${process.env.EXPO_PUBLIC_API_URL}/uploads/${assets.menu}`} style={{ width: 24, height: 24 }} />
+            ) : (
+              <AlignJustify
+                size={24}
+                color="#fff"
+                style={{ transform: [{ rotate: isMenuOpen ? '45deg' : '0deg' }] }}
+              />
+            )}
           </BlurView>
         </TouchableOpacity>
       </View>
@@ -203,13 +214,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-stepCounterFabText: {
-  color: '#fff',
-  fontWeight: 'bold',
-  fontSize: 12,
-  letterSpacing: 1,
-  flexShrink: 1,
-  maxWidth: 140,
-  textAlign: 'center',
-}
+  stepCounterFabText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+    letterSpacing: 1,
+    flexShrink: 1,
+    maxWidth: 140,
+    textAlign: 'center',
+  }
 });
