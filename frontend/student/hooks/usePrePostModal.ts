@@ -14,7 +14,8 @@ export default function usePrePostModal({ type, progress }: UsePrePostModalOptio
   const { t } = useTranslation();
   const toast = useToastController();
 
-  const [isDone, setIsDone] = useState<boolean | null>(null);
+  const [isPretestDone, setIsPretestDone] = useState<boolean | null>(null);
+  const [isPosttestDone, setIsPosttestDone] = useState<boolean | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,27 +23,33 @@ export default function usePrePostModal({ type, progress }: UsePrePostModalOptio
   const [posttestDueDate, setPosttestDueDate] = useState<boolean>(false);
   const [hasPretestQuestions, setHasPretestQuestions] = useState<boolean>(true);
 
+  // ใช้ setIsPretestDone/setIsPosttestDone ตรง ๆ
+
   const fetchStatus = useCallback(async () => {
     setLoading(true);
     try {
       if (type === 'pretest') {
         const res = await apiRequest<{ data: boolean }>('/pretest-answers/user', 'GET');
-        setIsDone(res.data?.data ?? false);
+        setIsPretestDone(res.data?.data ?? false);
         setModalVisible(!(res.data?.data ?? false));
       } else {
         const res = await apiRequest<{ data: boolean; dueDate: boolean }>('/posttest-answers/user', 'GET');
-        setIsDone(res.data?.data ?? false);
+        setIsPosttestDone(res.data?.data ?? false);
         setPosttestDueDate(res.data?.dueDate ?? false);
         setModalVisible(false); // wait for further check
       }
     } catch (err) {
-      setIsDone(false);
+      if (type === 'pretest') {
+        if (isPretestDone !== true) setIsPretestDone(false);
+      } else {
+        if (isPosttestDone !== true) setIsPosttestDone(false);
+      }
       setError(type === 'pretest' ? 'ไม่สามารถเช็คสถานะ pretest ได้' : 'ไม่สามารถเช็คสถานะ posttest ได้');
       if (type === 'posttest') setPosttestDueDate(false);
     } finally {
       setLoading(false);
     }
-  }, [type]);
+  }, [type, isPretestDone, isPosttestDone]);
 
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
@@ -55,7 +62,8 @@ export default function usePrePostModal({ type, progress }: UsePrePostModalOptio
       if (type === 'pretest') {
         const hasQuestion = filteredQuestions.length > 0;
         setHasPretestQuestions(hasQuestion);
-        if (!isDone) setModalVisible(hasQuestion);
+        // ป้องกัน setModalVisible ถ้า isPretestDone ไม่ได้เป็น false
+        if (isPretestDone === false && hasQuestion) setModalVisible(true);
       }
 
       if (type === 'posttest') {
@@ -68,7 +76,7 @@ export default function usePrePostModal({ type, progress }: UsePrePostModalOptio
     } finally {
       setLoading(false);
     }
-  }, [type, isDone]);
+  }, [type, isPretestDone]);
 
   const submit = useCallback(async (answerData: any = {}) => {
     setLoading(true);
@@ -81,7 +89,11 @@ export default function usePrePostModal({ type, progress }: UsePrePostModalOptio
     try {
       const url = type === 'pretest' ? '/pretest-answers' : '/posttest-answers';
       await apiRequest(url, 'POST', payload);
-      setIsDone(true);
+      if (type === 'pretest') {
+        setIsPretestDone(true);
+      } else {
+        setIsPosttestDone(true);
+      }
       setModalVisible(false);
       toast.show(t(`${type}.successTitle`), {
         message: t(`${type}.successMessage`),
@@ -94,29 +106,31 @@ export default function usePrePostModal({ type, progress }: UsePrePostModalOptio
     }
   }, [t, toast, type]);
 
+  // useEffect สำหรับ fetchStatus/fetchQuestions
   useEffect(() => {
-    if (isDone) return;
     fetchStatus();
     fetchQuestions();
-  }, [isDone, fetchStatus, fetchQuestions, type]);
+  }, [type]);
 
+  // ใน useEffect เงื่อนไข posttest
   useEffect(() => {
     if (
       type === 'posttest' &&
       posttestDueDate &&
       (progress ?? 0) >= 80 &&
-      isDone === false &&
+      isPosttestDone === false &&
       hasPretestQuestions
     ) {
       setModalVisible(true);
     }
-  }, [type, posttestDueDate, progress, isDone, hasPretestQuestions]);
+  }, [type, posttestDueDate, progress, isPosttestDone, hasPretestQuestions]);
 
   const openModal = useCallback(() => setModalVisible(true), []);
   const closeModal = useCallback(() => setModalVisible(false), []);
 
+  // return state ที่ตรงกับ type
   return {
-    isDone,
+    isDone: type === 'pretest' ? isPretestDone : isPosttestDone,
     modalVisible,
     loading,
     error,
