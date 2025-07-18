@@ -24,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
-type AllowedRoutes = "/" | "/qrcode" | "/evoucher" | "/chat" | "/activities";
+type AllowedRoutes = "/" | "/qrcode" | "/evoucher" | "/community/chat" | "/activities";
 
 
 export default function GlassTabBar() {
@@ -38,7 +38,7 @@ export default function GlassTabBar() {
         { label: t("nav.activity"), assets: 'activities', icon: Book, route: '/activities' },
         { label: t("nav.qrCode"), assets: 'qrcode', icon: QrCode, route: '/qrcode' },
         { label: t("nav.evoucher"), assets: 'evoucher', icon: Gift, route: '/evoucher' },
-        { label: t("nav.community"), assets: 'community', icon: Globe, route: '/chat' },
+        { label: t("nav.community"), assets: 'community', icon: Globe, route: '/community/chat' },
     ];
     const { assets } = useAppearance();
     const icons = {
@@ -78,7 +78,7 @@ export default function GlassTabBar() {
 
     return (
         <View style={styles.wrapper}>
-            <BlurView intensity={Platform.OS === 'ios' ? 30 : 100} tint="dark" style={styles.navContainer}>
+            <BlurView intensity={Platform.OS === 'ios' ? 30 : 80} tint="dark" style={styles.navContainer}>
                 {/* Focus pill */}
                 <Animated.View
                     style={[

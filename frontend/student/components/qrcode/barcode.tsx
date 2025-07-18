@@ -10,7 +10,7 @@ export default function Barcode({ value }: { value: string }) {
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.barcode, { fontSize: responsiveFontSize }]}>
+      <Text style={[styles.barcode, { fontSize: responsiveFontSize, transform: [{ scaleY: 1.5 }] }]}>
         {barcodeValue}
       </Text>
     </View>
@@ -19,7 +19,7 @@ export default function Barcode({ value }: { value: string }) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 16,
+    paddingTop: 32,
     borderRadius: 8,
     alignItems: 'center',
   },

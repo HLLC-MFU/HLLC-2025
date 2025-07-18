@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { View, Dimensions, ScrollView, StyleSheet, SafeAreaView } from "react-native";
+import { View, Dimensions, ScrollView, StyleSheet, SafeAreaView, Platform } from "react-native";
 
 import StepData from "@/components/step-counter/StepData";
 import LeaderBoard from "@/components/step-counter/LeaderBoard";
@@ -37,9 +37,7 @@ export default function StepCounterScreen() {
 
         {/* Page 2: Leaderboard */}
         <View style={[styles.page, { width }]}>
-
           <LeaderBoard data={stepData} loading={loading} />
-
         </View>
       </ScrollView>
       <View style={styles.dotContainer}>
@@ -59,7 +57,7 @@ export default function StepCounterScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "transparent" },
-  page: { flex: 1, paddingTop: 20, paddingHorizontal: 20, justifyContent: "center", alignItems: "center" },
+  page: { flex: 1, paddingHorizontal: 20, justifyContent: "center", alignItems: "center" },
 
   progressContainer: {
     marginBottom: 16,
@@ -83,7 +81,8 @@ const styles = StyleSheet.create({
   dotContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 80,
+    marginBottom: Platform.OS === 'ios' ? 80 : 20,
+    paddingBottom: Platform.OS === 'android' ? 100 : 20,
   },
   dot: {
     width: 5,

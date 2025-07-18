@@ -16,12 +16,12 @@ import { Plus, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/context/LanguageContext';
 import useProfile from '@/hooks/useProfile';
-import { useChatRooms } from '../../../hooks/chats/useChatRooms';
-import { useChatAnimations } from '../../../hooks/chats/useChatAnimations';
-import { ChatRoom } from '../../../types/chatTypes';
+import { useChatRooms } from '../../../../hooks/chats/useChatRooms';
+import { useChatAnimations } from '../../../../hooks/chats/useChatAnimations';
+import { ChatRoom } from '../../../../types/chatTypes';
 import { BlurView } from 'expo-blur';
 import CategoryFilter from '@/components/chats/CategoryFilter';
-import ChatHeader from '@/components/chats/ChatHeader';
+// import ChatHeader from '@/components/chats/ChatHeader';
 import { ChatTabBar } from '@/components/chats/ChatTabBar';
 import { ConfirmJoinModal } from '@/components/chats/ConfirmJoinModal';
 import CreateRoomModal from '@/components/chats/CreateRoomModal';
@@ -31,7 +31,7 @@ import RoomListItem from '@/components/chats/RoomListItem';
 import chatService from '@/services/chats/chatService';
 import { useTranslation } from 'react-i18next';
 import { Easing } from 'react-native';
-import { AlignJustify } from '@tamagui/lucide-icons';
+// import { AlignJustify } from '@tamagui/lucide-icons';
 
 interface ChatRoomWithId extends ChatRoom {
   _id?: string;
@@ -54,55 +54,6 @@ export default function ChatPage() {
   const stepAnim = useState(new Animated.Value(0))[0];
   const createAnim = useState(new Animated.Value(0))[0];
 
-  const openMenu = () => {
-    setIsMenuOpen(true);
-    Animated.stagger(50, [
-      Animated.timing(coinAnim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.exp),
-      }),
-      Animated.timing(stepAnim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.exp),
-      }),
-      Animated.timing(createAnim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.exp),
-      }),
-    ]).start();
-  };
-  const closeMenu = () => {
-    Animated.stagger(50, [
-      Animated.timing(createAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-        easing: Easing.in(Easing.exp),
-      }),
-      Animated.timing(stepAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-        easing: Easing.in(Easing.exp),
-      }),
-      Animated.timing(coinAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-        easing: Easing.in(Easing.exp),
-      }),
-    ]).start(() => setIsMenuOpen(false));
-  };
-  const toggleMenu = () => {
-    if (isMenuOpen) closeMenu();
-    else openMenu();
-  };
 
   const {
     rooms,
@@ -151,7 +102,7 @@ export default function ChatPage() {
       const result = await chatService.joinRoom(roomId);
       if (result.success) {
         router.push({
-          pathname: "/chat/[roomId]",
+          pathname: "/community/chat/[roomId]",
           params: { roomId, isMember: 'true' }
         });
       } else {
@@ -174,7 +125,7 @@ export default function ChatPage() {
       if (isMember) {
         const room = rooms.find(r => r.id === rid);
         router.push({
-          pathname: "/chat/[roomId]",
+          pathname: "/community/chat/[roomId]",
           params: { roomId: rid, isMember: 'true', room: JSON.stringify(room) }
         });
       } else {
@@ -262,49 +213,10 @@ export default function ChatPage() {
     );
   }
 
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [1, 0.9],
-    extrapolate: 'clamp'
-  });
-
-  // ก่อน View Gooey FAB Menu
-  const subFabs = [
-    {
-      key: 'create',
-      icon: <Plus size={24} color="#fff" />,
-      label: null,
-      anim: createAnim,
-      onPress: () => { closeMenu(); setCreateModalVisible(true); },
-    },
-    {
-      key: 'step',
-      icon: null,
-      label: 'Step',
-      anim: stepAnim,
-      onPress: () => { closeMenu(); router.replace('/community/step-counter'); },
-    },
-    {
-      key: 'coin',
-      icon: null,
-      label: 'Coin',
-      anim: coinAnim,
-      onPress: () => { closeMenu(); router.replace('/coin-hunting'); },
-    },
-  ];
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <SafeAreaView style={styles.safeArea}>
-        <ChatHeader
-          language={language}
-          roomsCount={rooms.length}
-          joinedRoomsCount={rooms.filter(r => r.is_member).length}
-          headerScale={headerScale}
-          pulseAnim={pulseAnim}
-          headerOpacity={headerOpacity}
-        />
         <ChatTabBar
           language={language}
           activeTab={activeTab}
@@ -352,73 +264,6 @@ export default function ChatPage() {
           )}
         />
       </SafeAreaView>
-
-        {/* Gooey FAB Menu */}
-        <View style={{ position: 'absolute', bottom: 10, right: 0, alignItems: 'flex-end', justifyContent: 'flex-end', width: 80, height: 300 }} pointerEvents="box-none">
-          {/* BlurView background overlay */}
-          {isMenuOpen && (
-            <BlurView
-              intensity={30}
-              tint="dark"
-              style={{
-                position: 'absolute',
-                top: -1000,
-                left: -1000,
-                width: 3000,
-                height: 3000,
-                zIndex: 1,
-              }}
-              pointerEvents="auto"
-            >
-              <TouchableOpacity
-                style={{ flex: 1, width: '100%', height: '100%' }}
-                activeOpacity={1}
-                onPress={closeMenu}
-              />
-            </BlurView>
-          )}
-          {/* Sub-FABs (dynamic, vertical up from main FAB) */}
-          {subFabs.map((fab, idx) => (
-            <Animated.View
-              key={fab.key}
-              pointerEvents={isMenuOpen ? 'auto' : 'none'}
-              style={[
-                styles.fabSubButton,
-                {
-                  position: 'absolute',
-                  right: 24 ,
-                  bottom: 70 * (4.75 - idx), // 70, 140, 210 ...
-                  zIndex: 2,
-                  opacity: fab.anim,
-                  transform: [
-                    { translateY: fab.anim.interpolate({ inputRange: [0, 1], outputRange: [70, 0] }) },
-                    { scale: fab.anim },
-                  ],
-                },
-              ]}
-            >
-              <TouchableOpacity
-                style={styles.fabSubButtonInner}
-                onPress={fab.onPress}
-                activeOpacity={0.9}
-              >
-                {fab.icon ? fab.icon : <Text style={styles.stepCounterFabText}>{fab.label}</Text>}
-              </TouchableOpacity>
-            </Animated.View>
-          ))}
-          {/* Main FAB */}
-          <View style={{ zIndex: 3 }}>
-            <TouchableOpacity
-              style={styles.enhancedFab}
-              onPress={toggleMenu}
-              activeOpacity={0.9}
-            >
-              <BlurView intensity={0} tint="light" style={styles.fabGradient}>
-                <AlignJustify size={24} color="#fff" style={{ transform: [{ rotate: isMenuOpen ? '45deg' : '0deg' }] }} />
-              </BlurView>
-            </TouchableOpacity>
-          </View>
-        </View>
 
       <CreateRoomModal
         visible={createModalVisible}
@@ -486,25 +331,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     textAlign: 'center',
   },
-  enhancedFab: {
-    position: 'absolute',
-    bottom: 120,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.10,
-    shadowRadius: 4,
-    elevation: 3,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,200,200,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   fabGradient: {
     flex: 1,
     justifyContent: 'center',
@@ -520,7 +346,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 2,
     overflow: 'hidden',
   },
   cardBlur: {
@@ -529,67 +354,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(200,200,200,0.18)',
     flex: 1,
-  },
-  coinHuntingFab:{
-    position: 'absolute',
-    bottom: 260,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.10,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  stepCounterFab: {
-    position: 'absolute',
-    bottom: 190,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.10,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  stepCounterFabInner: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepCounterFabText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-    letterSpacing: 1,
-  },
-  fabSubButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.10,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  fabSubButtonInner: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

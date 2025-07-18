@@ -1,4 +1,4 @@
-import { SafeAreaView, View, Text, StyleSheet, Alert, useWindowDimensions } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Alert, useWindowDimensions, Platform } from 'react-native';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 
@@ -235,9 +235,9 @@ export default function QRCodeScreen() {
               borderRadius: 20,
               padding: 24,
               overflow: "hidden",
-              backgroundColor: "rgba(255,255,255,0.1)",
+              backgroundColor: Platform.OS === "ios" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.3)",
               borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.2)",
+              borderColor: Platform.OS === "ios" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)",
               width: '90%',
               maxWidth: 400,
               alignItems: 'center',
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   tabBarBlur: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: Platform.OS === "ios" ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
     borderRadius: 99,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.25)',
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   },
   blurInsidePill: {
     flex: 1,
-    backgroundColor: 'rgba(214, 214, 224, 0.18)',
+    backgroundColor: Platform.OS === "ios" ? 'rgba(214, 214, 224, 0.18)' : 'rgba(0, 0, 0, 0.18)',
   },
   tabBtn: {
     flex: 1,

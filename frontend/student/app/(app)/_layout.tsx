@@ -16,6 +16,7 @@ import AssetImage from '@/components/global/AssetImage';
 import { Bell } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppearance } from '@/hooks/useAppearance';
+import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 export default function AppLayout() {
@@ -26,6 +27,17 @@ export default function AppLayout() {
   const { initializePushNotification } = usePushNotification();
   const { registerDevice } = useDevice()
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  useEffect(() => {
+    async function setupBackgroundTask() {
+      try {
+        await registerBackgroundTaskAsync();
+        await syncStepsOnStartup();
+      } catch (e) {
+      }
+    }
+    setupBackgroundTask();
+  }, []);
+
   const assetsImage = {
     background: assets?.background ?? null,
     profile: assets?.profile ?? null,
@@ -59,7 +71,8 @@ export default function AppLayout() {
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
   if (!user) return <Redirect href="/(auth)/login" />;
 
-  const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
+  const isCommunityRoute = /^\/community(\/.*)?$/.test(pathname) && pathname !== '/community/chat';
+
   LogBox.ignoreLogs([
     'gl.pixelStorei() doesn\'t support this parameter yet',
   ]);
@@ -72,7 +85,7 @@ export default function AppLayout() {
         </Animated.View>
       </BackgroundScreen>
 
-      <Animated.View style={[StyleSheet.absoluteFill, {opacity: isIndexPage ? 1 : 0}]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: isIndexPage ? 1 : 0 }]}>
         <LinearGradient
           colors={['rgba(0,0,0,0.8)', 'transparent']}
           start={{ x: 0.5, y: 0 }}
@@ -89,7 +102,7 @@ export default function AppLayout() {
       </Animated.View>
       <SafeAreaView
         style={{
-          display: isChatRoute ? 'none' : 'flex',
+          display: isCommunityRoute ? 'none' : 'flex',
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -119,7 +132,7 @@ export default function AppLayout() {
       </SafeAreaView>
       <Tabs
         screenOptions={{
-          sceneStyle: { backgroundColor: 'transparent', paddingTop: isChatRoute ? 0 : Platform.OS === 'ios' ? 96 : 112, },
+          sceneStyle: { backgroundColor: 'transparent', paddingTop: isCommunityRoute ? 0 : Platform.OS === 'ios' ? 96 : 112, },
           headerShown: false,
           animation: "shift",
           transitionSpec: {
@@ -135,13 +148,13 @@ export default function AppLayout() {
             },
           }
         }}
-        tabBar={() => !isChatRoute ? <TabBar /> : null}
+        tabBar={() => <TabBar /> }
       >
         <Tabs.Screen name="index" options={{ title: 'Home' }} />
         <Tabs.Screen name="activities/index" options={{ title: 'Activities' }} />
         <Tabs.Screen name="qrcode" options={{ title: 'QR Code' }} />
         <Tabs.Screen name="evoucher/index" options={{ title: 'E-Voucher' }} />
-        <Tabs.Screen name="chat/index" options={{ title: 'Community' }} />
+        <Tabs.Screen name="community/chat/index" options={{ title: 'Community' }} />
       </Tabs>
       <NotificationModal
         visible={notificationModalVisible}

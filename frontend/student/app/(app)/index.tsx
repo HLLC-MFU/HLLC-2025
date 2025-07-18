@@ -3,23 +3,11 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 
 import { Coins, Flower, Footprints } from 'lucide-react-native';
-import { useEffect } from 'react';
-import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 import GooeyFabMenu from '@/components/GooeyFabMenu';
 
 
 export default function HomeScreen() {
-  useEffect(() => {
-    async function setupBackgroundTask() {
-      try {
-        await registerBackgroundTaskAsync();
-        await syncStepsOnStartup();
-      } catch (e) {
-      }
-    }
 
-    setupBackgroundTask();
-  }, []);
 
   const subFabs = [
     {
@@ -32,7 +20,7 @@ export default function HomeScreen() {
       key: 'coin',
       icon: <Coins color={"white"} />,
       label: 'Coin',
-      onPress: () => router.replace('/coin-hunting'),
+      onPress: () => router.replace('/community/coin-hunting'),
     },
     {
       key: 'lamduanflowers',
