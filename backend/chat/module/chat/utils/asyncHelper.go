@@ -304,31 +304,18 @@ func (h *AsyncHelper) calculateRetryDelay(retryCount int) time.Duration {
 
 	return time.Duration(delay)
 }
+func isValidChatMessage(msg *model.ChatMessage) bool {
+	return msg != nil &&
+		(msg.Message != "" || msg.StickerID != nil || msg.FileName != "" ||
+			msg.EvoucherInfo != nil || msg.MentionInfo != nil || msg.ModerationInfo != nil)
+}
 
 // **Job Processing**
 func (h *AsyncHelper) processDatabaseJob(job DatabaseJob, workerID int) {
 	var err error
-
-	// **ENHANCED: Ping & pong avoidable - more comprehensive empty message check**
-	if job.Message == nil {
-		log.Printf("[AsyncHelper] Skipping nil message in job %s", job.Type)
-		job.Service.UpdateMessageStatus(job.Message.ID, "status", "skipped")
-		h.checkMessageCompletion(job.Message.ID)
-		return
-	}
-	
-	// Check for completely empty message
-	if strings.TrimSpace(job.Message.Message) == "" {
-		log.Printf("[AsyncHelper] Skipping completely empty message %s in job %s", job.Message.ID.Hex(), job.Type)
-		job.Service.UpdateMessageStatus(job.Message.ID, "status", "skipped")
-		h.checkMessageCompletion(job.Message.ID)
-		return
-	}
-	
-	if job.Message.RoomID.IsZero() {
-		log.Printf("[AsyncHelper] Skipping message with zero room ID %s in job %s", job.Message.ID.Hex(), job.Type)
-		job.Service.UpdateMessageStatus(job.Message.ID, "status", "skipped")
-		h.checkMessageCompletion(job.Message.ID)
+	if !isValidChatMessage(job.Message) {
+		// Process valid message
+		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
 		return
 	}
 
@@ -434,22 +421,11 @@ func (h *AsyncHelper) processSaveMessageBatch(batch []DatabaseJob) error {
 	}
 
 	// Extract messages from batch
-	messages := make([]*model.ChatMessage, 0, len(batch))
+	messages := make([]*model.ChatMessage, len(batch))
 	for _, job := range batch {
-		if job.Message == nil {
-			log.Printf("[AsyncHelper] Skipping nil message in batch")
-			continue
-		}
-		
-		// **ENHANCED: Check for completely empty message**
-		if strings.TrimSpace(job.Message.Message) == "" {
-			log.Printf("[AsyncHelper] Skipping completely empty message in batch from user %s in room %s", 
-				job.Message.UserID.Hex(), job.Message.RoomID.Hex())
-			continue
-		}
-		
-		if job.Message.RoomID.IsZero() {
-			log.Printf("[AsyncHelper] Skipping message with zero room ID in batch")
+		if !isValidChatMessage(job.Message) {
+			// Process valid message
+			log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
 			continue
 		}
 		
@@ -511,27 +487,9 @@ func (h *AsyncHelper) processCacheMessageBatch(batch []DatabaseJob) error {
 }
 
 func (h *AsyncHelper) processNotificationJob(job NotificationJob, workerID int) {
-
-	// **ENHANCED: Empty message avoidable - more comprehensive check**
-	if job.Message == nil {
-		log.Printf("[AsyncHelper] Skipping nil message for notification")
-		job.Service.UpdateMessageStatus(job.Message.ID, "notification_sent", false)
-		h.checkMessageCompletion(job.Message.ID)
-		return
-	}
-	
-	// Check for completely empty message
-	if strings.TrimSpace(job.Message.Message) == "" {
-		log.Printf("[AsyncHelper] Skipping notification for completely empty message %s", job.Message.ID.Hex())
-		job.Service.UpdateMessageStatus(job.Message.ID, "notification_sent", false)
-		h.checkMessageCompletion(job.Message.ID)
-		return
-	}
-	
-	if job.Message.RoomID.IsZero() {
-		log.Printf("[AsyncHelper] Skipping notification for message with zero room ID %s", job.Message.ID.Hex())
-		job.Service.UpdateMessageStatus(job.Message.ID, "notification_sent", false)
-		h.checkMessageCompletion(job.Message.ID)
+	if !isValidChatMessage(job.Message) {
+		// Process valid message
+		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
 		return
 	}
 	

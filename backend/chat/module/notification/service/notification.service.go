@@ -54,7 +54,7 @@ func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService
 
 // NotifyUsersInRoom sends notifications to offline users in a room only (not online users)
 func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *model.ChatMessage, onlineUsers []string) {
-	log.Printf("[NotificationService] Starting offline notification process for room %s", message.RoomID.Hex())
+	log.Printf(" Starting offline notification process for room %s", message.RoomID.Hex())
 
 	// **NEW: Check if this is an evoucher message**
 	if message.EvoucherInfo != nil {
@@ -152,12 +152,6 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 
 // createAndSendNotification creates the appropriate notification based on message type
 func (ns *NotificationService) createAndSendNotification(ctx context.Context, receiverID string, message *model.ChatMessage, room *SimpleRoom, sender *SimpleUser, role *chatModel.NotificationSenderRole) {
-	// เช็ค message ว่างก่อนส่ง
-	if strings.TrimSpace(message.Message) == "" {
-		log.Printf("[NotificationService] Empty message detected, skipping notification for receiver %s", receiverID)
-		return
-	}
-
 	messageType := ns.determineMessageType(message)
 
 	log.Printf("[NotificationService] Creating %s notification for receiver %s", messageType, receiverID)

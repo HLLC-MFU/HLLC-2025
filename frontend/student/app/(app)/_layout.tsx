@@ -20,6 +20,8 @@ import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/
 import PretestModal from '@/components/prepost-modal/PretestModal';
 import PosttestModal from '@/components/prepost-modal/PosttestModal';
 import usePrePostModal from '@/hooks/usePrePostModal';
+import { useProgressStore } from '@/stores/useProgressStore';
+import { useProgress } from '@/hooks/useProgress';
 
 export default function AppLayout() {
   const { user, getProfile } = useProfile();
@@ -31,9 +33,10 @@ export default function AppLayout() {
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   const [showPretestModal, setShowPretestModal] = useState(false);
   const [showPosttestModal, setShowPosttestModal] = useState(false);
+  const { fetchProgress } = useProgress();
+  const progress = useProgressStore((s) => s.progress);
 
 
-  // Pretest modal hook
   const {
     modalVisible: pretestVisible,
     questions: pretestQuestions,
@@ -43,7 +46,6 @@ export default function AppLayout() {
     closeModal: closePretestModal,
   } = usePrePostModal({ type: 'pretest' });
 
-  // Posttest modal hook
   const {
     modalVisible: posttestVisible,
     questions: posttestQuestions,
@@ -63,7 +65,7 @@ export default function AppLayout() {
     setupBackgroundTask();
   }, []);
   useEffect(() => {
-    if (pretestVisible && pretestQuestions.length > 0) {
+    if (pretestVisible && pretestQuestions.length < 0) {
       setShowPretestModal(true);
     }
   }, [pretestVisible, pretestQuestions]);
@@ -78,10 +80,20 @@ export default function AppLayout() {
   const opacity = useRef(new Animated.Value(!isIndexPage ? 1 : 0)).current;
 
   useEffect(() => {
-    getProfile().finally(() => {
-      setLoading(false);
-      SplashScreen.hideAsync();
-    });
+    async function startup() {
+      try {
+        await getProfile();
+        await fetchProgress();
+      } catch (e) {
+        console.error('Startup error:', e);
+      } finally {
+        setLoading(false);
+        SplashScreen.hideAsync();
+      }
+    }
+
+    startup();
+
     initializePushNotification().then((granted) => {
       if (granted) registerDevice();
     });
@@ -147,7 +159,7 @@ export default function AppLayout() {
         }}
       >
         <ProgressBar
-          avatarUrl={assets.profile ?? ''}
+          progress={progress?.progressPercentage ?? 0}
           onClickAvatar={() => router.push('/profile')}
         />
         <GlassButton iconOnly onPress={() => setNotificationModalVisible(true)}>
