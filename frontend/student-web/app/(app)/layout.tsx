@@ -6,10 +6,19 @@ import BottomNav from '@/components/bottom-nav';
 import lobby from '@/public/lobby_6.jpeg';
 import ProgressBar from '@/components/ui/progressBar';
 import SSEListener from '@/components/SSEListener';
+import { useAppearances } from '@/hooks/useAppearances';
+import { useProfile } from '@/hooks/useProfile';
+import { useEffect } from 'react';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { fetchUser } = useProfile();
+  const { assets } = useAppearances();
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
 
   const shouldBlur = pathname !== '/';
 
@@ -20,14 +29,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <>
       <SSEListener />
       <div className="relative h-dvh w-full overflow-hidden pb-24">
-        <Image
-          fill
-          priority
-          alt="Background"
-          className="absolute inset-0 object-cover z-0"
-          src={lobby}
-        />
-
+        {assets && assets.background ? (
+          assets.background.endsWith('.mp4') ? (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-screen h-screen object-cover z-0"
+              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.background}`}
+            />
+          ) : (
+            <Image
+              fill
+              priority
+              alt="Background"
+              className="absolute inset-0 object-cover z-0"
+              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.background}`}
+            />
+          )
+        ) : (
+          <Image
+            fill
+            priority
+            alt="Background"
+            className="absolute inset-0 object-cover z-0"
+            src={lobby}
+          />
+        )}
         <div
           className="absolute inset-0 z-10 pointer-events-none transition-all duration-500"
           style={{
@@ -39,9 +68,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         />
 
         <div className="relative z-20 flex h-full flex-col text-foreground">
-          <div className="fixed top-0 left-0 right-0 z-50 mx-4">
+          <div className="fixed top-0 left-0 right-0 z-40">
             {!hideProgressSummary && (
-              <ProgressBar onClickAvatar={() => router.push('/profile')} />
+              <ProgressBar
+                avatarUrl={(assets && assets.profile)
+                  ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.profile}`
+                  : ""
+                }
+                onClickAvatar={() => router.push('/profile')}
+              />
             )}
           </div>
 
