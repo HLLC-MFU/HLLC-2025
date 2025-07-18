@@ -182,14 +182,14 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                                 {member.restrictionStatus && (
                                     <div className="flex gap-2 mt-2">
                                         {member.restrictionStatus.isBanned && (
-                                            <Badge color="danger" size="sm" variant="flat">
-                                                <Ban size={12} className="mr-1" />
+                                            <Badge color="danger" size="sm" variant="solid">
+                                                <Ban size={12} />
                                                 Banned
                                             </Badge>
                                         )}
                                         {member.restrictionStatus.isMuted && (
-                                            <Badge color="warning" size="sm" variant="flat">
-                                                <MicOff size={12} className="mr-1" />
+                                            <Badge color="warning" size="sm" variant="solid">
+                                                <MicOff size={12} />
                                                 Muted
                                             </Badge>
                                         )}
@@ -210,7 +210,6 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                                         variant={restrictionData.duration === 'temporary' ? 'solid' : 'bordered'}
                                         color="primary"
                                         onPress={() => setRestrictionData({ ...restrictionData, duration: 'temporary' as 'temporary' })}
-                                        startContent={<Clock size={16} />}
                                     >
                                         Temporary
                                     </Button>

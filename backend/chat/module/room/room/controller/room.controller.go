@@ -9,7 +9,9 @@ import (
 	"chat/pkg/decorators"
 	"chat/pkg/middleware"
 	"chat/pkg/utils"
+	"log"
 	"mime/multipart"
+	"time"
 
 	userService "chat/module/user/service"
 
@@ -72,6 +74,9 @@ func (c *RoomController) setupRoutes() {
 	c.Post("/:id/leave", c.LeaveRoom)
 	c.Put("/:id/readonly", c.handleSetRoomReadOnly, c.rbac.RequireAdministrator())
 	c.SetupRoutes()
+
+	// **NEW: Schedule monitoring endpoint**
+	c.Get("/:id/schedule/status", c.handleGetRoomScheduleStatus)
 }
 
 // GetRooms ดึงรายการห้องทั้งหมด
@@ -231,6 +236,9 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 	if room.Metadata != nil {
 		data["metadata"] = room.Metadata
 	}
+	if room.Schedule != nil {
+		data["schedule"] = room.Schedule
+	}
 
 	return ctx.JSON(fiber.Map{
 		"success": true,
@@ -244,6 +252,22 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 	if err := ctx.BodyParser(&createDto); err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
+
+	// Parse schedule from form if available
+	if form, err := ctx.MultipartForm(); err == nil && form.Value != nil {
+		if scheduleDto := dto.ParseScheduleFromForm(form.Value); scheduleDto != nil {
+			createDto.Schedule = scheduleDto
+		}
+		
+		// Debug: Log members from form
+		if members, exists := form.Value["members"]; exists {
+			log.Printf("[CreateRoom] Members from form: %v", members)
+			createDto.Members = members
+		}
+	}
+	
+	// Debug: Log final DTO
+	log.Printf("[CreateRoom] Final DTO - Members: %v, SelectAllUsers: %v", createDto.Members, createDto.SelectAllUsers)
 
 	if err := c.validationHelper.ValidateCreateRoomDto(&createDto); err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
@@ -307,6 +331,12 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 			Members:  stringMembers,
 			Image:    createDto.Image,
 		}
+		// Preserve schedule when updating with image
+		if room.Schedule != nil {
+			scheduleDto := &dto.ScheduleDto{}
+			scheduleDto.FromRoomSchedule(room.Schedule)
+			updateDto.Schedule = scheduleDto
+		}
 		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), updateDto)
 		if err != nil {
 			c.controllerHelper.CleanupUploadedFile(createDto.Image, c.uploadHandler)
@@ -343,6 +373,22 @@ func (c *RoomController) UpdateRoom(ctx *fiber.Ctx) error {
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
+
+	// Parse schedule from form if available
+	if form, err := ctx.MultipartForm(); err == nil && form.Value != nil {
+		if scheduleDto := dto.ParseScheduleFromForm(form.Value); scheduleDto != nil {
+			updateDto.Schedule = scheduleDto
+		}
+		
+		// Debug: Log members from form
+		if members, exists := form.Value["members"]; exists {
+			log.Printf("[UpdateRoom] Members from form: %v", members)
+			updateDto.Members = members
+		}
+	}
+	
+	// Debug: Log final DTO
+	log.Printf("[UpdateRoom] Final DTO - Members: %v", updateDto.Members)
 
 	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateDto)
 	if err != nil {
@@ -522,4 +568,57 @@ func (c *RoomController) GetRoomsForMe(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Failed to get rooms", "error": err.Error()})
 	}
 	return ctx.JSON(fiber.Map{"success": true, "data": rooms})
+}
+
+// handleGetRoomScheduleStatus ดูสถานะ schedule ของห้อง
+func (c *RoomController) handleGetRoomScheduleStatus(ctx *fiber.Ctx) error {
+	roomID := ctx.Params("id")
+	
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid room ID format",
+		})
+	}
+
+	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
+	if err != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "Room not found",
+		})
+	}
+
+	now := time.Now()
+	status := map[string]interface{}{
+		"roomId":      roomID,
+		"roomName":    room.Name,
+		"hasSchedule": room.IsScheduleEnabled(),
+		"isActive":    room.IsActive(),
+		"accessible":  room.IsRoomAccessibleForWebSocket(now),
+		"status":      room.GetScheduleStatus(now),
+		"currentTime": now,
+	}
+
+	if room.Schedule != nil {
+		if room.Schedule.StartAt != nil {
+			status["startAt"] = room.Schedule.StartAt
+			status["startAtFormatted"] = room.Schedule.StartAt.Format("2006-01-02 15:04:05")
+		}
+		if room.Schedule.EndAt != nil {
+			status["endAt"] = room.Schedule.EndAt
+			status["endAtFormatted"] = room.Schedule.EndAt.Format("2006-01-02 15:04:05")
+		}
+	}
+
+	// Check active connections
+	if connCount, err := c.roomService.GetActiveConnectionsCount(ctx.Context(), roomObjID); err == nil {
+		status["activeConnections"] = connCount
+	}
+
+	return ctx.JSON(fiber.Map{
+		"success": true,
+		"data":    status,
+	})
 }

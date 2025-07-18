@@ -97,6 +97,28 @@ func ValidateAndTrackConnection(ctx context.Context, room *model.Room, userID st
 		return fmt.Errorf("room is inactive and not accepting connections")
 	}
 
+	// **NEW: ตรวจสอบ schedule ของห้อง**
+	currentTime := time.Now()
+	if room.Schedule != nil && (room.Schedule.StartAt != nil || room.Schedule.EndAt != nil) {
+		log.Printf("[ConnectionHelper] Checking schedule for room %s at time %s", room.ID.Hex(), currentTime.Format(time.RFC3339))
+		if room.Schedule.StartAt != nil {
+			log.Printf("[ConnectionHelper] Schedule start time: %s", room.Schedule.StartAt.Format(time.RFC3339))
+		}
+		if room.Schedule.EndAt != nil {
+			log.Printf("[ConnectionHelper] Schedule end time: %s", room.Schedule.EndAt.Format(time.RFC3339))
+		}
+		
+		if !room.IsRoomAccessibleForWebSocket(currentTime) {
+			scheduleStatus := room.GetScheduleStatus(currentTime)
+			log.Printf("[ConnectionHelper] Room %s is not accessible for WebSocket. Schedule status: %s", room.ID.Hex(), scheduleStatus)
+			if scheduleStatus == "closed" {
+				return fmt.Errorf("room is currently closed according to its schedule")
+			}
+		} else {
+			log.Printf("[ConnectionHelper] Room %s is accessible for WebSocket according to schedule", room.ID.Hex())
+		}
+	}
+
 	if !room.IsUnlimitedCapacity() {
 		if count, err := cache.GetActiveConnectionsCount(ctx, room.ID.Hex()); err == nil && count >= int64(room.Capacity) {
 			return fmt.Errorf("room is at capacity: %d/%d", count, room.Capacity)

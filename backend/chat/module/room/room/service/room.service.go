@@ -91,20 +91,11 @@ func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config,
 
 // GetRooms retrieves list of rooms from cache
 func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOptions, userId string) (*queries.Response[dto.ResponseRoomDto], error) {
-	if opts.Filter == nil {
-		opts.Filter = make(map[string]interface{})
-	}
-
-	// Debug log to see what filter is being passed
-	log.Printf("[GetRooms] Filter: %+v", opts.Filter)
-	log.Printf("[GetRooms] UserID: %s", userId)
 
 	resp, err := s.FindAll(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
-
-	log.Printf("[GetRooms] Found %d rooms", len(resp.Data))
 
 	result := &queries.Response[dto.ResponseRoomDto]{
 		Data: make([]dto.ResponseRoomDto, len(resp.Data)),
@@ -123,13 +114,7 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 			Metadata:    room.Metadata,
 			MemberCount: len(room.Members),
 			Status:      room.Status,
-		}
-
-		// Debug log to see if group rooms are included
-		if room.Metadata != nil {
-			if isGroup, ok := room.Metadata["isGroupRoom"]; ok && isGroup == true {
-				log.Printf("[GetRooms] Found group room: %s (ID: %s)", room.Name.Th, room.ID.Hex())
-			}
+			Schedule:    room.Schedule, // เพิ่มฟิลด์ schedule
 		}
 	}
 
@@ -197,6 +182,7 @@ func (s *RoomServiceImpl) GetRoomsByType(ctx context.Context, roomType string, p
 			Metadata:    room.Metadata,
 			MemberCount: len(room.Members),
 			Status:      room.Status,
+			Schedule:    room.Schedule, // เพิ่มฟิลด์ schedule
 		}
 	}
 
@@ -229,7 +215,6 @@ func (s *RoomServiceImpl) GetRoomsByType(ctx context.Context, roomType string, p
 func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitive.ObjectID, page int64, limit int64) (*dto.ResponseRoomMemberDto, error) {
 	// ดึงข้อมูลจาก database โดยตรงเพื่อให้ได้ข้อมูลล่าสุด
 	room, err := s.FindOneById(ctx, roomId.Hex())
-	log.Printf("log roomData: %+v", room.Data)
 	if err != nil || len(room.Data) == 0 {
 		return nil, errors.New("room not found")
 	}
@@ -250,7 +235,6 @@ func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitiv
 	}
 	if limit <= 0 {
 		limit = 10 // Default limit
-		log.Printf("[GetRoomMemberById] Limit was 0, using default limit: %d", limit)
 	}
 	
 	start := (page - 1) * limit
@@ -259,7 +243,6 @@ func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitiv
 	// Validate pagination bounds
 	if start >= total {
 		// No members to return for this page
-		log.Printf("[GetRoomMemberById] Start index %d >= total %d, returning empty result", start, total)
 		return &dto.ResponseRoomMemberDto{
 			ID:      currentRoom.ID,
 			Name:    currentRoom.Name,
@@ -318,7 +301,6 @@ func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitiv
 				ID   primitive.ObjectID `json:"_id"`
 				Name string `json:"name"`
 			}{}
-			log.Printf("[GetRoomMemberById] User not found or error fetching user: %v", err)
 		}
 
 		// Append member to the list
@@ -363,8 +345,18 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 		return nil, fmt.Errorf("validation error: %w", err)
 	}
 
+	// Validate schedule if provided
+	if createDto.Schedule != nil {
+		if err := createDto.Schedule.ValidateSchedule(); err != nil {
+			return nil, fmt.Errorf("schedule validation error: %w", err)
+		}
+	}
+
 	members := createDto.MembersToObjectIDs()
 	createdBy := createDto.CreatedByToObjectID()
+	
+	log.Printf("[CreateRoom Service] Members from DTO: %v, CreatedBy: %v", createDto.Members, createDto.CreatedBy)
+	log.Printf("[CreateRoom Service] Converted Members: %v, CreatedBy ObjectID: %v", members, createdBy)
 
 	// Ensure createdBy is in members
 	alreadyMember := false
@@ -377,6 +369,8 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 	if !alreadyMember && !createdBy.IsZero() {
 		members = append(members, createdBy)
 	}
+	
+	log.Printf("[CreateRoom Service] Final members count: %d", len(members))
 
 	if err := s.validateMembers(ctx, createDto); err != nil {
 		return nil, err
@@ -393,6 +387,16 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 		roomStatus = model.RoomStatusActive
 	}
 
+	// Convert schedule DTO to model
+	var schedule *model.RoomSchedule
+	if createDto.Schedule != nil {
+		var err error
+		schedule, err = createDto.Schedule.ToRoomSchedule()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse schedule: %w", err)
+		}
+	}
+
 	r := &model.Room{
 		Name:      createDto.Name,
 		Type:      roomType,
@@ -403,6 +407,7 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 		UpdatedAt: time.Now(),
 		Members:   members,
 		Image:     createDto.Image,
+		Schedule:  schedule, // เพิ่มฟิลด์ schedule
 	}
 
 	resp, err := s.Create(ctx, *r)
@@ -426,6 +431,13 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 		return nil, err
 	}
 
+	// Validate schedule if provided
+	if updateDto.Schedule != nil {
+		if err := updateDto.Schedule.ValidateSchedule(); err != nil {
+			return nil, fmt.Errorf("schedule validation error: %w", err)
+		}
+	}
+
 	// Merge fields
 	updatedRoom := &model.Room{
 		ID:        oldRoom.ID,
@@ -439,18 +451,35 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 		CreatedAt: oldRoom.CreatedAt,
 		UpdatedAt: oldRoom.UpdatedAt,
 		Metadata:  oldRoom.Metadata,
+		Schedule:  oldRoom.Schedule, // preserve existing schedule
 	}
 	updatedRoom.Name = updateDto.Name
 	updatedRoom.Type = updateDto.Type
 	updatedRoom.Status = updateDto.Status
 	updatedRoom.Capacity = updateDto.Capacity
+	
+	log.Printf("[UpdateRoom Service] Members from DTO: %v", updateDto.Members)
 	if updateDto.Members != nil && len(updateDto.Members) > 0 {
 		updatedRoom.Members = updateDto.MembersToObjectIDs()
+		log.Printf("[UpdateRoom Service] Updated members count: %d", len(updatedRoom.Members))
+	} else {
+		log.Printf("[UpdateRoom Service] No members to update, keeping existing: %d", len(updatedRoom.Members))
 	}
+	
 	if updateDto.Image != "" {
 		updatedRoom.Image = updateDto.Image
 	}
 	updatedRoom.UpdatedAt = time.Now()
+
+	// Update schedule if provided
+	if updateDto.Schedule != nil {
+		schedule, err := updateDto.Schedule.ToRoomSchedule()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse schedule: %w", err)
+		}
+		updatedRoom.Schedule = schedule
+	}
+
 	// createdBy: use from updateDto if present, else preserve
 	if updateDto.CreatedBy != "" {
 		updatedRoom.CreatedBy = updateDto.CreatedByToObjectID()
@@ -479,6 +508,13 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 	}
 	if updateDto.Image != "" {
 		setFields["image"] = updatedRoom.Image
+	}
+	// Add schedule to update fields
+	if updatedRoom.Schedule != nil {
+		setFields["schedule"] = updatedRoom.Schedule
+	} else if updateDto.Schedule != nil {
+		// If updateDto.Schedule is provided but results in nil (e.g., disabled), clear the field
+		setFields["schedule"] = nil
 	}
 
 	filter := bson.M{"_id": roomObjID}
@@ -644,6 +680,7 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 			IsMember:    false,
 			CanJoin:     canJoin,
 			MemberCount: memberCount,
+			Schedule:    room.Schedule, // เพิ่มฟิลด์ schedule
 		})
 	}
 	return result, nil
@@ -682,15 +719,21 @@ func (s *RoomServiceImpl) GetRoomsForMe(ctx context.Context, userID string) ([]d
 			Metadata:    room.Metadata,
 			MemberCount: len(room.Members),
 			Status:      room.Status,
+			Schedule:    room.Schedule, // เพิ่มฟิลด์ schedule
 		})
 	}
 	return result, nil
 }
 
-// calculateCanJoin determines if a user can join a room based on status, capacity, and membership
+// calculateCanJoin determines if a user can join a room based on status, capacity, schedule, and membership
 func (s *RoomServiceImpl) calculateCanJoin(room model.Room, userID string) bool {
 	// If room is inactive, user cannot join
 	if room.IsInactive() {
+		return false
+	}
+
+	// ตรวจสอบ schedule ของห้อง
+	if !room.IsRoomAccessible(time.Now()) {
 		return false
 	}
 
@@ -709,13 +752,17 @@ func (s *RoomServiceImpl) calculateCanJoin(room model.Room, userID string) bool 
 
 // Helper methods
 func (s *RoomServiceImpl) validateMembers(ctx context.Context, createDto *dto.CreateRoomDto) error {
+	if createDto.CreatedBy != "" {
 	if err := s.fkValidator.ValidateForeignKey(ctx, "users", createDto.CreatedBy); err != nil {
 		return fmt.Errorf("foreign key validation error: %w", err)
+		}
 	}
 
 	for _, memberID := range createDto.Members {
+		if memberID != "" {
 		if err := s.fkValidator.ValidateForeignKey(ctx, "users", memberID); err != nil {
 			return fmt.Errorf("member validation error: %w", err)
+			}
 		}
 	}
 	return nil
