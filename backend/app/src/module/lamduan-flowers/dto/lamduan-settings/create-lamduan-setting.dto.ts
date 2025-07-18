@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsObject, IsString, IsDateString } from 'class-validator';
-import { Photo } from 'src/pkg/types/common';
+import { Localization, Photo } from 'src/pkg/types/common';
 
 export class CreateLamduanSettingDto {
   @IsObject()
@@ -17,4 +17,8 @@ export class CreateLamduanSettingDto {
   @IsDateString()
   @IsNotEmpty()
   endAt: string;
+
+  @IsObject()
+  @IsNotEmpty()
+  description : Localization;
 }

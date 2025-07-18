@@ -82,7 +82,7 @@
         "privacy": "Privacy",
         "about": "About",
         "delete": "Delete account",
-        "back": "Back to profile",
+        "back": "Back to Home",
         "delete_confirm_title": "Confirm Account Delete",
         "delete_confirm_message": "Are you sure you want to delete your account? This action cannot be undone.",
         "logout": "Logout"
@@ -106,6 +106,7 @@
         "searchPlaceholder": "Search for activities...",
         "allActivities": "All Activities",
         "subtitle": "Coming soon...",
+        "noActivitiesFound": "Coming soon...",
         "backward": "Go Back",
         "detailTab": "Details",
         "TimelineTab": "Timeline"
@@ -159,7 +160,10 @@
         "online": "Online"
     },
     "coinHunting": {
-        "collection": "Collection"
+        "collection": "14 Guardian Crystals",
+        "sponsorCollection": "Special Rewards",
+        "checkInNow": "Check in Now",
+        "collected": "Collected"
     },
     "assessment": {
         "title": "Assessment Activity",
@@ -172,5 +176,67 @@
         "submit": "SUBMIT",
         "submitting": "SUBMITTING...",
         "yourComments": "Your comments"
-      }
+    },
+    "pretest": {
+        "title": "Please complete the pre-activity questionnaire",
+        "noQuestions": "No pretest questions found",
+        "low": "1 = Low",
+        "high": "5 = High",
+        "submit": "Submit",
+        "submitting": "Submitting...",
+        "placeholder": "Enter your answer",
+        "select": "-- Please select --",
+        "option1": "Option 1",
+        "option2": "Option 2",
+        "option3": "Option 3",
+        "successTitle": "Submitted successfully",
+        "successMessage": "Thank you for completing the questionnaire",
+        "moreQuestions": "More Questions"
+    },
+    "posttest": {
+        "title": "Please complete the post-activity questionnaire",
+        "noQuestions": "No posttest questions found",
+        "low": "1 = Low",
+        "high": "5 = High",
+        "submit": "Submit",
+        "submitting": "Submitting...",
+        "placeholder": "Enter your answer",
+        "select": "-- Please select --",
+        "option1": "Option 1",
+        "option2": "Option 2",
+        "option3": "Option 3",
+        "successTitle": "Posttest submitted successfully",
+        "successMessage": "Thank you for completing the posttest questionnaire"
+    },
+    "lamduanflower": {
+        "title": "Lamduan Flower",
+        "lamduanTutorial": "Lamduan Tutorial",
+        "uploadLamduan": "Upload Lamduan",
+        "uploadPicture": "Upload Picture",
+        "message": "Say to yourself in the future...",
+        "submit": "submit",
+        "save": "Save",
+        "takePhoto": "Take Photo",
+        "chooseFormGallery": "Choose form Gallery",
+        "noPicture": "No tutorial photo available.",
+        "warning": "WARNING",
+        "notStarted": "The activity has not started yet.",
+        "ended": "The activity has ended.",
+        "ok": "OK",
+        "cancel": "Cancel",
+        "noVideo": "No Video Found",
+        "back": "Back",
+        "confirmSubmit": "Confirm Submission",
+        "confirmSave": "Confirm Save",
+        "actioncannot": "This action cannot be undone.",
+        "confirm": "Confirm",
+        "toast" : {
+            "createSuccess": "Create Success",
+            "submitSuccessfully": "Submit Lamduan Flower successfully!",
+            "updateSuccess": "Update Success",
+            "updatedSuccessfully": "Flower updated successfully!",
+            "error" : "Error",
+            "errorSubmit" : "Error submitting flower" 
+        }
+    }
 }

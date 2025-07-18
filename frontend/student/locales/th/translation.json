@@ -107,7 +107,8 @@
         "subtitle": "กำลังมา เร็วๆนี้...",
         "backward": "ย้อนกลับ",
         "detailTab": "รายละเอียด",
-        "TimelineTab": "ไทม์ไลน์"
+        "TimelineTab": "ไทม์ไลน์",
+        "noActivitiesFound": "ไม่พบกิจกรรม"
     },
     "evoucher": {
         "title": "คูปอง",
@@ -158,7 +159,10 @@
         "online": "ออนไลน์"
     },
     "coinHunting": {
-        "collection": "คอลเลกชัน"
+        "collection": "14 ผลึกผู้พิทักษ์",
+        "sponsorCollection": "รางวัลพิเศษ",
+        "checkInNow": "เช็คอินเลย",
+        "collected": "เก็บเหรียญแล้ว"
     },
     "assessment": {
         "title": "แบบประเมินกิจกรรม",
@@ -171,5 +175,67 @@
         "submit": "ส่ง",
         "submitting": "กำลังส่ง...",
         "yourComments": "กรอกความคิดเห็นของคุณ"
+    },
+    "pretest": {
+        "title": "ทำแบบสอบถามก่อนเข้าใช้งาน",
+        "noQuestions": "ไม่พบคำถาม",
+        "low": "1 = น้อย",
+        "high": "5 = มาก",
+        "submit": "ส่งแบบสอบถาม",
+        "submitting": "กำลังส่ง...",
+        "placeholder": "กรอกคำตอบของคุณ",
+        "select": "-- กรุณาเลือก --",
+        "option1": "ตัวเลือกที่ 1",
+        "option2": "ตัวเลือกที่ 2",
+        "option3": "ตัวเลือกที่ 3",
+        "successTitle": "ส่งแบบสอบถามสำเร็จ",
+        "successMessage": "ขอบคุณที่ทำแบบสอบถาม",
+        "moreQuestions": "คำถามเพิ่มเติม"
+    },
+    "posttest": {
+        "title": "ทำแบบสอบถามหลังจบกิจกรรม",
+        "noQuestions": "ไม่พบคำถาม posttest",
+        "low": "1 = น้อย",
+        "high": "5 = มาก",
+        "submit": "ส่งแบบสอบถามหลังจบกิจกรรม",
+        "submitting": "กำลังส่ง...",
+        "placeholder": "กรอกคำตอบของคุณ",
+        "select": "-- กรุณาเลือก --",
+        "option1": "ตัวเลือกที่ 1",
+        "option2": "ตัวเลือกที่ 2",
+        "option3": "ตัวเลือกที่ 3",
+        "successTitle": "ส่งแบบสอบถามหลังจบกิจกรรมสำเร็จ",
+        "successMessage": "ขอบคุณที่ทำแบบสอบถามหลังจบกิจกรรม"
+    },
+    "lamduanflower": {
+        "title": "พับดอกลำดวน",
+        "lamduanTutorial": "คู่มือการพับดอกลำดวน",
+        "uploadLamduan": "ส่งดอกลำดวนของฉัน",
+        "uploadPicture": "อัปโหลดรูปภาพ",
+        "message": "อยากบอกอะไรกับตัวเองในวันที่เรียนจบ...",
+        "submit": "ส่ง",
+        "save": "อัปเดต",
+        "takePhoto": "ถ่ายรูปภาพ",
+        "chooseFormGallery": "เลือกจากคลังรูปภาพ",
+        "noPicture": "ไม่มีรูปภาพคู่มือดอกลำดวน",
+        "warning": "คำเตือน",
+        "notStarted": "กิจกรรมยังไม่เริ่มต้น",
+        "ended": "กิจกรรมได้สินสุดแล้ว",
+        "ok": "ตกลง",
+        "cancel": "ยกเลิก",
+        "noVideo": "ไม่พบวิดีโอ",
+        "back": "กลับ",
+        "confirmSubmit": "ยืนยันการส่ง",
+        "confirmSave": "ยืนยันการอัปเดต",
+        "actioncannot": "การดำเนินการนี้ไม่สามารถย้อนกลับได้",
+        "confirm": "ยืนยัน",
+        "toast": {
+            "createSuccess": "ยืนยันการส่ง",
+            "submitSuccessfully": "ส่งดอกลำดวนเรียบร้อยแล้ว!",
+            "updateSuccess": "อัปเดตสำเร็จ",
+            "updatedSuccessfully": "แก้ไขดอกลำดวนเรียบร้อยแล้ว!",
+            "error": "เกิดข้อผิดพลาด",
+            "errorLamduan": "ไม่สามารถส่งดอกลำดวนได้"
+        }
     }
 }

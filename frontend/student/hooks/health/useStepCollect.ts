@@ -25,23 +25,23 @@ async function syncSteps() {
     const date = new Date();
     const { steps } = await fetchStepsStatically(date);
     const deviceId = await getDeviceUniqueId();
-    // console.log('[StepSync] Syncing steps:', { steps, deviceId, date }, 'ISO:', date.toISOString());
+    console.log('[StepSync] Syncing steps:', { steps, deviceId, date }, 'ISO:', date.toISOString());
     let res = await apiRequest('/step-counters/sync', 'POST', {
       stepCount: steps,
       deviceId,
       date: date.toISOString(),
     });
-    // console.log('[StepSync] Response:', res);
+    console.log('[StepSync] Response:', res);
 
         // If 404, register device and retry
     if (res.statusCode === 404 && res.message?.includes('Step counter not found')) {
-      // console.log('[StepSync] Step counter not found — trying to register device');
+      console.log('[StepSync] Step counter not found — trying to register device');
 
       // Register the device
-      const registerDevice =await apiRequest('/step-counters/device', 'POST', {
+      const registerDevice = await apiRequest('/step-counters/device', 'POST', {
         deviceId,
       });
-      // console.log('[StepSync] Device registered:', registerDevice);
+      console.log('[StepSync] Device registered:', registerDevice);
 
       // Retry sync
       res = await apiRequest('/step-counters/sync', 'POST', {
@@ -51,10 +51,10 @@ async function syncSteps() {
       });
     }
 
-    // console.log('[StepSync] Success', res);
+    console.log('[StepSync] Success', res);
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch (error) {
-    // console.error('[StepSync] Failed', error);
+    console.error('[StepSync] Failed', error);
     return BackgroundTask.BackgroundTaskResult.Failed;
   }
 }

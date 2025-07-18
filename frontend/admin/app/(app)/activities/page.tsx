@@ -31,6 +31,7 @@ import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
 import { PageHeader } from '@/components/ui/page-header';
 import { useActivities } from '@/hooks/useActivities';
 import { Activities, ActivityType } from '@/types/activities';
+import { Activity } from '@/types/checkin';
 
 export default function ActivitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,9 +99,9 @@ export default function ActivitiesPage() {
     setIsActivityModalOpen(true);
   };
 
-  const handleEditActivity = (activity: Activities) => {
+  const handleEditActivity = (typeId: string) => {
     setModalMode('edit');
-    setSelectedActivity(activity);
+    setSelectedActivity({ type: typeId } as Activities);
     setIsActivityModalOpen(true);
   };
 
@@ -122,14 +123,20 @@ export default function ActivitiesPage() {
     setConfirmationModalType('delete');
   };
 
-  const handleSubmitActivity = (formData: FormData, mode: 'add' | 'edit') => {
-    if (mode === 'edit' && selectedActivity) {
-      formData.append('type', selectedActivity.type._id || '');
-      updateActivity(selectedActivity._id, formData);
-    } else {
-      createActivity(formData);
+  const handleSubmitActivity = async (formData: FormData, mode: 'add' | 'edit') => {
+    try {
+      if (mode === 'edit' && selectedActivity) {
+        formData.append('type', (selectedActivity.type as ActivityType)._id || '');
+        await updateActivity(selectedActivity._id, formData);
+      } else {
+        await createActivity(formData);
+        console.log('Activity created successfully');
+      }
+    } catch (error) {
+      console.error('Error creating/updating activity:', error);
+    } finally {
+      setIsActivityModalOpen(false);
     }
-    setIsActivityModalOpen(false);
   };
 
   const handleSubmitType = async (typeData: Partial<ActivityType>) => {
@@ -309,11 +316,12 @@ export default function ActivitiesPage() {
       </div>
 
       <ActivityModal
-        activity={selectedActivity}
+        activity={selectedActivity as { type: string }}
         isOpen={isActivityModalOpen}
         mode={modalMode}
         onClose={() => setIsActivityModalOpen(false)}
         onSuccess={handleSubmitActivity}
+        typeActivities={selectedType?._id}
       />
 
       <ActivityTypeModal

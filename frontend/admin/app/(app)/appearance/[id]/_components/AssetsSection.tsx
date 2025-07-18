@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction } from 'react';
-import { Button, Card, CardBody, CardHeader, Divider } from '@heroui/react';
+import { Accordion, AccordionItem, Button, Card, CardBody, CardHeader, Divider } from '@heroui/react';
 import { Ban, Image } from 'lucide-react';
 
 import { Appearance } from '@/types/appearance';
@@ -13,12 +13,11 @@ export default function AssetsSection({
   onSave,
 }: {
   uiSection: {
-    header: {
-      title: string;
-    }[];
-    navigation: {
-      title: string;
-    }[];
+    background: string[];
+    header: string[];
+    navigation: string[];
+    menu: string[];
+    profile: string[];
   };
   appearance: Appearance;
   assets: Record<string, File>;
@@ -40,64 +39,76 @@ export default function AssetsSection({
           </div>
         </CardHeader>
         <CardBody>
-          <div className="grid gap-10 w-full">
-            {Object.entries(uiSection).map(([group, groupAssets]) => (
-              <div key={group}>
-                <p className="text-xl font-semibold capitalize">{group}</p>
-                <Divider className="my-4" />
-                <div key={group} className="grid grid-cols-3 gap-4">
-                  {groupAssets.map((asset) => {
-                    const key = asset.title.toLowerCase();
-                    const image = appearance.assets[key];
+          <div className="grid gap-4 w-full">
+            <Accordion selectionMode="multiple">
+              {Object.entries(uiSection).map(([group, groupAssets]) => (
+                <AccordionItem
+                  key={group}
+                  aria-label={group}
+                  title={group[0].toUpperCase() + group.slice(1)}
+                  subtitle={
+                    <>
+                      <span className="text-primary">{groupAssets.length} assets </span>
+                      <span>in this category</span>
+                    </>
+                  }
+                  keepContentMounted
+                  className="font-semibold capitalize hover:bg-default-100 rounded-lg px-4 my-2"
+                >
+                  <div key={group} className="grid grid-cols-3 gap-4">
+                    {groupAssets.map((asset) => {
+                      const key = asset.toLowerCase();
+                      const image = appearance.assets[key];
 
-                    const handleChange = (file: File) => {
-                      onSetAssets((prev) => ({
-                        ...prev,
-                        [asset.title]: file,
-                      }));
-                    };
+                      const handleChange = (file: File) => {
+                        onSetAssets((prev) => ({
+                          ...prev,
+                          [asset]: file,
+                        }));
+                      };
 
-                    return (
-                      <div
-                        key={key}
-                        className={`${asset.title === 'Background' && 'col-span-full'}`}
-                      >
-                        <ImageInput
-                          aspectRatio={
-                            asset.title === 'Background'
-                              ? 'aspect-[16/9]'
-                              : 'aspect-square'
-                          }
-                          fileAccept={
-                            asset.title === 'Background'
-                              ? 'video/mp4, image/*'
-                              : 'image/*'
-                          }
-                          image={image}
-                          sizeLimit={
-                            asset.title === 'Background'
-                              ? 5 * 1024 * 1024
-                              : 500 * 1024
-                          }
-                          title={asset.title}
-                          onCancel={() => {
-                            onSetAssets((prev) => {
-                              const updated = { ...prev };
+                      return (
+                        <div
+                          key={key}
+                          className={`${asset === 'Background' && 'col-span-full'}`}
+                        >
+                          <ImageInput
+                            aspectRatio={
+                              asset === 'Background'
+                                ? 'aspect-[16/9]'
+                                : 'aspect-square'
+                            }
+                            fileAccept={
+                              asset === 'Background'
+                                ? 'video/mp4, image/*'
+                                : 'image/*'
+                            }
+                            image={image}
+                            sizeLimit={
+                              asset === 'Background'
+                                ? 5 * 1024 * 1024
+                                : 500 * 1024
+                            }
+                            title={asset}
+                            onCancel={() => {
+                              onSetAssets((prev) => {
+                                const updated = { ...prev };
 
-                              delete updated[asset.title];
+                                delete updated[asset];
 
-                              return updated;
-                            });
-                          }}
-                          onChange={handleChange}
-                          onDiscard={Object.keys(assets).length === 0}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+                                return updated;
+                              });
+                            }}
+                            onChange={handleChange}
+                            onDiscard={Object.keys(assets).length === 0}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </AccordionItem>
+              ))}
+            </Accordion>
 
             <div className="flex justify-end">
               <div className="flex justify-between gap-4">

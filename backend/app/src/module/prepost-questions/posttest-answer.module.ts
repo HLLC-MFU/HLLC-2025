@@ -11,6 +11,7 @@ import {
   PrepostQuestion,
   PrepostQuestionSchema,
 } from './schema/prepost-question.schema';
+import { TimeSetting, TimeSettingSchema } from '../time-setting/schema/time-setting.schema';
 
 @Module({
   imports: [
@@ -18,9 +19,10 @@ import {
       { name: PosttestAnswer.name, schema: PosttestAnswerSchema },
       { name: User.name, schema: UserSchema },
       { name: PrepostQuestion.name, schema: PrepostQuestionSchema },
+      { name: TimeSetting.name, schema: TimeSettingSchema }
     ]),
   ],
   controllers: [PosttestAnswersController],
   providers: [PosttestAnswersService],
 })
-export class PosttestAnswersModule {}
+export class PosttestAnswersModule { }

@@ -1,3 +1,4 @@
+import { Lang } from "./lang";
 import { User } from "./user";
 
 export type LamduanFlower = {
@@ -15,10 +16,11 @@ export type Setting = {
 };
 
 export type LamduanSetting = {
-    _id: string;
-    tutorialPhoto: string;
-    tutorialVideo: string;
-    startAt: string;
-    endAt: string;
-    createdAt: string;
+  _id: string;
+  tutorialPhoto: string;
+  tutorialVideo: string;
+  startAt: string;
+  endAt: string;
+  createdAt: string;
+  description: Lang
 };

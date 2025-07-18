@@ -29,7 +29,9 @@ const initialState: PrepostQuestionsState = {
         averageTimeSpent: 0,
         totalStudents: 0,
         difficultyDistribution: { easy: 0, medium: 0, hard: 0 },
-        questionTypeDistribution: { text: 0, rating: 0, dropdown: 0, checkbox: 0, radio: 0 }
+        questionTypeDistribution: { text: 0, rating: 0, dropdown: 0, checkbox: 0, radio: 0 },
+        scoreDistribution: [],
+        studentDetails: []
     },
     answers: []
 };

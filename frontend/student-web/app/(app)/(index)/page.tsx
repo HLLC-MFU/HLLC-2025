@@ -1,16 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Bell, Flower } from 'lucide-react';
-import { addToast } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 import GlassButton from '@/components/ui/glass-button';
-import PretestQuestionModal from '@/components/PretestPosttest/PretestQuestionModal';
-import { usePrepostQuestion } from '@/hooks/usePrePostQuestion';
-import { PrepostQuestions } from '@/types/prepostQuestion';
-import PosttestQuestionModal from '@/components/PretestPosttest/PosttestQuestionModal';
+
 import { useSseStore } from '@/stores/useSseStore';
 import { useAppearances } from '@/hooks/useAppearances';
 
@@ -19,172 +15,11 @@ const baseImageUrl = process.env.NEXT_PUBLIC_API_URL;
 export default function HomePage() {
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
-  const {
-    pretestAnswersInput,
-    posttestAnswersInput,
-    createPretestAnswers,
-    createPosttestAnswers,
-    fetchPrepostQuestion,
-    fetchPretestAnswers,
-    setPretestAnswersInput,
-    setPosttestAnswersInput,
-    prepostQuestion,
-    hasPretestAnswers,
-    hasPosttestAnswers,
-  } = usePrepostQuestion();
+
   const { assets } = useAppearances();
   const progress = useSseStore(state => state.progress);
 
-  const [isPretestModalOpen, setIsPretestModalOpen] = useState(false);
-  const [isPosttestModalOpen, setIsPosttestModalOpen] = useState(false);
-  const [selectedPretestQuestions, setSelectedPretestQuestions] = useState<
-    PrepostQuestions[]
-  >([]);
-  const [selectedPosttestQuestions, setSelectedPosttestQuestions] = useState<
-    PrepostQuestions[]
-  >([]);
   const router = useRouter();
-
-  const openPretestModal = () => {
-    const filteredQuestions = prepostQuestion.filter(
-      q => q.displayType === 'pretest',
-    );
-
-    setSelectedPretestQuestions(filteredQuestions);
-    const initialAnswers = filteredQuestions.map(q => {
-      const existingAnswer = pretestAnswersInput.find(
-        ans => ans.pretest === q._id,
-      );
-
-      return existingAnswer || { pretest: q._id, answer: '' };
-    });
-
-    setPretestAnswersInput(initialAnswers);
-    setIsPretestModalOpen(true);
-  };
-
-  const openPosttestModal = () => {
-    const filteredQuestions = prepostQuestion.filter(
-      q => q.displayType === 'posttest',
-    );
-
-    setSelectedPosttestQuestions(filteredQuestions);
-
-    const initialAnswers = filteredQuestions.map(q => {
-      const existingAnswer = posttestAnswersInput.find(
-        ans => ans.posttest === q._id,
-      );
-
-      return existingAnswer || { posttest: q._id, answer: '' };
-    });
-
-    setPosttestAnswersInput(initialAnswers);
-    setIsPosttestModalOpen(true);
-  };
-
-  // ✅ เปิด Pretest modal ถ้าไม่มีคำตอบ
-  useEffect(() => {
-    if (hasPretestAnswers === false) {
-      openPretestModal();
-    }
-  }, [hasPretestAnswers]);
-
-  // ✅ เปิด Posttest modal เมื่อเงื่อนไขครบ
-  useEffect(() => {
-    if (
-      hasPretestAnswers &&
-      (progress?.progressPercentage ?? 0) >= 80 &&
-      hasPosttestAnswers === false
-    ) {
-      openPosttestModal();
-    }
-  }, [hasPretestAnswers, hasPosttestAnswers, progress?.progressPercentage]);
-
-  const handlePretestSubmit = async () => {
-    if (!pretestAnswersInput || pretestAnswersInput.length === 0) {
-      addToast({
-        title: 'No Answer to Submit.',
-        color: 'danger',
-      });
-
-      return;
-    }
-
-    try {
-      const payload = {
-        answers: pretestAnswersInput.map(ans => ({
-          pretest: ans.pretest,
-          answer: ans.answer,
-        })),
-      };
-
-      const res = await createPretestAnswers(payload);
-
-      if (res) {
-        addToast({
-          title: 'Submit Successfully.',
-          color: 'success',
-        });
-        await fetchPrepostQuestion();
-        await fetchPretestAnswers();
-        setIsPretestModalOpen(false);
-        setSelectedPretestQuestions([]);
-        await fetchPrepostQuestion();
-      } else {
-        addToast({
-          title: 'Failed to Submit Answer.',
-          color: 'danger',
-        });
-      }
-    } catch (err) {
-      addToast({
-        title: 'Error Submit Answer.',
-        color: 'danger',
-      });
-    }
-  };
-
-  const handlePosttestSubmit = async () => {
-    if (!posttestAnswersInput || posttestAnswersInput.length === 0) {
-      addToast({
-        title: 'No Answer to Submit.',
-        color: 'danger',
-      });
-
-      return;
-    }
-
-    try {
-      const payload = {
-        answers: posttestAnswersInput.map(ans => ({
-          posttest: ans.posttest,
-          answer: ans.answer,
-        })),
-      };
-
-      const res = await createPosttestAnswers(payload);
-
-      if (res) {
-        addToast({
-          title: 'Submit Successfully.',
-          color: 'success',
-        });
-        await fetchPrepostQuestion();
-        setIsPosttestModalOpen(false);
-        setSelectedPosttestQuestions([]);
-      } else {
-        addToast({
-          title: 'Failed to Submit Answer.',
-          color: 'danger',
-        });
-      }
-    } catch (err) {
-      addToast({
-        title: 'Error Submit Answer.',
-        color: 'danger',
-      });
-    }
-  };
 
   const steps = 9000;
   // const progressLoading = false;
@@ -195,79 +30,36 @@ export default function HomePage() {
       <div className="flex justify-between items-start mb-6">
         <div className="flex gap-2">
           <GlassButton iconOnly onClick={() => router.push('/lamduan-flowers')}>
-            {(assets && assets.lamduan)
-              ? (
-                <Image
-                  alt="Lamduan"
-                  src={`${baseImageUrl}/uploads/${assets.lamduan}`}
-                  width={20}
-                  height={20}
-                />
-              ) : (
-                <Flower
-                  className="text-white"
-                  size={20}
-                />
-              )}
+            {assets && assets.lamduanflowers ? (
+              <Image
+                alt="Lamduan"
+                src={`${baseImageUrl}/uploads/${assets.lamduanflowers}`}
+                width={20}
+                height={20}
+              />
+            ) : (
+              <Flower className="text-white" size={20} />
+            )}
           </GlassButton>
           <GlassButton
             iconOnly
             onClick={() => setNotificationModalVisible(true)}
           >
-            {(assets && assets.notification)
-              ? (
-                <Image
-                  alt="Notification"
-                  src={`${baseImageUrl}/uploads/${assets.notification}`}
-                  width={20}
-                  height={20}
-                />
-              ) : (
-                <Bell className="text-white" size={20} />
-              )}
+            {assets && assets.notification ? (
+              <Image
+                alt="Notification"
+                src={`${baseImageUrl}/uploads/${assets.notification}`}
+                width={20}
+                height={20}
+              />
+            ) : (
+              <Bell className="text-white" size={20} />
+            )}
           </GlassButton>
         </div>
       </div>
 
-      <PretestQuestionModal
-        answers={pretestAnswersInput}
-        isOpen={isPretestModalOpen}
-        prePostQuestions={selectedPretestQuestions}
-        setAnswers={setPretestAnswersInput}
-        onClose={() => {
-          if (hasPretestAnswers === false) {
-            addToast({
-              title: 'You must complete the pretest first.',
-              color: 'warning',
-            });
-
-            return;
-          }
-          setIsPretestModalOpen(false);
-          setSelectedPretestQuestions([]);
-        }}
-        onSubmit={() => handlePretestSubmit()}
-      />
-
-      <PosttestQuestionModal
-        answers={posttestAnswersInput}
-        isOpen={isPosttestModalOpen}
-        prePostQuestions={selectedPosttestQuestions}
-        setAnswers={setPosttestAnswersInput}
-        onClose={() => {
-          if (hasPosttestAnswers === false) {
-            addToast({
-              title: 'You must complete the posttest first.',
-              color: 'warning',
-            });
-
-            return;
-          }
-          setIsPosttestModalOpen(false);
-          setSelectedPosttestQuestions([]);
-        }}
-        onSubmit={() => handlePosttestSubmit()}
-      />
+      {/* ลบ PretestQuestionModal และ PosttestQuestionModal ออกให้หมด */}
     </div>
   );
 }
