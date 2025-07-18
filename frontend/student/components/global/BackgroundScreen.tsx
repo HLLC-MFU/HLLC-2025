@@ -1,6 +1,6 @@
 import React, { ReactNode, useState } from 'react';
 import { ImageBackground, View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 
 export default function BackgroundScreen({
   background,
@@ -17,6 +17,11 @@ export default function BackgroundScreen({
 
   const isVideo = background?.endsWith('.mp4');
 
+  const player = useVideoPlayer(uri, player => {
+    player.loop = true;
+    player.play();
+  });
+
   // Show loading spinner or blank while loading background
   const onLoadEnd = () => setLoaded(true);
 
@@ -24,15 +29,11 @@ export default function BackgroundScreen({
     <View style={[StyleSheet.absoluteFill, { flex: 1, backgroundColor: '#000' }]}>
       {isVideo ? (
         <>
-          <Video
-            source={uri}
-            isMuted={true}
-            shouldPlay
-            isLooping
-            resizeMode={ResizeMode.COVER}
+          <VideoView
             style={[StyleSheet.absoluteFill, { flex: 1 }]}
-            onLoad={onLoadEnd}
-            onReadyForDisplay={onLoadEnd}
+            player={player}
+            pointerEvents="none"
+            contentFit="cover"
           />
           {loaded && children}
           {!loaded && (
