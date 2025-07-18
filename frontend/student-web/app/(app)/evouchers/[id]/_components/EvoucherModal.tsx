@@ -48,6 +48,7 @@ export default function EvoucherModal({
                         backdrop: "bg-black/80",
                         closeButton: "flex justify-center items-center text-black bg-white",
                     }}
+                    placement="center"
                     hideCloseButton
                 >
                     <ModalContent>
