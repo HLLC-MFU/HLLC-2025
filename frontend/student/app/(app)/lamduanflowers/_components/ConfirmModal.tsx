@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 
@@ -24,37 +25,42 @@ export default function ConfirmModal({
   username,
   mode = 'submit',
 }: ConfirmModalProps) {
+  const ModalContent = (
+    <View style={Platform.OS === 'ios' ? styles.modalBoxIOS : styles.modalBoxAndroid}>
+      <Text style={styles.headerText}>
+        {mode === 'save' ? 'Confirm Save' : 'Confirm Submission'}
+      </Text>
+
+      <Text style={styles.bodyText}>
+        Are you sure you want to {mode === 'save' ? 'save changes' : 'submit'}
+        {username ? ` as ${username}` : ''}?
+      </Text>
+
+      <Text style={styles.noteText}>This action cannot be undone.</Text>
+
+      <View style={styles.buttonRow}>
+        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.confirmButton} onPress={onConfirm}>
+          <Text style={styles.confirmText}>Confirm</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
-    <Modal
-      transparent
-      visible={isVisible}
-      animationType="fade"
-      onRequestClose={onCancel}
-    >
+    <Modal transparent visible={isVisible} animationType="fade" onRequestClose={onCancel}>
       <TouchableWithoutFeedback onPress={onCancel}>
         <View style={styles.overlay}>
-          <TouchableWithoutFeedback onPress={() => { }}>
-            <BlurView intensity={50} tint="light" style={styles.modalContainer}>
-              <Text style={styles.headerText}>
-                {mode === 'save' ? 'Confirm Save' : 'Confirm Submission'}
-              </Text>
-
-              {/* <Text style={styles.bodyText}>
-                Are you sure you want to {mode === 'save' ? 'save changes' : 'submit'}
-                {username ? ` as ${username}` : ''}?
-              </Text> */}
-
-              <Text style={styles.noteText}>This action cannot be undone.</Text>
-
-              <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.confirmButton} onPress={onConfirm}>
-                  <Text style={styles.confirmText}>Confirm</Text>
-                </TouchableOpacity>
-              </View>
-            </BlurView>
+          <TouchableWithoutFeedback>
+            {Platform.OS === 'ios' ? (
+              <BlurView intensity={50} tint="light" style={styles.blurWrapper}>
+                {ModalContent}
+              </BlurView>
+            ) : (
+              ModalContent
+            )}
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
@@ -69,14 +75,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContainer: {
+  blurWrapper: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  modalBoxIOS: {
     width: '85%',
     borderRadius: 20,
     padding: 24,
-    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+  },
+  modalBoxAndroid: {
+    width: '85%',
+    borderRadius: 20,
+    padding: 24,
+    backgroundColor: 'rgba(136, 136, 136, 0.75)',
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    alignItems: 'center',
   },
   headerText: {
     fontSize: 20,
@@ -106,10 +125,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
     paddingVertical: 6,
     paddingHorizontal: 14,
-    borderRadius: 999,
+    borderRadius: 30,
     borderWidth: 1,
     borderColor: '#fff',
-    // backgroundColor: '#ddd',
   },
   cancelText: {
     color: '#fff',
@@ -118,7 +136,7 @@ const styles = StyleSheet.create({
   confirmButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 999,
+    borderRadius: 30,
     backgroundColor: '#006FEE',
   },
   confirmText: {

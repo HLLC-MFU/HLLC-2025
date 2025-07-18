@@ -18,7 +18,7 @@ export type Activities = {
     acronym: string;
     fullDetails: Lang;
     shortDetails: Lang;
-    type: string;
+    type: ActivityType | string;
     photo: Photo;
     location: Location;
     metadata: Metadata;
@@ -36,9 +36,9 @@ export type Metadata = {
     isProgressCount: boolean;
     isVisible: boolean;
     scope: Scope;
-    checkinStartAt?: Date;
-    startAt?: Date;
-    endAt?: Date;
+    checkinStartAt?: string;
+    startAt?: string;
+    endAt?: string;
 };
 
 export type ScopeDetails = {

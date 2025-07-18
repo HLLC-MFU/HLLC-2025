@@ -26,18 +26,21 @@ export function useActivities(options?: { autoFetch?: boolean; useCanCheckin?: b
                     '/activities',
                     'GET',
                 ),
-                apiRequest<ActivityType[]>(
+                apiRequest<{ data: ActivityType[] }>(
                     '/activities-type',
                     'GET',
                 ),
             ]);
 
-            if (activitiesRes.data) {
-                setActivities(activitiesRes.data);
+            if (activitiesRes?.data) {
+                setActivities(activitiesRes?.data);
             }
 
-            if (typesRes.data) {
-                setActivityTypes(typesRes.data);
+            console.log(activitiesRes.data);
+
+
+            if (typesRes.data?.data) {
+                setActivityTypes(typesRes?.data?.data);
             }
         } catch (err) {
             const errorMessage = err && typeof err === 'object' && 'message' in err
@@ -114,9 +117,6 @@ export function useActivities(options?: { autoFetch?: boolean; useCanCheckin?: b
                 '/activities',
                 'POST',
                 formData,
-                {
-                    credentials: 'include',
-                }
             );
 
             if (res.data) {
