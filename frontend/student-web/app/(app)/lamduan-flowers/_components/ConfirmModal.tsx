@@ -20,7 +20,7 @@ export function ConfirmModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-            <div className="w-full max-w-md bg-white backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-6 text-center space-y-6">
+            <div className="w-full max-w-md bg-white/40 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-6 text-center space-y-6">
                 <h2 className="text-xl font-semibold text-black/80">
                     {mode === 'save' ? 'Confirm Save' : 'Confirm Submission'}
                 </h2>
