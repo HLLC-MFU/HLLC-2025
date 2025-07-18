@@ -1,24 +1,31 @@
 import React, { useEffect } from 'react';
 import { RoomMember } from '@/types/chat';
-import { useChatRoom } from '@/hooks/chats/useChatRoom';
 import Avatar from './Avatar';
 
 interface RoomMembersListProps {
   roomId: string;
   onMemberPress?: (member: RoomMember) => void;
+  members: RoomMember[];
+  loadMembers: (page: number, append: boolean) => void;
+  loadMoreMembers: () => void;
+  loading: boolean;
 }
 
-const RoomMembersList = ({ roomId, onMemberPress }: RoomMembersListProps) => {
-  const { loadMembers, loadMoreMembers, members, total, loading, hasMore } = useChatRoom();
-
+const RoomMembersList = ({
+  roomId,
+  onMemberPress,
+  members,
+  loadMembers,
+  loadMoreMembers,
+  loading,
+}: RoomMembersListProps) => {
   useEffect(() => {
+    // Load initial members when component mounts
     loadMembers(1, false);
-  }, [roomId]);
+  }, [roomId, loadMembers]);
 
   const handleLoadMore = () => {
-    if (hasMore && !loading) {
-      loadMoreMembers();
-    }
+    loadMoreMembers();
   };
 
   const handleRefresh = () => {
@@ -28,7 +35,7 @@ const RoomMembersList = ({ roomId, onMemberPress }: RoomMembersListProps) => {
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden flex flex-col h-full">
       <div className="p-4 border-b border-gray-200 bg-gray-50">
-        <span className="text-lg font-semibold text-gray-900">Members ({total})</span>
+        <span className="text-lg font-semibold text-gray-900">Members</span>
         <button className="ml-4 text-blue-500 underline text-sm" onClick={handleRefresh} disabled={loading}>
           Refresh
         </button>
@@ -59,7 +66,7 @@ const RoomMembersList = ({ roomId, onMemberPress }: RoomMembersListProps) => {
         {loading && (
           <div className="flex flex-row items-center justify-center py-4 text-blue-500">Loading more members...</div>
         )}
-        {!loading && hasMore && (
+        {!loading && (
           <div className="flex flex-row items-center justify-center py-4">
             <button className="text-blue-500 underline" onClick={handleLoadMore}>Load More</button>
           </div>

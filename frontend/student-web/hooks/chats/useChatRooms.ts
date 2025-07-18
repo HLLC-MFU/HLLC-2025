@@ -15,20 +15,6 @@ export const useChatRooms = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const { user } = useProfile();
 
-  // Debug log on mount
-  useEffect(() => {
-    console.group('[useChatRooms] Debug Info');
-    console.log('Mounted useChatRooms hook');
-    console.log('typeof window:', typeof window);
-    if (typeof window !== 'undefined') {
-      console.log('document.cookie:', document.cookie);
-      console.log('localStorage keys:', Object.keys(localStorage));
-      console.log('localStorage accessToken:', localStorage.getItem('accessToken'));
-    }
-    console.log('user from useProfile:', user);
-    console.groupEnd();
-  }, [user]);
-
   const loadRooms = useCallback(async () => {
     console.group('[useChatRooms] loadRooms');
     try {
@@ -43,9 +29,7 @@ export const useChatRooms = () => {
       console.log('Start loading rooms...');
       setLoading(true);
       setError(null);
-      const token = undefined; // ไม่ใช้ token แล้ว
       console.log('user:', user);
-      // API call
       const [myRoomsData, discoverRoomsData] = await Promise.all([
         chatService.getMyRoomsByApi(),
         chatService.getAllRoomsForUser(),

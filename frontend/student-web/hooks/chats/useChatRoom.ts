@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 
 import { useWebSocket } from './useWebSocket';
-import { useTypingIndicator } from './useTypingIndicator';
 import { useMessageGrouping } from './useMessageGrouping';
 import { useProfile } from '@/hooks/useProfile';
 import { ChatRoom, Message } from '@/types/chat';
@@ -15,12 +14,6 @@ import chatService from '@/services/chats/chatService';
 import { getToken } from '@/utils/storage';
 import { useParams } from 'next/navigation';
 
-
-
-// WebSocket constants
-const WS_OPEN = 1;
-
-// State interfaces for better organization
 interface ChatState {
   room: ChatRoom | null;
   messageText: string;
@@ -45,7 +38,6 @@ interface ReplyState {
   replyTo: Message | undefined;
 }
 
-// เพิ่ม state สำหรับ paginated members
 interface MembersState {
   members: RoomMember[];
   total: number;
@@ -74,7 +66,6 @@ interface UseChatRoomReturn {
   isConnected: boolean;
   wsError: Error | null;
   connectedUsers: any[];
-  typing: string[];
   inputRef: React.RefObject<HTMLInputElement>;
   userId: string;
   roomId: string;
@@ -84,18 +75,18 @@ interface UseChatRoomReturn {
   members: any[];
   handleJoin: () => void;
   handleSendMessage: () => void;
-  handleImageUpload: (file: File) => void;
   handleSendSticker: (sticker: any) => void;
-  handleTyping: () => void;
   handleMentionSelect: (user: any) => void;
   handleTextInput: (text: string) => void;
   initializeRoom: () => void;
   loadMembers: (page: number, append: boolean) => void;
+  loadMoreMembers: () => void;
   handleUnsendMessage: (message: Message) => void;
+  stickers: any[];
 }
 
 interface UseChatRoomProps {
-  user: {
+  user?: {
     _id: string;
     name?: {
       first?: string;
@@ -108,10 +99,8 @@ interface UseChatRoomProps {
 
 export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
   const params = useParams();
-  const flatListRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const userId = user?._id || '';
-  // FIX: use 'id' param for dynamic route
   const roomId = (params.id || params.roomId) as string;
 
   // Consolidated state management
@@ -139,7 +128,6 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
     replyTo: undefined,
   });
 
-  // เพิ่ม state สำหรับ paginated members
   const [membersState, setMembersState] = useState<MembersState>({
     members: [],
     total: 0,
@@ -149,18 +137,33 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
     hasMore: true,
   });
 
-  // On mount and after join, fetch /api/rooms/{roomId} and use isMember from response
-  const [isMember, setIsMember] = useState(false);
+  // Add stickers state (if not already present)
+  const [stickers, setStickers] = useState<any[]>([]); // [{id, image, ...}]
 
-  // Track initialization state to prevent multiple calls
+  // Fetch sticker list on mount
+  useEffect(() => {
+    async function fetchStickers() {
+      try {
+        const res = await fetch(`${CHAT_BASE_URL}/api/stickers`);
+        const json = await res.json();
+        if (json && json.data) {
+          setStickers(json.data); // [{id, image, ...}]
+        }
+      } catch (e) {
+        console.error('Failed to fetch stickers', e);
+      }
+    }
+    fetchStickers();
+  }, []);
+
+  const [isMember, setIsMember] = useState(false);
   const isInitialized = useRef(false);
   const initializationInProgress = useRef(false);
-  const membersLoaded = useRef(false); // เพิ่ม ref เพื่อ track ว่าโหลดสมาชิกแล้วหรือยัง
+  const membersLoaded = useRef(false);
 
   const {
     isConnected,
     connectedUsers,
-    typing,
     error: wsError,
     messages: wsMessages,
     sendMessage: wsSendMessage,
@@ -170,7 +173,6 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
     addMessage
   } = useWebSocket(roomId);
 
-  const { isTyping, handleTyping: originalHandleTyping } = useTypingIndicator();
   const groupMessages = useMessageGrouping(wsMessages);
 
   // State update helpers
@@ -193,18 +195,15 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
   // Handle text input changes for mentions
   const handleTextInput = (text: string) => {
     updateChatState({ messageText: text });
-    originalHandleTyping(); // Trigger typing indicator
-
-    // Regex to find @ at the end of the string, or after a space
-    const mentionMatch = text.match(/(?:^|\s)@(\w*)$/);
+    // Support both @username and @/username
+    const mentionMatch = text.match(/(?:^|\s)@\/?(\w*)$/);
 
     if (mentionMatch) {
       const query = mentionMatch[1].toLowerCase();
+      // Always show suggestions when just '@' is typed (query is empty)
       updateMentionState({ isMentioning: true, mentionQuery: query });
 
-      // ตรวจสอบ mention all
       if (query === 'all' || query === 'ทุกคน') {
-        // สร้าง special suggestion สำหรับ mention all
         const mentionAllSuggestion = {
           user_id: 'all',
           user: {
@@ -217,14 +216,15 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
         updateMentionState({ mentionSuggestions: [mentionAllSuggestion] });
         return;
       }
-
-      // ใช้ membersState.members ทั้งหมดในการ filter
+      // If query is empty (just '@'), show all members
+      if (!query) {
+        updateMentionState({ mentionSuggestions: membersState.members });
+        return;
+      }
+      // Otherwise, filter by username
       const filteredMembers = membersState.members.filter(member => {
-        const fullName = `${member.user.name.first} ${member.user.name.last}`.toLowerCase();
-        return (
-          fullName.includes(query) ||
-          member.user.username.toLowerCase().includes(query)
-        );
+        const username = member.user.username?.toLowerCase() || '';
+        return username.includes(query);
       });
       updateMentionState({ mentionSuggestions: filteredMembers });
     } else {
@@ -283,8 +283,6 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
     }
   }, [roomId, params.room, params.isMember, updateChatState, addMessage]);
 
-  // Remove joinedRoomIds logic
-  // On mount and after join, fetch /api/rooms/{roomId} and use isMember from response
   const fetchRoomMembership = useCallback(async () => {
     try {
       const token = await getToken('accessToken');
@@ -306,6 +304,20 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
   useEffect(() => {
     fetchRoomMembership();
   }, [fetchRoomMembership]);
+
+  // Auto-load members for mention suggestion when roomId or isMember changes
+  useEffect(() => {
+    if (roomId && isMember) {
+      loadMembers(1, false);
+    }
+  }, [roomId, isMember]);
+
+  // Always initialize room data on mount and when roomId changes
+  useEffect(() => {
+    if (roomId) {
+      initializeRoom();
+    }
+  }, [roomId, initializeRoom]);
 
   // Connect to WebSocket as soon as roomId and userId are available and user is a member
   useEffect(() => {
@@ -396,10 +408,6 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
   }
 }, [chatState.messageText, chatState.room, isConnected, wsSendMessage, userId, addMessage, replyState.replyTo, updateChatState, updateReplyState, wsMessages, user, roomId, isMember]);
 
-
-  const handleImageUpload = useCallback(async () => {
-  }, [roomId, userId, addMessage]);
-
   const handleSendSticker = useCallback(async (stickerId: string) => {
     try {
       // ดึง token แล้วแนบ Authorization header
@@ -420,6 +428,10 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
 
       const data = await response.json();
       
+      // Find sticker image from stickers list
+      const stickerObj = stickers.find(s => s.id === (data.stickerId || stickerId));
+      const imageUrl = stickerObj ? `${CHAT_BASE_URL}/uploads/${stickerObj.image}` : undefined;
+
       // Add the sticker message to WebSocket state
       const myUser = user ? {
         _id: user._id,
@@ -439,7 +451,7 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
         isRead: false,
         isTemp: false,
         stickerId: data.stickerId || stickerId,
-        image: data.image,
+        image: imageUrl,
       };
       
       addMessage(stickerMessage);
@@ -447,7 +459,7 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
     } catch (error) {
       console.error('Error sending sticker:', error);
     }
-  }, [roomId, userId, addMessage, user?.name, updateUIState]);
+  }, [roomId, userId, addMessage, user?.name, updateUIState, stickers]);
 
   // เพิ่ม function สำหรับโหลดรายชื่อสมาชิกแบบ paginated
   const loadMembers = useCallback(async (page: number = 1, append: boolean = false) => {
@@ -509,13 +521,6 @@ const handleUnsendMessage = useCallback(async (message: Message) => {
     }
   }, [wsSendMessage, addMessage]);
 
-  // Modified handleTyping to avoid triggering while mentioning
-  const handleTyping = () => {
-    if (!mentionState.isMentioning) {
-      originalHandleTyping();
-    }
-  };
-
   // After successful join, re-fetch membership
   const handleJoin = async () => {
     try {
@@ -550,15 +555,12 @@ const handleUnsendMessage = useCallback(async (message: Message) => {
     isConnected,
     connectedUsers,
     wsError: wsError ? new Error(wsError) : null, // Convert string error to Error object
-    typing: typing.map(user => user.id), // Convert to string array of user IDs
     groupMessages: groupMessages(), // Call the function to get grouped messages
     inputRef,
     initializeRoom,
     handleJoin,
     handleSendMessage,
-    handleImageUpload,
     handleSendSticker,
-    handleTyping,
     handleTextInput,
     handleMentionSelect,
     setMessageText: (text: string) => handleTextInput(text),
@@ -567,7 +569,9 @@ const handleUnsendMessage = useCallback(async (message: Message) => {
     setReplyTo: (message?: Message) => updateReplyState({ replyTo: message }),
     setShowStickerPicker: (show: boolean) => updateUIState({ showStickerPicker: show }),
     isMember,
-  loadMembers,
-  handleUnsendMessage,
-};
+    loadMembers,
+    loadMoreMembers,
+    handleUnsendMessage,
+    stickers,
+  };
 };

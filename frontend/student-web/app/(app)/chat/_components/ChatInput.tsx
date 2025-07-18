@@ -6,8 +6,6 @@ interface ChatInputProps {
   messageText: string;
   handleTextInput: (text: string) => void;
   handleSendMessage: () => void;
-  handleImageUpload: () => void;
-  handleTyping: () => void;
   isMember: boolean;
   isConnected: boolean;
   inputRef: React.RefObject<HTMLInputElement>;
@@ -16,14 +14,16 @@ interface ChatInputProps {
   replyTo?: Message;
   setReplyTo?: (msg?: Message) => void;
   canSendImage?: boolean;
+  // Add mention suggestion props
+  mentionSuggestions?: any[];
+  isMentioning?: boolean;
+  handleMentionSelect?: (user: any) => void;
 }
 
 const ChatInput = ({
   messageText,
   handleTextInput,
   handleSendMessage,
-  handleImageUpload,
-  handleTyping,
   isMember,
   isConnected,
   inputRef,
@@ -31,24 +31,18 @@ const ChatInput = ({
   showStickerPicker,
   replyTo,
   setReplyTo,
-  canSendImage = true,
+  mentionSuggestions = [],
+  isMentioning = false,
+  handleMentionSelect,
 }: ChatInputProps) => {
   const { user } = useProfile();
   const [isFocused, setIsFocused] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
   const hasText = messageText.trim().length > 0;
   const isDisabled = !isMember || !isConnected;
   const canSend = hasText && !isDisabled;
 
-  useEffect(() => {
-    if (hasText) {
-      setIsTyping(true);
-      const timer = setTimeout(() => setIsTyping(false), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      setIsTyping(false);
-    }
-  }, [hasText]);
+  // Debug log for mention suggestion
+  console.log('[DEBUG][ChatInput] isMentioning:', isMentioning, 'mentionSuggestions:', mentionSuggestions, 'messageText:', messageText);
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -65,13 +59,13 @@ const ChatInput = ({
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-    handleTyping();
-  };
+  // const handleKeyPress = (e: React.KeyboardEvent) => {
+  //   if (e.key === 'Enter' && !e.shiftKey) {
+  //     e.preventDefault();
+  //     handleSend();
+  //   }
+  //   handleTyping();
+  // };
 
   const getDisplayName = (user?: { name?: any; username?: string }) => {
     if (!user) return 'user';
@@ -86,7 +80,29 @@ const ChatInput = ({
 
   return (
     <div className="relative mb-6 mx-4">
-      {/* Reply Preview */}
+      {/* Mention Suggestions Dropdown */}
+      {isMentioning && mentionSuggestions.length > 0 && (
+        <div className="absolute left-0 right-0 bottom-16 z-50 bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 shadow-lg max-h-48 overflow-y-auto">
+          {mentionSuggestions.map((item: any) => (
+            <button
+              key={item.user_id}
+              className="flex items-center w-full px-4 py-2 hover:bg-blue-50 focus:bg-blue-100 text-left"
+              onClick={() => handleMentionSelect && handleMentionSelect(item)}
+              type="button"
+            >
+              <img
+                src={item.user.profile_image_url || 'https://www.gravatar.com/avatar/?d=mp'}
+                alt={item.user.username || 'avatar'}
+                className="w-7 h-7 rounded-full mr-3 object-cover bg-gray-200"
+              />
+              <span className="text-base text-gray-800 font-medium">@{item.user.username}</span>
+              {item.user.name?.first && item.user.name?.last && (
+                <span className="ml-2 text-gray-500 text-sm">{item.user.name.first} {item.user.name.last}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
       {replyTo && (
         <div className="flex items-center bg-gradient-to-r from-blue-50/90 to-indigo-50/90 dark:from-blue-900/20 dark:to-indigo-900/20 backdrop-blur-sm rounded-t-2xl p-3 border-b border-blue-200/50 dark:border-blue-700/50 shadow-sm">
           <div className="flex-1 min-w-0">
@@ -126,7 +142,6 @@ const ChatInput = ({
         </div>
       )}
 
-      {/* Main Input Container */}
       <div className={`relative flex items-center rounded-3xl p-1.5 min-h-[56px] border-2 transition-all duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg hover:shadow-xl ${
         isFocused 
           ? 'border-blue-400 dark:border-blue-500 shadow-blue-500/20 bg-white/90 dark:bg-gray-800/90' 
@@ -135,7 +150,6 @@ const ChatInput = ({
         isDisabled ? 'opacity-60' : ''
       }`}>
         
-        {/* Connection Status Indicator */}
         {!isConnected && (
           <div className="absolute -top-1 -right-1 z-10">
             <div className="relative">
@@ -146,25 +160,7 @@ const ChatInput = ({
         )}
 
         <div className="flex items-center w-full px-1">
-          {/* Add/Image Button */}
-          {canSendImage && (
-            <button
-              className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
-                isDisabled 
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed' 
-                  : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/50 dark:hover:to-blue-700/50 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 shadow-sm hover:shadow-md'
-              }`}
-              onClick={handleImageUpload}
-              disabled={isDisabled}
-              type="button"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
-          )}
 
-          {/* Text Input */}
           <div className="flex-1 mx-2">
             <input
               ref={inputRef}
@@ -173,7 +169,6 @@ const ChatInput = ({
               onChange={(e) => handleTextInput(e.target.value)}
               onFocus={handleFocus}
               onBlur={handleBlur}
-              onKeyPress={handleKeyPress}
               placeholder={isDisabled ? 'กำลังเชื่อมต่อ...' : 'พิมพ์ข้อความ...'}
               className={`w-full bg-transparent text-gray-900 dark:text-gray-100 text-[15px] py-2.5 min-h-[40px] outline-none font-medium placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed ${
                 isDisabled ? 'cursor-not-allowed' : ''
@@ -182,7 +177,6 @@ const ChatInput = ({
               maxLength={1000}
             />
             
-            {/* Character Counter */}
             {messageText.length > 800 && (
               <div className={`absolute bottom-0 right-16 text-xs font-medium ${
                 messageText.length > 950 ? 'text-red-500' : 'text-yellow-500'
@@ -192,7 +186,6 @@ const ChatInput = ({
             )}
           </div>
 
-          {/* Emoji/Sticker Button */}
           <div className="flex items-center space-x-1">
             <button
               className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
@@ -209,7 +202,6 @@ const ChatInput = ({
               </span>
             </button>
 
-            {/* Send Button */}
             <button
               className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
                 canSend 
@@ -229,21 +221,8 @@ const ChatInput = ({
 
       </div>
 
-      {/* Typing and Status Container */}
       <div className="absolute -bottom-6 left-0 right-0 flex justify-between items-center px-4">
-        {/* Typing Indicator */}
-        {isTyping && (
-          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded-full shadow-sm">
-            <div className="flex space-x-1 mr-2">
-              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-            </div>
-            <span className="font-medium">กำลังพิมพ์...</span>
-          </div>
-        )}
 
-        {/* Connection Status Text */}
         {isDisabled && (
           <div className="text-xs text-red-500 dark:text-red-400 font-medium bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded-full shadow-sm">
             {!isConnected ? 'การเชื่อมต่อมีปัญหา' : 'กรุณาเข้าร่วมกลุ่มก่อน'}

@@ -17,7 +17,7 @@ type AvatarProps = {
 
 const RoomInfo = ({ room, onClose }: RoomInfoProps) => {
   const [activeTab, setActiveTab] = useState<'info' | 'members'>('info');
-  const { handleJoin, joining, isMember } = useChatRoom();
+  const { handleJoin, joining, isMember, members, loadMembers, loadMoreMembers, loading } = useChatRoom({});
 
   const handleJoinPress = () => {
     if (!isMember) {
@@ -127,6 +127,10 @@ const RoomInfo = ({ room, onClose }: RoomInfoProps) => {
           <RoomMembersList
             roomId={room.id}
             onMemberPress={handleMemberPress}
+            members={members}
+            loadMembers={loadMembers}
+            loadMoreMembers={loadMoreMembers}
+            loading={loading}
           />
         )}
       </div>

@@ -17,12 +17,9 @@ export interface WebSocketHook {
   isConnected: boolean;
   error: string | null;
   sendMessage: (message: string) => Promise<boolean>;
-  sendTyping: () => void;
   sendReadReceipt: (messageId: string) => void;
-  sendReaction: (messageId: string, reaction: string) => void;
   messages: Message[];
   connectedUsers: ConnectedUser[];
-  typing: { id: string; name?: string }[];
   connect: (roomId: string) => Promise<void>;
   disconnect: () => void;
   ws: WebSocket | null;
@@ -72,33 +69,40 @@ function onMessage(event: MessageEvent, args: any) {
       }
       return;
     }
-    // Handle all chat event types
+    // --- FIX: Properly distinguish sticker messages ---
     if (data.type && data.payload) {
       let msg;
       let user = data.payload.user || {};
       let extra: any = {};
-      switch (data.type) {
-        case 'message':
-          msg = data.payload.message;
-          break;
-        case 'sticker':
-          msg = data.payload.message;
-          extra.sticker = data.payload.sticker;
-          break;
-        case 'reply':
-          msg = data.payload.message;
-          extra.replyTo = data.payload.replyTo;
-          break;
-        case 'mention':
-          msg = data.payload.message;
-          extra.mentions = data.payload.mentions;
-          break;
-        case 'upload':
-          msg = data.payload.message;
-          extra.filename = data.payload.filename;
-          break;
-        default:
-          msg = data.payload.message;
+      if (data.type === 'sticker') {
+        // Sticker message: force type and stickerId
+        msg = data.payload.message || {};
+        extra.stickerId = data.payload.sticker?._id || msg.stickerId;
+        extra.type = 'sticker';
+        if (data.payload.sticker?.image) {
+          extra.image = data.payload.sticker.image;
+        }
+      } else {
+        // Default logic for other types
+        switch (data.type) {
+          case 'message':
+            msg = data.payload.message;
+            break;
+          case 'reply':
+            msg = data.payload.message;
+            extra.replyTo = data.payload.replyTo;
+            break;
+          case 'mention':
+            msg = data.payload.message;
+            extra.mentions = data.payload.mentions;
+            break;
+          case 'upload':
+            msg = data.payload.message;
+            extra.filename = data.payload.filename;
+            break;
+          default:
+            msg = data.payload.message;
+        }
       }
       if (msg) {
         // --- ตัด message.message ให้เหลือข้อความจริง ถ้าเป็น JSON string ---
@@ -111,6 +115,12 @@ function onMessage(event: MessageEvent, args: any) {
           } catch (e) {
             // ถ้า parse ไม่ได้ก็ข้ามไป
           }
+        }
+        // --- Always set type for sticker ---
+        if (data.type === 'sticker') {
+          msg.type = 'sticker';
+          if (extra.stickerId) msg.stickerId = extra.stickerId;
+          if (extra.image) msg.image = extra.image;
         }
         const newMessage = require('@/hooks/chats/messageUtils').createMessage({
           ...msg,
@@ -141,10 +151,7 @@ function onMessage(event: MessageEvent, args: any) {
       }
       return;
     }
-    // Fallback to base handler for other types
     baseOnMessage(event, args);
-    // --- FORCE SHOW ALL ---
-    // If not handled, always try to show as message
     try {
       const fallbackMsg = require('@/hooks/chats/messageUtils').createMessage(data, true);
       debugLog('[onMessage] Fallback force-add:', fallbackMsg);
@@ -155,45 +162,6 @@ function onMessage(event: MessageEvent, args: any) {
   } catch (err) {
     errorLog('Error handling message:', err, event.data);
   }
-}
-
-// Helper function: ตัดข้อความจริงจาก JSON string หรือ object ถ้ามี
-function extractPlainMessage(message: any): string {
-  if (typeof message === 'string') {
-    try {
-      const parsed = JSON.parse(message);
-      if (parsed && parsed.payload && typeof parsed.payload.message === 'string') {
-        return parsed.payload.message;
-      }
-    } catch (e) {}
-    return message;
-  }
-  // ถ้า message เป็น object ที่มี field message ซ้อน
-  if (message && typeof message.message === 'string') {
-    try {
-      const parsed = JSON.parse(message.message);
-      if (parsed && parsed.payload && typeof parsed.payload.message === 'string') {
-        return parsed.payload.message;
-      }
-    } catch (e) {}
-    return message.message;
-  }
-  return String(message ?? '');
-}
-
-// Helper function: ตัด field message ใน object ให้เป็น string ธรรมดา
-function extractPlainMessageField(obj: any) {
-  if (obj && typeof obj.message === 'string') {
-    try {
-      const parsed = JSON.parse(obj.message);
-      if (parsed && parsed.payload && typeof parsed.payload.message === 'string') {
-        obj.message = parsed.payload.message;
-      }
-    } catch (e) {
-      // ถ้า parse ไม่ได้ก็ปล่อยผ่าน
-    }
-  }
-  return obj;
 }
 
 export const useWebSocket = (roomId: string): WebSocketHook => {
@@ -220,14 +188,11 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
   const connectionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Update useStateUtils usage to expect Omit<WebSocketState, 'ws'>
   const { updateState, updateConnectionState } = useStateUtils(setState as React.Dispatch<React.SetStateAction<any>>, connectionState);
 
-  // Add message with deduplication
   const addMessage = useCallback((message: Message | null) => {
     if (!message) return;
     
-    // Generate a stable ID if missing
     if (!message.id) {
       message.id = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     }
@@ -238,12 +203,9 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       const messageId = message.id || '';
       if (!messageId) return prev;
 
-      // Check for duplicates using a more reliable method
       const isDuplicate = prev.messages.some(msg => {
-        // Check by ID first
         if (msg.id === messageId) return true;
         
-        // For messages without ID, check content and timestamp
         if (!msg.id || !messageId) {
           return (
             msg.text === message.text &&
@@ -259,7 +221,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         return prev;
       }
 
-      // If this is a real message, remove any temporary messages with the same content
       let filteredMessages = prev.messages;
       if (!message.isTemp && message.text) {
         filteredMessages = prev.messages.filter(
@@ -267,7 +228,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         );
       }
 
-      // Limit the number of messages to prevent memory issues
       const newMessages = [...filteredMessages, message].slice(-MAX_MESSAGES);
       debugLog('[addMessage] adding new message:', message);
       
@@ -275,7 +235,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     });
   }, []);
 
-  // WebSocket connect logic - Updated to use correct URL format
   const connect = useCallback(async (roomIdParam?: string) => {
     const rid = roomIdParam || roomId || '';
     debugLog('[WebSocket] Attempting to connect...', { 
@@ -289,7 +248,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       updateState({ error: 'No roomId provided' });
       return;
     }
-    // Only require accessToken, not userId
     if (connectionState.current.isConnecting) {
       warnLog('Already connecting, skipping');
       return;
@@ -307,7 +265,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         updateConnectionState({ isConnecting: false });
         return;
       }
-      // Check token expiration
       let payload: any = null;
       try {
         const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -324,7 +281,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         updateConnectionState({ isConnecting: false });
         return;
       }
-      // Use the correct WebSocket URL format (roomId + token only)
       const wsUrl = getWebSocketUrl(rid, token);
       debugLog('Connecting to WebSocket URL:', wsUrl);
       if (wsRef.current) {
@@ -333,7 +289,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       const socket: any = new WebSocket(wsUrl);
       wsRef.current = socket; // <-- set wsRef
       debugLog('WebSocket object created:', socket);
-      // Enhanced connection timeout handling
       if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
       connectionTimeout.current = setTimeout(() => {
         if (socket.readyState !== WebSocket.OPEN) {
@@ -393,8 +348,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     updateConnectionState({ hasAttemptedConnection: false });
   }, [updateState, updateConnectionState]);
 
-  // ลบ buildChatMessagePayload และ logic ที่ wrap message
-  // Message sending functions
   const sendMessage = useCallback(async (message: any): Promise<boolean> => {
     // ส่ง message เป็น string ธรรมดาเท่านั้น
     let cleanMessage: string = '';
@@ -440,23 +393,12 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     }
   }, [updateState, connect, roomId]);
 
-  const sendTyping = useCallback(() => {
-    debugLog('sendTyping called');
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ eventType: 'typing', payload: { typing: true } }));
-  }, []);
-
   const sendReadReceipt = useCallback((messageId: string) => {
     debugLog('sendReadReceipt called', messageId);
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     wsRef.current.send(JSON.stringify({ eventType: 'read_receipt', payload: { messageId } }));
   }, []);
 
-  const sendReaction = useCallback((messageId: string, reaction: string) => {
-    debugLog('sendReaction called', messageId, reaction);
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ eventType: 'message_reaction', payload: { messageId, reaction } }));
-  }, []);
 
   // Auto connect/disconnect on mount/unmount
   useEffect(() => {
@@ -491,7 +433,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
   useEffect(() => {
     return () => {
       debugLog('[useWebSocket] Cleanup: clear messages on unmount');
-      setState(prev => ({ ...prev, messages: [], connectedUsers: [], typing: [] }));
+      setState(prev => ({ ...prev, messages: [], connectedUsers: [] }));
       sentMessageIds.current.clear();
     };
   }, []);
@@ -500,12 +442,9 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     isConnected: state.isConnected,
     error: state.error,
     sendMessage,
-    sendTyping,
     sendReadReceipt,
-    sendReaction,
     messages: state.messages,
     connectedUsers: state.connectedUsers,
-    typing: state.typing,
     connect,
     disconnect,
     ws: wsRef.current,

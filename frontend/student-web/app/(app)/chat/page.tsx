@@ -7,10 +7,7 @@ import { useChatRooms } from '@/hooks/chats/useChatRooms';
 import CategoryFilter from '@/app/(app)/chat/_components/CategoryFilter';
 import ChatHeader from '@/app/(app)/chat/_components/ChatHeader';
 import { ChatTabBar } from '@/app/(app)/chat/_components/ChatTabBar';
-import { ConfirmJoinModal } from '@/app/(app)/chat/_components/ConfirmJoinModal';
-import CreateRoomModal from '@/app/(app)/chat/_components/CreateRoomModal';
 import RoomCard from '@/app/(app)/chat/_components/RoomCard';
-import { RoomDetailModal } from '@/app/(app)/chat/_components/RoomDetailModal';
 import RoomListItem from '@/app/(app)/chat/_components/RoomListItem';
 import chatService from '@/services/chats/chatService';
 
@@ -25,7 +22,6 @@ interface ChatRoomWithId {
 export default function ChatPage() {
   const router = useRouter();
   const { user } = useProfile();
-  const [createModalVisible, setCreateModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoomWithId | null>(null);
   const [confirmJoinVisible, setConfirmJoinVisible] = useState(false);
@@ -61,7 +57,10 @@ export default function ChatPage() {
   const handleConfirmJoin = async () => {
     const pendingRoom = pendingJoinRoom as ChatRoomWithId | null;
     const roomId = (pendingRoom?.id || pendingRoom?._id) ?? null;
-    if (!pendingRoom || !roomId) return;
+    if (!pendingRoom || !roomId) {
+      console.error('No valid room to join');
+      return;
+    }
     setConfirmJoinVisible(false);
     try {
       const result = await chatService.joinRoom(roomId);
@@ -91,18 +90,17 @@ export default function ChatPage() {
     setActiveTab(tab);
   };
 
-  // const handleRefresh = async () => {
-  //   setRefreshing(true);
-  //   try {
-  //     await loadRooms();
-  //   } finally {
-  //     setRefreshing(false);
-  //   }
-  // };
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadRooms();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const renderRoomItem = (item: ChatRoomWithId, index: number) => {
     const roomId = item.id || item._id;
-    // Map ChatRoomWithId to ChatRoom with defaults
     const chatRoom: any = {
       id: item.id || item._id || '',
       name: item.name || { th: '', en: '' },
@@ -178,33 +176,6 @@ export default function ChatPage() {
           )}
         </div>
       </div>
-      <button
-        className="fixed bottom-10 right-10 w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-700 shadow-lg flex items-center justify-center text-white text-3xl z-50"
-        onClick={() => setCreateModalVisible(true)}
-        type="button"
-        aria-label="Create Room"
-      >
-        ＋
-      </button>
-      <CreateRoomModal
-        visible={createModalVisible}
-        onClose={() => setCreateModalVisible(false)}
-        onSuccess={loadRooms}
-        userId={userId}
-      />
-      <RoomDetailModal
-        visible={detailModalVisible}
-        room={selectedRoom as any}
-        onClose={() => setDetailModalVisible(false)}
-        language={language}
-      />
-      <ConfirmJoinModal
-        visible={confirmJoinVisible}
-        room={pendingJoinRoom as any}
-        onConfirm={handleConfirmJoin}
-        onCancel={() => setConfirmJoinVisible(false)}
-        language={language}
-      />
     </div>
   );
 }

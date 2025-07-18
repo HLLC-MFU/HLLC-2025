@@ -11,7 +11,7 @@ const ImagePreviewModal = ({ visible, imageUrl, onClose }: ImagePreviewModalProp
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 animate-fadein">
       <button
-        className="absolute top-6 right-6 bg-black/60 rounded-full p-2 text-white text-2xl hover:bg-black/80 focus:outline-none"
+        className="absolute top-6 right-6 rounded-full text-white text-2xl focus:outline-none"
         onClick={onClose}
         aria-label="Close preview"
         type="button"

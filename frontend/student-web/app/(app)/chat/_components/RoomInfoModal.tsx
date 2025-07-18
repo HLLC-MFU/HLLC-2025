@@ -15,13 +15,14 @@ interface RoomInfoModalProps {
     description?: string;
     capacity: number;
     created_at?: string;
-  };
+  } | null;
   isVisible: boolean;
   onClose: () => void;
   connectedUsers: ConnectedUser[];
+  loading?: boolean;
 }
 
-const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoModalProps) => {
+const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers, loading }: RoomInfoModalProps) => {
   const { t, i18n } = useTranslation();
 
   const getRoomName = (room: RoomInfoModalProps['room']) => {
@@ -51,7 +52,44 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
     };
   }, [isVisible, onClose]);
 
-  if (!isVisible || !room) return null;
+  if (!isVisible) return null;
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 max-h-[80vh] flex flex-col p-8 animate-pulse">
+          {/* Skeleton for room name */}
+          <div className="h-6 w-2/3 bg-gray-200 rounded mb-4 mx-auto" />
+          {/* Skeleton for description */}
+          <div className="h-4 w-1/2 bg-gray-100 rounded mb-8 mx-auto" />
+          {/* Skeleton for stats */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl">
+              <div className="h-5 w-10 bg-gray-200 rounded mb-2" />
+              <div className="h-4 w-16 bg-gray-100 rounded mb-1" />
+              <div className="h-2 w-full bg-gray-200 rounded mt-2" />
+            </div>
+            <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl">
+              <div className="h-5 w-10 bg-gray-200 rounded mb-2" />
+              <div className="h-4 w-16 bg-gray-100 rounded mb-1" />
+            </div>
+          </div>
+          {/* Skeleton for member list */}
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div className="h-8 w-8 bg-gray-200 rounded-full" />
+                <div className="flex-1 min-w-0">
+                  <div className="h-4 w-24 bg-gray-200 rounded mb-1" />
+                  <div className="h-3 w-12 bg-gray-100 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (!room) return null;
 
   const occupancyPercentage = (connectedUsers.length / room.capacity) * 100;
 
@@ -65,12 +103,12 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-start justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <button 
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            <X size={18} className="text-gray-500 dark:text-gray-400" />
+            <X size={18} className="text-gray-500 dark:text-gray-400 " />
           </button>
         </div>
 
@@ -139,18 +177,11 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
                   >
                     <Avatar 
                       name={user.name || user.id || 'Unknown User'} 
-                      online={true} 
                       size={32}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 dark:text-white truncate">
                         {user.name || user.id || t('chat.unknownUser')}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-xs text-green-600 dark:text-green-400">
-                          {t('Active')}
-                        </span>
                       </div>
                     </div>
                   </div>

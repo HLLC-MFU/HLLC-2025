@@ -9,6 +9,7 @@ interface MessageBubbleEnrichedProps extends MessageBubbleProps {
   allMessages?: any[];
   onReplyPreviewClick?: (replyToId: string) => void;
   currentUsername: string;
+  stickers?: any[]; // <-- add stickers prop
 }
 
 const MessageBubble = memo(({ 
@@ -23,7 +24,8 @@ const MessageBubble = memo(({
   onReplyPreviewClick,
   currentUsername,
   onUnsend,
-}: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'> & { onUnsend?: (message: any) => void }) => {
+  stickers = [], // <-- default empty
+}: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'> & { onUnsend?: (message: any) => void, stickers?: any[] }) => {
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState('');
   const [claimed, setClaimed] = useState<{ [id: string]: boolean }>({});
@@ -109,6 +111,22 @@ const MessageBubble = memo(({
     });
   }, []);
 
+  // Always resolve sticker image from message or stickers list
+  const stickerImageUrl = useMemo(() => {
+    if (message.image) {
+      if (message.image.startsWith('http')) return message.image;
+      return `${CHAT_BASE_URL}/uploads/${message.image}`;
+    }
+    if (message.stickerId && stickers && stickers.length > 0) {
+      const found = stickers.find(s => s.id === message.stickerId);
+      if (found && found.image) {
+        return `${CHAT_BASE_URL}/uploads/${found.image}`;
+      }
+    }
+    return 'https://www.gravatar.com/avatar/?d=mp';
+  }, [message.image, message.stickerId, stickers]);
+
+  // In renderContent, always show sticker image for sticker messages
   const renderContent = useCallback(() => {
     if (message.type === 'evoucher' && message.evoucherInfo) {
       const isClaimed = claimed[message.id ?? ''] || false;
@@ -157,18 +175,19 @@ const MessageBubble = memo(({
       );
     }
     
-    if (message.image && (message.type === 'sticker' || message.stickerId)) {
-      const imageUrl = getStickerImageUrl(message.image);
+    // Sticker message: always show sticker image
+    if (message.type === 'sticker' || message.stickerId) {
       return (
         <button 
-          className="bg-transparent p-0 border-0 rounded-lg hover:scale-105 transition-transform duration-200" 
-          onClick={() => handleOpenImagePreview(imageUrl)} 
+          className="bg-transparent p-0 border-0 rounded-xl shadow-lg hover:scale-105 transition-transform duration-200 animate-fadein"
+          onClick={() => handleOpenImagePreview(stickerImageUrl)} 
           onContextMenu={handleLongPress}
+          style={{ animation: message.isTemp ? 'fadeIn 0.5s' : undefined }}
         >
           <img
-            src={imageUrl}
+            src={stickerImageUrl}
             alt="sticker"
-            className="w-32 h-32 rounded-lg bg-transparent shadow-sm"
+            className="w-28 h-28 rounded-xl bg-white/40 shadow-md object-contain"
             onError={e => { (e.target as HTMLImageElement).src = 'https://www.gravatar.com/avatar/?d=mp'; }}
           />
         </button>
@@ -210,7 +229,7 @@ const MessageBubble = memo(({
         {renderWithMentions(message.text || '', currentUsername)}
       </div>
     );
-  }, [message, claimed, claiming, handleOpenImagePreview, handleLongPress, getStickerImageUrl, getMessageTextStyle, renderWithMentions, currentUsername]);
+  }, [message, claimed, claiming, handleOpenImagePreview, handleLongPress, stickerImageUrl, getMessageTextStyle, renderWithMentions, currentUsername, stickers, getStickerImageUrl]);
 
   const enrichedReplyTo = useMemo(() => {
     const replyTo = message.replyTo || undefined;
@@ -330,67 +349,53 @@ const MessageBubble = memo(({
   }, [enrichedReplyTo, isMyMessage, message.user, getDisplayName, currentUsername, renderWithMentions]);
 
   return (
-    <div
-      className={`w-full flex flex-col ${isMyMessage ? 'items-end' : 'items-start'} ${
-        isFirstInGroup ? 'mt-4' : 'mt-1.5'
-      }`}
-      onContextMenu={handleLongPress}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {renderReplyPreview()}
-      <div className={`flex items-start w-full ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
-        {!isMyMessage && showAvatar && (
-          <div 
-            className={`flex-shrink-0 ${isMyMessage ? 'ml-3' : 'mr-3'} self-end transition-all duration-200`}
-            style={{ 
-              opacity: isLastInGroup ? 1 : 0,
-              transform: isLastInGroup ? 'translateY(0)' : 'translateY(8px)'
-            }}
-          >
-            <Avatar 
-              name={getDisplayName(message.user)} 
-              size={36}
-            />
-          </div>
+    <div className={`w-full flex flex-col ${isMyMessage ? 'items-end ml-12' : 'items-start mr-12'} mb-2`}>
+      <div className={`flex items-end ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
+        {/* Avatar */}
+        {!isMyMessage && (
+          <Avatar
+            name={getDisplayName(message.user || { name: { first: '', last: '' } })}
+            size={36}
+          />
         )}
-        <div className={`flex flex-col max-w-[85%] ${isMyMessage ? 'items-end' : 'items-start'}`}>
-          {!isMyMessage && message.user?.username && isFirstInGroup && (
-            <span className="text-xs text-white text-white-400 mb-1.5 ml-1.5 font-medium tracking-wide">
-              {message.user.username}
-            </span>
+        <div className={`flex flex-col max-w-[80%] ${isMyMessage ? 'items-end' : 'items-start'}`}>
+          {/* Username */}
+          {!isMyMessage && (
+            <span className="text-xs font-semibold text-gray-800 mb-1 ml-1">{message.user?.username}</span>
           )}
-          <div
-            className={`relative px-4 py-2.5 rounded-2xl transition-all duration-300 ease-out ${
-              isMyMessage 
-                ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/10' 
-                : 'bg-white dark:bg-gray-700 text-white dark:text-white border border-gray-100 dark:border-gray-600 shadow-sm shadow-gray-200/50 dark:shadow-gray-900/30'
-            } ${
-              isMyMessage 
-                ? 'rounded-br-sm' 
-                : 'rounded-bl-sm'
-            } ${
-              message.type === 'sticker' || message.stickerId 
-                ? 'bg-transparent shadow-none p-2' 
-                : 'hover:shadow-md hover:-translate-y-0.5'
-            } ${
-              isHovered ? 'scale-[1.01]' : ''
-            }`}
-          >
-            {renderContent()}
-          </div>
-          {isLastInGroup && (
-            <div className={`flex flex-row items-center mt-1.5 ${isMyMessage ? 'justify-end' : 'ml-1.5'} space-x-1.5`}>
-              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-md transition-colors duration-200 ${
-                isMyMessage 
-                  ? 'text-gray-500 dark:text-gray-400' 
-                  : 'text-gray-500 dark:text-gray-400'
-              }`}>
-                {formatTime(message.timestamp)}
-              </span>
-              {statusElement}
+          {/* Sticker rendering (outside bubble) */}
+          {((message.type === 'sticker' || message.stickerId) && stickerImageUrl) ? (
+            <button 
+              className="bg-transparent p-0 border-0 rounded-xl shadow-lg hover:scale-105 transition-transform duration-200 animate-fadein"
+              onClick={() => handleOpenImagePreview(stickerImageUrl)} 
+              onContextMenu={handleLongPress}
+              style={{ animation: message.isTemp ? 'fadeIn 0.5s' : undefined }}
+            >
+              <img
+                src={stickerImageUrl}
+                alt="sticker"
+                className="w-28 h-28 object-contain rounded-xl shadow"
+                draggable={false}
+                onError={e => { (e.target as HTMLImageElement).src = 'https://www.gravatar.com/avatar/?d=mp'; }}
+              />
+            </button>
+          ) : (
+            <div
+              className={
+                `px-4 py-2.5 rounded-2xl transition-all duration-300 ease-out ` +
+                (isMyMessage
+                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg rounded-br-sm'
+                  : 'bg-white text-gray-900 shadow border border-gray-100 rounded-bl-sm') +
+                ' hover:shadow-md hover:-translate-y-0.5'
+              }
+              style={{ wordBreak: 'break-word' }}
+            >
+              {/* Render message text with mention highlight */}
+              {renderWithMentions(message.text || '', currentUsername)}
             </div>
           )}
+          {/* Date/time under bubble */}
+          <span className="text-xs font-medium text-gray-600 mt-1 ml-2">{formatTime(message.timestamp)}</span>
         </div>
       </div>
       <ImagePreviewModal

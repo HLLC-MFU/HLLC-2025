@@ -11,17 +11,14 @@ export function onMessage(event: MessageEvent, args: any) {
   try {
     const data = JSON.parse(event.data);
     console.log('[WebSocket] Received message:', data);
-    // แสดงเฉพาะ message ที่มี type, payload, และ room (ใน data หรือ data.payload) หรือถ้าเป็น sticker ให้ allow
     const hasRoom = data.room || (data.payload && data.payload.room);
     const isSticker = data.type === 'sticker' && (data.payload.sticker || data.payload.image);
     if (!(data.type && data.payload && (hasRoom || isSticker))) {
       return;
     }
     
-    // กรณี backend ส่ง type: 'message' (ไม่มี eventType) - รวมทั้ง history messages
     if (data.type === 'message' && data.payload && data.payload.message) {
       let msg = data.payload.message;
-      // ถ้า msg เป็น object หรือ JSON string ให้แปลงเป็น string
       if (typeof msg === 'object' && msg !== null) {
         msg = msg.text || msg.message || JSON.stringify(msg);
       } else if (typeof msg === 'string') {
@@ -134,21 +131,7 @@ export function onMessage(event: MessageEvent, args: any) {
           (messageData.file && (messageData.file.path || typeof messageData.file === 'string')) ||
           messageData.filename
         ) {
-          const fileData = {
-            _id: messageData._id,
-            file_url: messageData.file_url || messageData.image || (messageData.file && (messageData.file.path || messageData.file)) || messageData.filename || '',
-            file_name: messageData.file_name || messageData.filename || '',
-            file_type: messageData.file_type || '',
-            user_id: messageData.user_id || (messageData.user && messageData.user._id) || '',
-            timestamp: messageData.timestamp || new Date().toISOString(),
-            user: messageData.user,
-          };
-          if (fileData.file_url && !fileData.file_url.startsWith('http')) {
-            fileData.file_url = `${CHAT_BASE_URL}/uploads/${fileData.file_url}`;
-          }
-          const userObj = (fileData && fileData.user) ? safeUser(fileData.user) : { _id: '', name: { first: '', middle: '', last: '' }, username: '' };
-          const fileMsg = createFileMessage(fileData, userObj);
-          if (fileMsg && fileMsg.user && fileMsg.user._id) addMessage(fileMsg);
+
         } else if (messageData.reply_to_id || messageData.replyToId || messageData.replyTo) {
           let replyTo = messageData.replyTo;
           if (!replyTo && (messageData.reply_to_id || messageData.replyToId)) {
@@ -217,23 +200,6 @@ export function onMessage(event: MessageEvent, args: any) {
       }
       return;
     }
-    // type: 'upload'
-    if (data.type === 'upload' && data.payload) {
-      const payload = data.payload;
-      const uploadData = {
-        _id: payload.message?._id || '',
-        file_url: `${CHAT_BASE_URL}/uploads/${payload.filename || payload.file || ''}`,
-        file_name: payload.filename || payload.file || '',
-        file_type: 'image',
-        user_id: payload.user?._id || '',
-        timestamp: payload.timestamp || new Date().toISOString(),
-        user: payload.user,
-      };
-      const userObj = (uploadData && uploadData.user) ? safeUser(uploadData.user) : { _id: '', name: { first: '', middle: '', last: '' }, username: '' };
-      const uploadMsg = createFileMessage(uploadData, userObj);
-      if (uploadMsg && uploadMsg.user && uploadMsg.user._id) addMessage(uploadMsg);
-      return;
-    }
     // type: 'reply'
     if (data.type === 'reply' && data.payload) {
       const payload = data.payload;
@@ -297,7 +263,6 @@ export function onMessage(event: MessageEvent, args: any) {
     }
     // type: 'evoucher'
     if (data.type === 'evoucher' && data.payload && data.payload.evoucherInfo) {
-      // Merge payload.message, evoucherInfo, user, timestamp
       const merged = {
         ...data.payload.message,
         evoucherInfo: data.payload.evoucherInfo,

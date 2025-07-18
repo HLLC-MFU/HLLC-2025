@@ -13,7 +13,6 @@ import MessageList from '@/app/(app)/chat/_components/MessageList';
 import RoomInfoModal from '@/app/(app)/chat/_components/RoomInfoModal';
 import EvoucherModal from '@/app/(app)/chat/_components/EvoucherModal';
 import StickerPicker from '@/app/(app)/chat/_components/StickerPicker';
-import MentionSuggestions from '@/app/(app)/chat/_components/MentionSuggestions';
 import { Users, Info, Loader, ChevronLeft } from 'lucide-react';
 
 export default function ChatRoomPage() {
@@ -53,8 +52,6 @@ export default function ChatRoomPage() {
     loading,
     error,
     joining,
-    showEmojiPicker,
-    setShowEmojiPicker,
     isRoomInfoVisible,
     setIsRoomInfoVisible,
     replyTo,
@@ -63,8 +60,6 @@ export default function ChatRoomPage() {
     setShowStickerPicker,
     isConnected,
     wsError,
-    connectedUsers,
-    typing,
     inputRef,
     userId,
     roomId,
@@ -74,14 +69,13 @@ export default function ChatRoomPage() {
     members,
     handleJoin,
     handleSendMessage,
-    handleImageUpload,
     handleSendSticker,
-    handleTyping,
     handleMentionSelect,
     handleTextInput,
     initializeRoom,
     loadMembers,
     handleUnsendMessage,
+    stickers,
   } = chatRoom;
 
   const canSendEvoucher = () => {
@@ -106,15 +100,9 @@ export default function ChatRoomPage() {
 
   const handleSendMessageWithScroll = () => {
     console.log('[DEBUG] handleSendMessageWithScroll called', { isMember, isConnected, messageText });
-    
-    // Only send message if there's actual content and we're connected
     if (messageText.trim() && isConnected) {
       handleSendMessage();
-      
-      // Clear the input after sending
       setMessageText('');
-      
-      // Scroll to bottom after a short delay to ensure message is rendered
       setTimeout(() => {
         if (flatListRef.current) {
           flatListRef.current.scrollTop = flatListRef.current.scrollHeight;
@@ -139,15 +127,49 @@ export default function ChatRoomPage() {
     setShowScrollToBottom(!isAtBottom);
   };
 
-  if (loading) return <Loader />;
+  if (loading) return (
+    <div className="fixed inset-0 flex flex-col w-full h-full min-h-screen from-blue-100 via-blue-100 to-blue-200 overflow-hidden animate-pulse">
+      <div className="w-full h-full flex justify-center items-center p-2 sm:p-4">
+        <div className="w-full max-w-4xl h-[90vh] max-h-[900px] bg-white/50 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/30 flex flex-col">
+          {/* Header skeleton */}
+          <div className="flex items-center p-4 border-b border-white/30 bg-white/50">
+            <div className="mr-4 h-8 w-8 bg-gray-200 rounded-full" />
+            <div className="flex-1">
+              <div className="h-6 w-1/3 bg-gray-200 rounded mb-2" />
+              <div className="h-4 w-1/4 bg-gray-100 rounded" />
+            </div>
+            <div className="ml-4 h-8 w-8 bg-gray-200 rounded-full" />
+          </div>
+          {/* Message list skeleton */}
+          <div className="flex-1 px-4 py-4 space-y-4 overflow-y-auto">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-gray-200 rounded-full" />
+                <div className="flex-1">
+                  <div className="h-4 w-2/3 bg-gray-200 rounded mb-2" />
+                  <div className="h-3 w-1/2 bg-gray-100 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Input skeleton */}
+          <div className="border-t border-white/30 bg-white/50 backdrop-blur-lg p-4">
+            <div className="max-w-2xl mx-auto flex items-center gap-2">
+              <div className="h-10 w-10 bg-gray-200 rounded-full" />
+              <div className="flex-1 h-10 bg-gray-100 rounded" />
+              <div className="h-10 w-10 bg-gray-200 rounded-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   if (error) return <ErrorView message={error} onRetry={initializeRoom} />;
 
   return (
     <div className="fixed inset-0 flex flex-col w-full h-full min-h-screen from-blue-100 via-blue-100 to-blue-200 overflow-hidden">
-      {/* Main Container */}
       <div className="w-full h-full flex justify-center items-center p-2 sm:p-4">
         <div className="w-full max-w-4xl h-[90vh] max-h-[900px] bg-white/50 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/30 flex flex-col">
-          {/* Header */}
           <div className="flex items-center p-4 border-b border-white/30 bg-white/50">
           <button
             className="mr-4 p-2 rounded hover:bg-white/30"
@@ -227,58 +249,40 @@ export default function ChatRoomPage() {
               <MessageList
                 messages={groupMessages}
                 userId={userId}
-                typing={typing ? typing.map(id => ({ id })) : []}
+                currentUsername={user?.username || ''}
                 flatListRef={flatListRef}
                 onReply={setReplyTo}
-                scrollToBottom={() => {
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                onUnsend={handleUnsendMessage}
+                stickers={stickers}
+              />
+             {showScrollToBottom && (
+              <button
+                className={`fixed ${replyTo ? 'bottom-40' : 'bottom-28'} right-6 bg-white/90 hover:bg-white backdrop-blur-sm rounded-full px-4 py-2 text-sm font-medium text-blue-700 shadow-lg z-10 transition-all duration-200 flex items-center gap-2 border border-blue-100 hover:shadow-md`}
+                style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
+                onClick={() => {
                   if (flatListRef.current) {
                     flatListRef.current.scrollTop = flatListRef.current.scrollHeight;
                   }
                 }}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
-                onUnsend={handleUnsendMessage}
-              />
-              {showScrollToBottom && (
-                <button
-                  className="fixed bottom-28 right-4 bg-white/90 hover:bg-white backdrop-blur-sm rounded-full px-4 py-2.5 text-sm font-medium text-blue-700 shadow-lg z-10 transition-all duration-200 flex items-center gap-2 border border-blue-100 hover:shadow-md"
-                  onClick={() => {
-                    if (flatListRef.current) {
-                      flatListRef.current.scrollTop = flatListRef.current.scrollHeight;
-                    }
-                  }}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                  </svg>
-                  <span>Scroll to Bottom</span>
-                </button>
-              )}
+              >
+                <svg className="w-4 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </button>
+            )}
             </div>
           </div>
         </div>
 
-        {/* Mention Suggestions */}
-        {isMentioning && (
-          <MentionSuggestions
-            suggestions={mentionSuggestions}
-            onSelect={handleMentionSelect}
-          />
-        )}
 
-        {/* Input Area */}
         <div className="border-t border-white/30 bg-white/50 backdrop-blur-lg p-4">
           <div className="max-w-2xl mx-auto">
             <ChatInput
                 messageText={messageText}
                 handleTextInput={handleTextInput}
                 handleSendMessage={handleSendMessageWithScroll}
-                handleImageUpload={() => {
-                  // You may want to trigger a file input click here, or show a modal
-                  // For now, just call the original handler with a dummy file or leave as a TODO
-                  // TODO: Implement file picker and call handleImageUpload(file)
-                }}
-                handleTyping={handleTyping}
                 isMember={isMember}
                 isConnected={isConnected}
                 inputRef={inputRef}
@@ -286,7 +290,10 @@ export default function ChatRoomPage() {
                 showStickerPicker={showStickerPicker}
                 replyTo={replyTo}
                 setReplyTo={setReplyTo}
-                canSendImage={isAdminOrAE}
+                // Pass mention props
+                mentionSuggestions={mentionSuggestions}
+                isMentioning={isMentioning}
+                handleMentionSelect={handleMentionSelect}
               />
             </div>
           </div>
@@ -295,27 +302,28 @@ export default function ChatRoomPage() {
 
       
       {/* Room Info Modal */}
-      <RoomInfoModal
-        room={room as ChatRoom}
-        isVisible={isRoomInfoVisible}
-        onClose={() => setIsRoomInfoVisible(false)}
-        connectedUsers={
-          Array.isArray(members) && members.length > 0
-            ? members.map((member) => ({
-                id: member.user_id || member.user._id,
-                name:
-                  member.user_id === userId
-                    ? t('chat.you')
-                    : member.user.name
-                    ? `${member.user.name.first || ''} ${member.user.name.last || ''}`.trim() || member.user.username || t('chat.unknownUser')
-                    : member.user.username || t('chat.unknownUser'),
-                online: true,
-              }))
-            : []
-        }
-      />
+      {isRoomInfoVisible && (
+        <RoomInfoModal
+          room={room}
+          isVisible={isRoomInfoVisible}
+          onClose={() => setIsRoomInfoVisible(false)}
+          connectedUsers={
+            Array.isArray(members) && members.length > 0
+              ? members.map((member) => ({
+                  id: member.user_id || member.user._id,
+                  name:
+                    member.user_id === userId
+                      ? t('chat.you')
+                      : member.user.name
+                      ? `${member.user.name.first || ''} ${member.user.name.last || ''}`.trim() || member.user.username || t('chat.unknownUser')
+                      : member.user.username || t('chat.unknownUser'),
+                }))
+              : []
+          }
+          loading={!room}
+        />
+      )}
 
-      {/* Sticker Picker Modal */}
       {showStickerPicker && (
         <StickerPicker
           onSelectSticker={handleSendSticker}
@@ -323,13 +331,11 @@ export default function ChatRoomPage() {
         />
       )}
 
-      {/* Evoucher Modal */}
       <EvoucherModal
         roomId={roomId}
         isVisible={showEvoucherModal}
         onClose={() => setShowEvoucherModal(false)}
         onSuccess={() => {
-          // Optionally refresh messages or show success message
           console.log('Evoucher sent successfully');
         }}
       />
