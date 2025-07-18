@@ -32,6 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     prepostQuestion,
     hasPretestAnswers,
     hasPosttestAnswers,
+    posttestDueDate, // <-- เพิ่มตรงนี้
   } = usePrepostQuestion();
   const progress = useSseStore(state => state.progress);
 
@@ -69,14 +70,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [hasPretestAnswers]);
 
   useEffect(() => {
+    // เงื่อนไขใหม่: posttestDueDate === true, progress >= 80, hasPosttestAnswers === false
     if (
       hasPretestAnswers &&
+      posttestDueDate === true &&
       (progress?.progressPercentage ?? 0) >= 80 &&
       hasPosttestAnswers === false
     ) {
       openPosttestModal();
     }
-  }, [hasPretestAnswers, hasPosttestAnswers, progress?.progressPercentage]);
+  }, [hasPretestAnswers, hasPosttestAnswers, posttestDueDate, progress?.progressPercentage]);
 
   const handlePretestSubmit = async () => {
     if (!pretestAnswersInput || pretestAnswersInput.length === 0) {
