@@ -13,19 +13,19 @@ export default function HomeScreen() {
     {
       key: 'step',
       icon: <Footprints color={"white"} />,
-      label: 'Step',
+      label: 'MILESDREAM',
       onPress: () => router.replace('/community/step-counter'),
     },
     {
       key: 'coin',
       icon: <Coins color={"white"} />,
-      label: 'Coin',
+      label: 'MISSIONS: BLOOMPOSSIBLE',
       onPress: () => router.replace('/community/coin-hunting'),
     },
     {
     key: 'lamduanflowers',
     icon: <Flower color={"white"} />,
-    label: 'lamduanflowers',
+    label: 'LAMDUAN FLOWER',
     onPress: () => router.replace('/lamduanflowers'),
   },
 ];
@@ -44,7 +44,7 @@ export default function HomeScreen() {
     >
       <GooeyFabMenu
         subFabs={subFabs}
-        style={{ top: -24, left: 16 }}
+        style={{ top: -72, left: 16 }}
       />
     </SafeAreaView>
   );

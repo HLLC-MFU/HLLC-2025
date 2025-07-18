@@ -106,7 +106,7 @@
         "searchPlaceholder": "Search for activities...",
         "allActivities": "All Activities",
         "subtitle": "Coming soon...",
-        "noActivitiesFound": "Not Found",
+        "noActivitiesFound": "Coming soon...",
         "backward": "Go Back",
         "detailTab": "Details",
         "TimelineTab": "Timeline"
@@ -190,7 +190,8 @@
       "option2": "Option 2",
       "option3": "Option 3",
       "successTitle": "Submitted successfully",
-      "successMessage": "Thank you for completing the questionnaire"
+      "successMessage": "Thank you for completing the questionnaire",
+      "moreQuestions": "More Questions"
     },
     "posttest": {
       "title": "Please complete the post-activity questionnaire",

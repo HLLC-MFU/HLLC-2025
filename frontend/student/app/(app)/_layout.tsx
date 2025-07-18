@@ -30,6 +30,9 @@ export default function AppLayout() {
   const { initializePushNotification } = usePushNotification();
   const { registerDevice } = useDevice()
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const [showPretestModal, setShowPretestModal] = useState(false);
+  const [showPosttestModal, setShowPosttestModal] = useState(false);
+
 
   // Pretest modal hook
   const {
@@ -60,6 +63,18 @@ export default function AppLayout() {
     }
     setupBackgroundTask();
   }, []);
+  useEffect(() => {
+    if (pretestVisible && pretestQuestions.length > 0) {
+      setShowPretestModal(true);
+    }
+  }, [pretestVisible, pretestQuestions]);
+
+  useEffect(() => {
+    if (posttestVisible && pretestQuestions.length > 0) { // ensure pretest is available before posttest
+      setShowPosttestModal(true);
+    }
+  }, [posttestVisible, pretestQuestions]);
+
 
   const assetsImage = {
     background: assets?.background ?? null,
@@ -94,7 +109,10 @@ export default function AppLayout() {
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
   if (!user) return <Redirect href="/(auth)/login" />;
 
-  const isCommunityRoute = /^\/community(\/.*)?$/.test(pathname) && pathname !== '/community/chat';
+  const isCommunityRoute =
+  (/^\/community(\/.*)?$/.test(pathname) && pathname !== '/community/chat') ||
+  /^\/activities\/[^/]+$/.test(pathname);
+
 
   LogBox.ignoreLogs([
     'gl.pixelStorei() doesn\'t support this parameter yet',
@@ -171,7 +189,7 @@ export default function AppLayout() {
             },
           }
         }}
-        tabBar={() => <TabBar /> }
+        tabBar={() => (isCommunityRoute ? undefined : <TabBar />)}
       >
         <Tabs.Screen name="index" options={{ title: 'Home' }} />
         <Tabs.Screen name="activities/index" options={{ title: 'Activities' }} />
@@ -183,21 +201,25 @@ export default function AppLayout() {
         visible={notificationModalVisible}
         onClose={() => setNotificationModalVisible(false)}
       />
-      <PretestModal
-        visible={pretestVisible}
-        questions={pretestQuestions}
-        loading={pretestLoading}
-        error={pretestError}
-        onSubmit={submitPretest}
-        onClose={closePretestModal}
-      />
-      <PosttestModal
-        visible={posttestVisible}
-        questions={posttestQuestions}
-        loading={posttestLoading}
-        error={posttestError}
-        onSubmit={submitPosttest}
-      />
+      {showPretestModal && (
+        <PretestModal
+          visible={pretestVisible}
+          questions={pretestQuestions}
+          loading={pretestLoading}
+          error={pretestError}
+          onSubmit={submitPretest}
+          onClose={closePretestModal}
+        />
+      )}
+      {showPosttestModal && (
+        <PosttestModal
+          visible={posttestVisible}
+          questions={posttestQuestions}
+          loading={posttestLoading}
+          error={posttestError}
+          onSubmit={submitPosttest}
+        />
+      )}
     </View>
   );
 }

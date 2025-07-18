@@ -56,7 +56,7 @@ export default function ProgressBar({
                     colors={[colors?.primary ?? '#62cff4', colors?.secondary ?? '#2c67f2']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={[styles.progressFill, { width: `${100}%` }]}
+                    style={[styles.progressFill, { width: `${0}%` }]}
                 />
 
                 <View
@@ -73,7 +73,7 @@ export default function ProgressBar({
                         },
                     ]}
                 >
-                    <Text style={[styles.bubbleText, { color: colors?.text ?? '#ffffff' }]}>{100}%</Text>
+                    <Text style={[styles.bubbleText, { color: colors?.text ?? '#ffffff' }]}>{0}%</Text>
                 </View>
             </View>
         </View>
