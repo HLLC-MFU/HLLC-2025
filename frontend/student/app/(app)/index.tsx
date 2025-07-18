@@ -18,6 +18,9 @@ import NotificationModal from '@/components/global/NotificationModal';
 import useDevice from '@/hooks/useDevice';
 import { useProgress } from '@/hooks/useProgress';
 import GooeyFabMenu from '@/components/GooeyFabMenu';
+import PretestModal from '@/components/pretest/PretestModal';
+import PosttestModal from '@/components/pretest/PosttestModal';
+import usePrePostModal from '@/hooks/usePrePostModal';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -74,7 +77,23 @@ export default function HomeScreen() {
   },
 ];
 
+  // Pretest modal hook
+  const {
+    modalVisible: pretestVisible,
+    questions: pretestQuestions,
+    loading: pretestLoading,
+    error: pretestError,
+    submit: submitPretest,
+  } = usePrePostModal({ type: 'pretest' });
 
+  // Posttest modal hook
+  const {
+    modalVisible: posttestVisible,
+    questions: posttestQuestions,
+    loading: posttestLoading,
+    error: posttestError,
+    submit: submitPosttest,
+  } = usePrePostModal({ type: 'posttest' });
 
   const content = (
     <SafeAreaView
@@ -149,6 +168,22 @@ export default function HomeScreen() {
       <NotificationModal
         visible={notificationModalVisible}
         onClose={() => setNotificationModalVisible(false)}
+      />
+      {/* Modal บังคับทำ pretest พร้อมฟอร์มคำถามจริง */}
+      <PretestModal
+        visible={pretestVisible}
+        questions={pretestQuestions}
+        loading={pretestLoading}
+        error={pretestError}
+        onSubmit={submitPretest}
+      />
+      {/* Modal บังคับทำ posttest พร้อมฟอร์มคำถามจริง */}
+      <PosttestModal
+        visible={false} // ปิดการแสดงผล posttest modal ชั่วคราว
+        questions={posttestQuestions}
+        loading={posttestLoading}
+        error={posttestError}
+        onSubmit={submitPosttest}
       />
     </FadeView>
   );
