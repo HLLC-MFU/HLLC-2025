@@ -105,7 +105,7 @@ export default function ProfilePage() {
         }}
       >
         {schoolAcronym ? <SceneLights /> : <ambientLight intensity={0.05} />}
-        {schoolAcronym && <Scene schoolAcronym={schoolAcronym} />}
+        <Scene schoolAcronym={schoolAcronym} />
         <OrbitControls
           minDistance={10}
           maxDistance={15}
