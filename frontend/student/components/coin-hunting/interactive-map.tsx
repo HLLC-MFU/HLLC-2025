@@ -63,22 +63,22 @@ export default function InteractiveMap({
 
   useEffect(() => {
     const resolvedSource = Image.resolveAssetSource(mapsImage);
-    
+
     if (resolvedSource?.uri) {
       Image.getSize(
         resolvedSource.uri,
         (width, height) => {
           setImageSize({ width, height });
-          
+
           const scaleW = screen.width / width;
           const scaleH = screen.height / height;
           const initialScale = Math.max(scaleW, scaleH);
-          
+
           scale.value = withSpring(initialScale, {
             damping: 20,
             stiffness: 200,
           });
-          
+
           setIsImageLoaded(true);
           onImageLoad?.({ width, height });
         },
@@ -88,7 +88,7 @@ export default function InteractiveMap({
             stiffness: 200,
           });
           setIsImageLoaded(true);
-        }
+        },
       );
     } else {
       scale.value = withSpring(initialScale, {
@@ -146,19 +146,25 @@ export default function InteractiveMap({
       const scaledHeight = imageSize.height * scale.value;
       const boundX = Math.max(0, (scaledWidth - screen.width) / 2);
       const boundY = Math.max(0, (scaledHeight - screen.height) / 2);
-      
+
       if (translateX.value < -boundX || translateX.value > boundX) {
-        translateX.value = withSpring(clamp(translateX.value, -boundX, boundX), {
-          damping: 15,
-          stiffness: 200,
-        });
+        translateX.value = withSpring(
+          clamp(translateX.value, -boundX, boundX),
+          {
+            damping: 15,
+            stiffness: 200,
+          },
+        );
       }
-      
+
       if (translateY.value < -boundY || translateY.value > boundY) {
-        translateY.value = withSpring(clamp(translateY.value, -boundY, boundY), {
-          damping: 15,
-          stiffness: 200,
-        });
+        translateY.value = withSpring(
+          clamp(translateY.value, -boundY, boundY),
+          {
+            damping: 15,
+            stiffness: 200,
+          },
+        );
       }
     },
   });
@@ -188,7 +194,7 @@ export default function InteractiveMap({
         -boundY,
         boundY,
       );
-      
+
       // Store velocity for decay animation
       panVelocityX.value = event.velocityX;
       panVelocityY.value = event.velocityY;
@@ -199,13 +205,13 @@ export default function InteractiveMap({
       const scaledHeight = imageSize.height * scale.value;
       const boundX = Math.max(0, (scaledWidth - screen.width) / 2);
       const boundY = Math.max(0, (scaledHeight - screen.height) / 2);
-      
+
       translateX.value = withDecay({
         velocity: panVelocityX.value * 0.8, // Dampen velocity
         clamp: [-boundX, boundX],
         deceleration: 0.998,
       });
-      
+
       translateY.value = withDecay({
         velocity: panVelocityY.value * 0.8,
         clamp: [-boundY, boundY],
@@ -220,7 +226,7 @@ export default function InteractiveMap({
     const roundedScale = Math.round(scale.value / threshold) * threshold;
     const roundedX = Math.round(translateX.value / threshold) * threshold;
     const roundedY = Math.round(translateY.value / threshold) * threshold;
-    
+
     return {
       width: imageSize.width,
       height: imageSize.height,
@@ -232,13 +238,6 @@ export default function InteractiveMap({
     };
   });
 
-  // Add a handler to log tap position
-  const handleMapPress = (event: any) => {
-    // Get tap position relative to the image
-    const { locationX, locationY } = event.nativeEvent;
-    console.log('[MAP TAP]', { x: Math.round(locationX), y: Math.round(locationY) });
-  };
-
   return (
     <View style={styles.container}>
       {!isImageLoaded && (
@@ -246,35 +245,38 @@ export default function InteractiveMap({
           <ActivityIndicator size="large" color="#aaa" />
         </View>
       )}
-      <PanGestureHandler 
+      <PanGestureHandler
         onGestureEvent={panHandler}
         minPointers={1}
         maxPointers={1}
         avgTouches={true}
       >
         <Animated.View style={styles.gestureContainer}>
-          <PinchGestureHandler 
+          <PinchGestureHandler
             onGestureEvent={pinchHandler}
             simultaneousHandlers={[]}
           >
             <Animated.View style={styles.gestureContainer}>
-              <TouchableWithoutFeedback onPress={handleMapPress}>
-                <View style={styles.imageContainer}>
-                  <Animated.View style={[{ width: imageSize.width, height: imageSize.height }, imageAnimatedStyle]}>
-                    <Animated.Image
-                      source={mapsImage}
-                      style={[styles.image, !isImageLoaded && { opacity: 0 }]}
-                      resizeMode="contain"
-                      onLoad={() => setIsImageLoaded(true)}
-                      fadeDuration={300}
-                      progressiveRenderingEnabled={true}
-                    />
-                    <View style={styles.overlay} pointerEvents="none" />
-                    {/* Render children (markers) on top of the image, sharing the same transform */}
-                    {isImageLoaded && children}
-                  </Animated.View>
-                </View>
-              </TouchableWithoutFeedback>
+              <View style={styles.imageContainer}>
+                <Animated.View
+                  style={[
+                    { width: imageSize.width, height: imageSize.height },
+                    imageAnimatedStyle,
+                  ]}
+                >
+                  <Animated.Image
+                    source={mapsImage}
+                    style={[styles.image, !isImageLoaded && { opacity: 0 }]}
+                    resizeMode="contain"
+                    onLoad={() => setIsImageLoaded(true)}
+                    fadeDuration={300}
+                    progressiveRenderingEnabled={true}
+                  />
+                  <View style={styles.overlay} pointerEvents="none" />
+                  {/* Render children (markers) on top of the image, sharing the same transform */}
+                  {isImageLoaded && children}
+                </Animated.View>
+              </View>
             </Animated.View>
           </PinchGestureHandler>
         </Animated.View>
@@ -319,7 +321,7 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000',
-    opacity: 0.35, 
+    opacity: 0.35,
     zIndex: 2,
   },
 });

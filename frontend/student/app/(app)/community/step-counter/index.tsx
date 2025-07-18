@@ -1,9 +1,12 @@
 import React, { useRef, useState } from "react";
-import { View, Dimensions, ScrollView, StyleSheet, SafeAreaView } from "react-native";
+import { View, Dimensions, ScrollView, StyleSheet, SafeAreaView, Platform, TouchableOpacity } from "react-native";
 
 import StepData from "@/components/step-counter/StepData";
 import LeaderBoard from "@/components/step-counter/LeaderBoard";
 import { useStepData } from "@/hooks/useStepLeaderboard";
+import { ChevronLeft } from "lucide-react-native";
+import chatStyles from "@/constants/chats/chatStyles";
+import { router } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
@@ -30,6 +33,13 @@ export default function StepCounterScreen() {
         onMomentumScrollEnd={onScrollEnd}
         style={{ flex: 1 }}
       >
+        <TouchableOpacity
+          style={[chatStyles.backButton, { position: 'absolute', top: 20, left: 20 }]}
+          onPress={() => router.replace('/(app)')}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ChevronLeft color="#fff" size={24} />
+        </TouchableOpacity>
         {/* Page 1: Step Progress */}
         <View style={[styles.page, { width }]}>
           <StepData achievementData={achievementData} leaderboardData={stepData} loading={loading} />
@@ -37,9 +47,7 @@ export default function StepCounterScreen() {
 
         {/* Page 2: Leaderboard */}
         <View style={[styles.page, { width }]}>
-
           <LeaderBoard data={stepData} loading={loading} />
-
         </View>
       </ScrollView>
       <View style={styles.dotContainer}>
@@ -58,11 +66,10 @@ export default function StepCounterScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "transparent" },
-  page: { flex: 1, paddingTop: 20, paddingHorizontal: 20, justifyContent: "center", alignItems: "center" },
+  safeArea: { flex: 1, backgroundColor: "transparent", marginTop: Platform.OS === 'ios' ? 20 : 20},
+  page: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   progressContainer: {
-    marginBottom: 16,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -83,7 +90,8 @@ const styles = StyleSheet.create({
   dotContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 80,
+    marginBottom: Platform.OS === 'ios' ? 0 : 0,
+    paddingBottom: Platform.OS === 'android' ? 20 : 0,
   },
   dot: {
     width: 5,

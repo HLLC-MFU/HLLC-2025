@@ -8,17 +8,17 @@ interface TableCellProps {
   columnKey: React.Key;
   expandedKeys: Set<string>;
   onToggleExpand: (id: string) => void;
-  onEdit: (activity: Activities) => void;
+  onEdit: (typeId: string) => void;
   onDelete: (activity: Activities) => void;
 }
 
-export function TableCell({ 
-  activity, 
-  columnKey, 
-  expandedKeys, 
-  onToggleExpand, 
-  onEdit, 
-  onDelete 
+export function TableCell({
+  activity,
+  columnKey,
+  expandedKeys,
+  onToggleExpand,
+  onEdit,
+  onDelete
 }: TableCellProps) {
   switch (columnKey) {
     case 'acronym':
@@ -119,7 +119,7 @@ export function TableCell({
               <DropdownItem
                 key="edit"
                 startContent={<Pencil size={16} />}
-                onPress={() => onEdit(activity)}
+                onPress={() => onEdit(activity.type as string)}
               >
                 Edit
               </DropdownItem>

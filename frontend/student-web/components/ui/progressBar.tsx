@@ -26,11 +26,15 @@ export default function ProgressBar({
     fetchUserProgress();
   }, []);
 
+  useEffect(() => {
+    if (avatarUrl) setImageError(false);
+  }, [avatarUrl]);
+
   return (
     <div className="relative w-48 md:w-[16rem] lg:w-[24rem] max-w-full mx-4 mt-6 flex items-center gap-2">
       {/* Avatar Circle */}
       <button
-        className="z-10 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-2 border-gray-500/50 bg-gray-300/30 backdrop-blur-md overflow-hidden shadow-md flex items-center justify-center"
+        className="relative z-10 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-2 border-gray-500/50 bg-gray-300/30 backdrop-blur-md overflow-hidden shadow-md flex items-center justify-center"
         onClick={onClickAvatar ?? (() => router.push('/profile'))}
       >
         {imageError ? (
@@ -44,6 +48,7 @@ export default function ProgressBar({
             className="object-cover"
             src={avatarUrl || '/avatar.png'}
             onError={() => setImageError(true)}
+            sizes='8px'
           />
         )}
       </button>

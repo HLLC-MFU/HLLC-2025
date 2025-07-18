@@ -7,6 +7,7 @@ import {
     useWindowDimensions,
     ViewStyle,
     TextStyle,
+    Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useRouter, usePathname } from 'expo-router';
@@ -23,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
-type AllowedRoutes = "/" | "/qrcode" | "/evoucher" | "/chat" | "/step-counter" | "/activities";
+type AllowedRoutes = "/" | "/qrcode" | "/evoucher" | "/community/chat" | "/activities";
 
 
 export default function GlassTabBar() {
@@ -32,20 +33,20 @@ export default function GlassTabBar() {
     const { width } = useWindowDimensions();
     const { t } = useTranslation();
 
-    const tabs: { label: string; icon: React.ComponentType<{ size?: number; color?: string }>; route: AllowedRoutes }[] = [
-        { label: t("nav.home"), icon: Home, route: '/' },
-        { label: t("nav.activity"), icon: Book, route: '/activities' },
-        { label: t("nav.qrCode"), icon: QrCode, route: '/qrcode' },
-        { label: t("nav.evoucher"), icon: Gift, route: '/evoucher' },
-        { label: t("nav.community"), icon: Globe, route: '/chat' },
+    const tabs: { label: string; assets?: string  ;icon: React.ComponentType<{ size?: number; color?: string }>; route: AllowedRoutes }[] = [
+        { label: t("nav.home"), assets: 'home', icon: Home, route: '/' },
+        { label: t("nav.activity"), assets: 'activities', icon: Book, route: '/activities' },
+        { label: t("nav.qrCode"), assets: 'qrcode', icon: QrCode, route: '/qrcode' },
+        { label: t("nav.evoucher"), assets: 'evoucher', icon: Gift, route: '/evoucher' },
+        { label: t("nav.community"), assets: 'community', icon: Globe, route: '/community/chat' },
     ];
     const { assets } = useAppearance();
     const icons = {
         home: assets?.home ?? null,
-        activity: assets?.activities ?? null,
+        activities: assets?.activities ?? null,
         qrcode: assets?.qrcode ?? null,
-        voucher: assets?.evoucher ?? null,
-        chat: assets?.community ?? null,
+        evoucher: assets?.evoucher ?? null,
+        community: assets?.community ?? null,
     };
 
     const tabWidth = (width - 48) / tabs.length;
@@ -77,7 +78,7 @@ export default function GlassTabBar() {
 
     return (
         <View style={styles.wrapper}>
-            <BlurView intensity={40} tint="dark" style={styles.navContainer}>
+            <BlurView intensity={Platform.OS === 'ios' ? 30 : 80} tint="dark" style={styles.navContainer}>
                 {/* Focus pill */}
                 <Animated.View
                     style={[
@@ -90,7 +91,7 @@ export default function GlassTabBar() {
                 </Animated.View>
 
                 {tabs.map((tab) => {
-                    const labelKey = tab.label ? tab.label.toLowerCase() : '';
+                    const labelKey = tab.assets ? tab.assets.toLowerCase() : '';
                     const assetIcon = icons[labelKey as keyof typeof icons];
                     const isActive = pathname === tab.route;
                     const Icon = tab.icon;
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255,255,255,0.12)',
+        backgroundColor: Platform.OS === 'ios' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.7)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.3)',
     },
