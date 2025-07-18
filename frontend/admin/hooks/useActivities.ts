@@ -22,22 +22,22 @@ export function useActivities(options?: { autoFetch?: boolean; useCanCheckin?: b
         setError(null);
         try {
             const [activitiesRes, typesRes] = await Promise.all([
-                apiRequest< Activities[] >(
+                apiRequest<Activities[]>(
                     '/activities',
                     'GET',
                 ),
-                apiRequest<{ data: ActivityType[] }>(
+                apiRequest<ActivityType[]>(
                     '/activities-type',
                     'GET',
                 ),
             ]);
-            
+
             if (activitiesRes.data) {
                 setActivities(activitiesRes.data);
             }
 
-            if (typesRes.data?.data) {
-                setActivityTypes(typesRes.data.data);
+            if (typesRes.data) {
+                setActivityTypes(typesRes.data);
             }
         } catch (err) {
             const errorMessage = err && typeof err === 'object' && 'message' in err
