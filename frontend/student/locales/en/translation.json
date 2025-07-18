@@ -109,7 +109,32 @@
         "noActivitiesFound": "Coming soon...",
         "backward": "Go Back",
         "detailTab": "Details",
-        "TimelineTab": "Timeline"
+        "TimelineTab": "Timeline",
+        "notOpenYet": "Not open yet",
+        "checkinAvailable": "Available for Check-in",
+        "checkedIn": "Checked In",
+        "success": "Success",
+        "waitingForAssessment": "Waiting for Assessment",
+        "missed": "Missed",
+        "unknownStatus": "Unknown Status",
+        "activity": "Activity",
+        "timeline": {
+            "title": "Timeline",
+            "notOpenYet": "Not open yet",
+            "waitingToStart": "Waiting to Start",
+            "started": "Activity Started",
+            "ended": "Activity Ended",
+            "missed": "Activity Missed",
+            "missedDescription": "You missed the activity. If you were unable to check in due to a technical problem or other reason, please reach out to MFU Activity.",
+            "evaluation": "Evaluation",
+            "openCheckin": "Available for Check-in",
+            "notOpenforCheckin": "Not open for Check-in",
+            "activityBeginAt": "Activity begins at {{startAt}} Please be ready to participate and enjoy our activity.",
+            "activityBeganAt": "Activity began at {{startAt}}",
+            "checkedIn": "You have checked in this activity",
+            "activityEndedAt": "Activity ended",
+            "evaluated": "You have completed the evaluation for this activity"
+        }
     },
     "evoucher": {
         "title": "E-Voucher",
@@ -175,7 +200,9 @@
         "cancel": "CANCEL",
         "submit": "SUBMIT",
         "submitting": "SUBMITTING...",
-        "yourComments": "Your comments"
+        "yourComments": "Your comments",
+        "success": "Assessment submitted successfully!",
+        "failed": "Failed to submit assessment. Please try again."
     },
     "pretest": {
         "title": "Please complete the pre-activity questionnaire",

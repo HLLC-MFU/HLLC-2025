@@ -1,38 +1,46 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '@/utils/api';
+import { useProgressStore } from '@/stores/useProgressStore';
 
-interface ProgressResponse {
+type ProgressResponse = {
   userProgressCount: number;
   progressPercentage: number;
   scopedActivitiesCount: number;
-}
+  [key: string]: any;
+};
 
 export function useProgress() {
-  const [progress, setProgress] = useState<ProgressResponse | null>(null);
+  const setProgress = useProgressStore((s) => s.setProgress);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchProgress = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await apiRequest<ProgressResponse>('/activities/progress', 'GET');
-        if (res.data) {
-          setProgress(res.data);
-        } else {
-          setProgress(null);
-          setError(res.message || 'No data');
-        }
-      } catch (err) {
-        setError((err as Error).message || 'Failed to fetch progress');
+  const fetchProgress = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res: { data?: ProgressResponse | null; message?: string | null } = await apiRequest('/activities/progress', 'GET');
+      if (
+        res.data &&
+        typeof res.data.userProgressCount === 'number' &&
+        typeof res.data.progressPercentage === 'number' &&
+        typeof res.data.scopedActivitiesCount === 'number'
+      ) {
+        setProgress(res.data);
+      } else {
         setProgress(null);
-      } finally {
-        setLoading(false);
+        setError(res.message || 'No data');
       }
-    };
-    fetchProgress();
-  }, []);
+    } catch (err) {
+      setError((err as Error).message || 'Failed to fetch progress');
+      setProgress(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [setProgress]);
 
-  return { progress, loading, error };
-} 
+  useEffect(() => {
+    fetchProgress();
+  }, [fetchProgress]);
+
+  return { loading, error, fetchProgress };
+}
