@@ -1,4 +1,4 @@
-import { Input, Select, SelectItem } from "@heroui/react";
+import { Input } from "@heroui/react";
 import { Dispatch, SetStateAction } from "react";
 
 import { ActivityType } from "@/types/activities";
@@ -10,8 +10,6 @@ interface BasicInformationProps {
   setNameTh: Dispatch<SetStateAction<string>>;
   acronym: string;
   setAcronym: Dispatch<SetStateAction<string>>;
-  type: string;
-  setType: Dispatch<SetStateAction<string>>;
   activityTypes: ActivityType[];
   typesLoading: boolean;
   disableTypeSelection?: boolean;
@@ -24,11 +22,6 @@ export function BasicInformation({
   setNameTh,
   acronym,
   setAcronym,
-  type,
-  setType,
-  activityTypes,
-  typesLoading,
-  disableTypeSelection = false,
 }: BasicInformationProps) {
   return (
     <div>
@@ -58,21 +51,6 @@ export function BasicInformation({
             value={acronym}
             onValueChange={setAcronym}
           />
-          <Select
-            isRequired
-            isDisabled={disableTypeSelection}
-            isLoading={typesLoading}
-            label="Activity Type"
-            placeholder="Select an activity type"
-            selectedKeys={type ? [type] : []}
-            onChange={(e) => setType(e.target.value)}
-          >
-            {activityTypes.map((type) => (
-              <SelectItem key={type._id}>
-                {type.name}
-              </SelectItem>
-            ))}
-          </Select>
         </div>
       </div>
     </div>
