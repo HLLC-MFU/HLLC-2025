@@ -92,10 +92,9 @@ const styles = StyleSheet.create({
     width: '85%',
     borderRadius: 20,
     padding: 24,
-    backgroundColor: '#222222',
+    backgroundColor: 'rgba(136, 136, 136, 0.75)',
     borderColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1,
-    elevation: 5,
     alignItems: 'center',
   },
   headerText: {
