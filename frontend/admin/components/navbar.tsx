@@ -6,8 +6,8 @@ import {
   NavbarItem,
   NavbarMenuItem,
 } from "@heroui/navbar";
-import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
+import NextLink from "next/link";
 import { Input } from "@heroui/input";
 
 import { siteConfig } from "@/config/site";
@@ -24,11 +24,6 @@ export const Navbar = () => {
         inputWrapper: "bg-default-100",
         input: "text-sm",
       }}
-      endContent={
-        <Kbd className="hidden lg:inline-block" keys={["command"]}>
-          K
-        </Kbd>
-      }
       labelPlacement="outside"
       placeholder="Search..."
       startContent={
@@ -68,17 +63,19 @@ export const Navbar = () => {
               </p>
               {section.items.map((item, index) => (
                 <NavbarMenuItem key={`${item.href}-${index}`}>
-                  <Link
-                    className="w-full"
-                    color="foreground"
-                    href={item.href}
-                    size="lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      <item.icon className="w-5 h-5" />
-                      {item.label}
-                    </div>
-                  </Link>
+                  <NextLink href={item.href} passHref>
+                    <Link 
+                      className="w-full"
+                      color="foreground"
+                      size="lg"
+                      as="a"
+                    >
+                      <div className="flex items-center gap-2">
+                        <item.icon className="w-5 h-5" />
+                        {item.label}
+                      </div>
+                    </Link>
+                  </NextLink>
                 </NavbarMenuItem>
               ))}
             </div>
