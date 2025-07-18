@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   SafeAreaView,
   View,
@@ -17,15 +17,17 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
-import  ConfirmModal  from './_components/ConfirmModal';
-import  BannerImage  from './_components/BannerImage';
-import  MediaCard  from './_components/MediaCard';
+import ConfirmModal from './_components/ConfirmModal';
+import BannerImage from './_components/BannerImage';
+import MediaCard from './_components/MediaCard';
 import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import useProfile from '@/hooks/useProfile';
 import { LamduanFlower } from '@/types/lamduan-flowers';
 import { GlassButton } from '@/components/ui/GlassButton';
 import SelectPhotoModal from './_components/SelectPhotoModal';
 import { useToastController } from '@tamagui/toast';
+import StatusModal from './_components/StatusModal';
+import { useIsFocused } from '@react-navigation/native';
 
 const screenWidth = Dimensions.get('window').width;
 const horizontalPadding = 40;
@@ -44,6 +46,18 @@ export default function LamduanOrigamiPage() {
   const scrollViewRef = useRef<ScrollView>(null);
   const inputRef = useRef<RNTextInput>(null);
   const toast = useToastController();
+  const isFocused = useIsFocused();
+  const [statusModalVisible, setStatusModalVisible] = useState(true);
+  const [activityStatus, setActivityStatus] = useState<'not-started' | 'ended' | 'active'>('active');
+  const isChanged = useMemo(() => {
+    if (!hasSubmitted || !originalRef.current) return true;
+
+    const origin = originalRef.current;
+    const isCommentChanged = comment.trim() !== (origin.comment || '').trim();
+    const isImageChanged = imageUri && !imageUri.includes(origin.photo);
+
+    return isCommentChanged || isImageChanged;
+  }, [comment, imageUri, hasSubmitted]);
 
   useEffect(() => {
     if (!user?.data?.[0]?._id || !flowers?.length) return;
@@ -57,6 +71,27 @@ export default function LamduanOrigamiPage() {
       setHasSubmitted(true);
     }
   }, [flowers, user]);
+
+  useEffect(() => {
+    if (lamduanSetting.length === 0 || !isFocused) return;
+
+    const { startAt, endAt } = lamduanSetting[0];
+    const now = new Date();
+    const start = new Date(startAt);
+    const end = new Date(endAt);
+
+    if (now < start) {
+      setActivityStatus('not-started');
+      setStatusModalVisible(true);
+    } else if (now > end) {
+      setActivityStatus('ended');
+      setStatusModalVisible(true);
+    } else {
+      setActivityStatus('active');
+      setStatusModalVisible(false);
+    }
+  }, [lamduanSetting, isFocused]);
+
 
   const handleSave = async (file: File, user: string, comment: string, setting: string) => {
     const original = originalRef.current;
@@ -152,7 +187,16 @@ export default function LamduanOrigamiPage() {
 
           <BlurView intensity={40} tint="light" style={styles.formBox}>
             <Text style={styles.uploadTitle}>Upload Lamduan</Text>
-            <TouchableOpacity onPress={() => setPhotoModalVisible(true)} style={styles.imageUploadButton}>
+            <TouchableOpacity
+              onPress={() => {
+                if (activityStatus !== 'active') {
+                  setStatusModalVisible(true);
+                } else {
+                  setPhotoModalVisible(true);
+                }
+              }}
+              style={styles.imageUploadButton}
+            >
               {imageUri && imageSize ? (
                 <Image
                   source={{ uri: imageUri }}
@@ -178,8 +222,10 @@ export default function LamduanOrigamiPage() {
               placeholderTextColor="#fff"
               style={styles.input}
               value={comment}
+              editable={activityStatus === 'active'}
               onChangeText={(text) => setComment(text.slice(0, 144))}
               onFocus={() => {
+                if (activityStatus !== 'active') return;
                 setTimeout(() => {
                   inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
                     scrollViewRef.current?.scrollTo({ y: pageY, animated: true });
@@ -193,14 +239,23 @@ export default function LamduanOrigamiPage() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16 }}>
               <Text style={{ color: '#fff', fontSize: 13 }}>{comment.length} / 144</Text>
               <TouchableOpacity
-                style={styles.submitButton}
+                style={[
+                  styles.submitButton,
+                  {
+                    opacity: (!imageUri || (hasSubmitted && !isChanged)) ? 0.4 : 1,
+                  },
+                ]}
+                disabled={activityStatus !== 'active' || !imageUri || (hasSubmitted && !isChanged)}
                 onPress={() => {
                   if (!imageUri) return Alert.alert('Error', 'Please select an image first.');
                   setConfirmModalVisible(true);
                 }}
               >
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{hasSubmitted ? 'Save' : 'Submit'}</Text>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                  {hasSubmitted ? 'Save' : 'Submit'}
+                </Text>
               </TouchableOpacity>
+
             </View>
           </BlurView>
 
@@ -226,6 +281,12 @@ export default function LamduanOrigamiPage() {
             onClose={() => setPhotoModalVisible(false)}
             onTakePhoto={takePhoto}
             onPickImage={pickImage}
+          />
+
+          <StatusModal
+            isVisible={statusModalVisible}
+            onClose={() => setStatusModalVisible(false)}
+            status={activityStatus}
           />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -320,6 +381,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#66aaf9',
     paddingVertical: 8,
     paddingHorizontal: 20,
-    borderRadius: 999,
+    borderRadius: 30,
   },
 });

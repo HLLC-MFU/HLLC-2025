@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: 30,
   },
   buttonText: {
     color: '#ffffffee',
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginTop: 4,
     backgroundColor: '#e63946',
-    borderRadius: 999,
+    borderRadius: 30,
     alignItems: 'center',
   },
   cancelText: {

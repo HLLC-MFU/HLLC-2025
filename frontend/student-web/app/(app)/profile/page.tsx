@@ -10,10 +10,14 @@ import { SceneLights } from './_components/SceneLights';
 import { useProfile } from '@/hooks/useProfile';
 import { Button } from '@heroui/react';
 import { Eye, EyeOff, Settings, TriangleAlert } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ReportModal } from '../report/page';
 
 export default function ProfilePage() {
   const { schoolAcronym } = useProfile();
+  const router = useRouter();
   const [isVisible, setIsVisible] = useState<boolean>(true);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   return (
     <div className="flex flex-col justify-between fixed inset-0 pt-6 pb-16 px-4 z-50">
@@ -41,7 +45,7 @@ export default function ProfilePage() {
           className="bg-black/10 border rounded-full"
           size="lg"
           isIconOnly
-          onPress={() => { }}
+          onPress={() => setIsReportOpen(true)}
         >
           <TriangleAlert color="white" />
         </Button>
@@ -62,7 +66,7 @@ export default function ProfilePage() {
         }}
       >
         {schoolAcronym ? <SceneLights /> : <ambientLight intensity={0.05} />}
-        <Scene schoolAcronym={schoolAcronym} />
+        {/* <Scene schoolAcronym={schoolAcronym} /> */}
         <OrbitControls
           minDistance={10}
           maxDistance={15}
@@ -76,6 +80,10 @@ export default function ProfilePage() {
           <ProfileCard />
         </div>
       }
+      <ReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+      />
     </div>
   );
 }
