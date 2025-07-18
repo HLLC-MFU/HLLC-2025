@@ -129,10 +129,9 @@ export default function LamduanOrigamiPage() {
             <div className="grid grid-row-2 gap-4">
                 <Card className="bg-black/40 border border-white/20 backdrop-blur-lg rounded-2xl shadow-xl">
                     <CardBody className="space-y-4">
-                        <h1 className="text-xl font-semibold text-white">Lamduan Origami</h1>
+                        <h1 className="text-xl font-semibold text-white">Lamduan Flower</h1>
                         <p className="text-white/80 text-sm">
-                            Enhance your knowledge of the university through the origami Lamduan flower. 
-                            Additionally, immerse yourself in instructional origami videos that showcase the important information about the university.
+                             {lamduanSetting[0]?.description?.en || 'Loading...'}
                         </p>
                         <MediaCard />
                     </CardBody>
