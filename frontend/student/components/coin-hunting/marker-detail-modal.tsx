@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   modalText: {
     fontSize: 15,
     color: '#fff',
-    textAlign: 'center',
+    textAlign: 'left',
   },
   modalButtonRow: {
     flexDirection: 'row',

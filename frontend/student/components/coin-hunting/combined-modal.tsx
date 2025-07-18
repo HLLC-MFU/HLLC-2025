@@ -35,12 +35,12 @@ const ALERT_CONFIGS = {
   },
   'cooldown': {
     icon: 'clock-alert',
-    iconColor: '#3b82f6',
+    iconColor: '#60a5fa', 
     title: 'Landmark is in Cooldown',
     message: 'This landmark is in cooldown. Please try again later.',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-    titleColor: '#3b82f6',
+    backgroundColor: 'rgba(96, 165, 250, 0.15)', 
+    borderColor: 'rgba(96, 165, 250, 0.4)', 
+    titleColor: '#60a5fa', 
   },
   default: {
     icon: 'alert-circle',
@@ -90,17 +90,16 @@ export default function CombinedModal({
   useEffect(() => {
     if (alertType === 'cooldown' && countdown > 0 && visible) {
       const interval = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1000) {
-            clearInterval(interval);
-            onClose(); // ปิด modal เมื่อ countdown หมด
-            return 0;
-          }
-          return prev - 1000;
-        });
+        setCountdown(prev => Math.max(prev - 1000, 0));
       }, 1000);
-
       return () => clearInterval(interval);
+    }
+  }, [alertType, countdown, visible]);
+
+  // Effect สำหรับปิด modal เมื่อ countdown หมด
+  useEffect(() => {
+    if (alertType === 'cooldown' && countdown <= 0 && visible) {
+      onClose();
     }
   }, [alertType, countdown, visible, onClose]);
 
@@ -177,7 +176,7 @@ export default function CombinedModal({
                 <Text style={[styles.alertTitle, { color: config.titleColor }]}> {config.title} </Text>
                 <Text style={styles.alertMessage}> {config.message} </Text>
                 {alertType === 'cooldown' && countdown > 0 && (
-                  <Text style={[styles.alertMessage, { marginTop: 8, color: '#60a5fa', fontWeight: 'bold' }]}>
+                  <Text style={[styles.alertMessage, { marginTop: 8, color: '#93c5fd', fontWeight: 'bold' }]}> {/* Light Blue 300 */}
                     Cooldown Remaining: {formatCountdown(countdown)}
                   </Text>
                 )}
