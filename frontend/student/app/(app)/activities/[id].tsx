@@ -2,18 +2,19 @@
 
 import { router } from "expo-router"
 import { useActivityStore } from "@/stores/activityStore"
-import { Linking, ScrollView, Text, TouchableOpacity, View, Modal, useWindowDimensions } from "react-native"
+import { Linking, ScrollView, Text, TouchableOpacity, View } from "react-native"
 import { Image } from "expo-image"
-import { LinearGradient } from "expo-linear-gradient"
 import { Button, Separator, Input } from "tamagui"
 import { ArrowLeft, Compass, Clock, QrCode, CheckCircle, FileText } from "@tamagui/lucide-icons"
-import CheckinStatusChip from "./_components/checkin-status-chip"
 import DateBadge from "./_components/date-badge"
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import StepperItem from "@/components/activities/stepper-item"
 import AssessmentModal from "./_components/AssessmentModal"
+import { getStatusBadge } from "@/utils/activityStatus"
+import { MapPin } from "lucide-react-native"
+import { useLanguage } from "@/context/LanguageContext"
 
 
 export default function ActivityDetailPage() {
@@ -21,8 +22,7 @@ export default function ActivityDetailPage() {
   const [selectedTab, setSelectedTab] = useState<"details" | "timeline">("details")
   const { t } = useTranslation()
   const [showAssessmentModal, setShowAssessmentModal] = useState(false)
-  const { width } = useWindowDimensions()
-
+  const { language } = useLanguage()
   if (!activity) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -30,6 +30,10 @@ export default function ActivityDetailPage() {
       </View>
     )
   }
+  const { label, color, icon: Icon } = getStatusBadge({
+    checkinStatus: activity.checkinStatus,
+    hasAnsweredAssessment: activity.hasAnsweredAssessment,
+  })
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -42,17 +46,6 @@ export default function ActivityDetailPage() {
             style={{ width: "100%", height: "100%" }}
           />
         </View>
-        <LinearGradient
-          colors={["transparent", "#ffffff80", "#ffffff"]}
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: "40%",
-          }}
-          pointerEvents="none"
-        />
         <TouchableOpacity
           onPress={() => router.push("/activities")}
           style={{
@@ -118,7 +111,7 @@ export default function ActivityDetailPage() {
           >
             {/* Top section: text info */}
             <View style={{ gap: 6, flex: 1, flexShrink: 1 }}>
-              <Text style={{ fontSize: 13, color: "#888", textTransform: "uppercase" }}>Activity</Text>
+              <Text style={{ fontSize: 13, color: "#888", textTransform: "uppercase" }}>{t("activity.activity")}</Text>
               <Text
                 style={{
                   fontSize: 24,
@@ -127,18 +120,44 @@ export default function ActivityDetailPage() {
                   flexShrink: 1,
                 }}
               >
-                {activity.name.en}
+                {activity.name[language] || activity.name.en}
               </Text>
-              <Text style={{ fontSize: 15, color: "#666" }}>
-                Start at{" "}
-                {new Date(activity.metadata.startAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: false,
-                })}
-              </Text>
-              <Text style={{ fontSize: 15, color: "#666" }}>{activity.location.en}</Text>
-              <CheckinStatusChip status={activity.checkinStatus} />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Clock color="#666" size={16} />
+                <Text style={{ fontSize: 15, color: "#666" }}>
+                  {new Date(activity.metadata.startAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
+                  {" - "}
+                  {new Date(activity.metadata.endAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
+                </Text>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <MapPin color="#666" size={16} />
+                <Text style={{ fontSize: 15, color: "#666" }}>{activity.location[language] || activity.location.en}</Text>
+              </View>
+              {/* Status Badge */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignSelf: "flex-start",
+                  alignItems: "center",
+                  backgroundColor: color,
+                  borderRadius: 16,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  gap: 6,
+                }}
+              >
+                <Icon color="white" size={14} />
+                <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>{label}</Text>
+              </View>
             </View>
 
             {/* Bottom section: DateBadge */}
@@ -147,12 +166,11 @@ export default function ActivityDetailPage() {
             </View>
           </View>
 
-
           <Separator />
           {/* Description */}
           <View>
             <Text style={{ fontSize: 16, lineHeight: 24, color: "#444", textAlign: "justify" }}>
-              {activity.fullDetails.en}
+              {activity.fullDetails[language] || activity.fullDetails.en}
             </Text>
           </View>
           <Separator />
@@ -173,15 +191,14 @@ export default function ActivityDetailPage() {
 
       {selectedTab === "timeline" && (
         <ScrollView
-          style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 72, marginBottom: 100 }}
+          style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 72, marginBottom: 0 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Timeline Header */}
           <View style={{ marginBottom: 24 }}>
             <Text style={{ fontSize: 20, fontWeight: "700", color: "#111827", marginBottom: 4 }}>
-              Activity Progress
+              {t("activity.timeline.title")}
             </Text>
-            <Text style={{ fontSize: 14, color: "#6b7280" }}>Track your participation status and next steps</Text>
           </View>
 
           <View style={{ paddingBottom: 20 }}>
@@ -191,47 +208,44 @@ export default function ActivityDetailPage() {
               icon={Clock}
               label={
                 activity.checkinStatus < 0
-                  ? "Activity Missed"
+                  ? t("activity.missed")
                   :
                   activity.checkinStatus === 0
-                    ? "Waiting to Start"
+                    ? t("activity.notOpenYet")
                     : activity.checkinStatus > 0
-                      ? "Activity Started"
-                      : "Activity Ended"
+                      ? t("activity.timeline.started")
+                      : t("activity.ended")
               }
               active={activity.checkinStatus === 0}
               completed={activity.checkinStatus > 0}
               error={activity.checkinStatus < 0}
               disabled={activity.checkinStatus === 0}
-              description={
-                activity.checkinStatus !== 0
-                  ? activity.checkinStatus < 0
-                    ? 'You missed the activity. If you were unable to check in due to a technical problem or other reason, please reach out to MFU Activity.'
-                    : `Activity begins at ${new Date(activity.metadata.startAt).toLocaleString([], {
-                      day: "2-digit",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    })}. Please be ready to participate.`
-                  : undefined
+              description={activity.checkinStatus < 0
+                ? t("activity.timeline.missedDescription")
+                : activity.checkinStatus <= 1
+                  ? `${t("activity.timeline.activityBeginAt", {
+                  startAt: new Date(activity.metadata.startAt).toLocaleString(language === "th" ? "th-TH" : "en-US", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })
+                }            
+              )}` :  `${t("activity.timeline.activityBeganAt", {
+                  startAt: new Date(activity.metadata.startAt).toLocaleString(language === "th" ? "th-TH" : "en-US", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })
+                }            
+              )}`
               }
             >
-              {activity.checkinStatus === 0 && (
-                <View
-                  style={{
-                    backgroundColor: "#fef3c7",
-                    padding: 12,
-                    borderRadius: 8,
-                    borderLeftWidth: 3,
-                    borderLeftColor: "#f59e0b",
-                  }}
-                >
-                  <Text style={{ color: "#92400e", fontSize: 14, lineHeight: 20 }}>
-                    ⏳ Check back when the activity starts to proceed with check-in.
-                  </Text>
-                </View>
-              )}
             </StepperItem>
 
 
@@ -242,12 +256,12 @@ export default function ActivityDetailPage() {
                 <StepperItem
                   index={2}
                   icon={QrCode}
-                  label={activity.checkinStatus < 0 ? "Cannot Check-In" : "Check-In Required"}
+                  label={activity.checkinStatus === 0 ? t("activity.timeline.notOpenforCheckin") : activity.checkinStatus === 1 ? t("activity.timeline.openCheckin") : t("activity.timeline.checkedIn")}
                   active={activity.checkinStatus === 1}
                   completed={activity.checkinStatus >= 2}
                   error={activity.checkinStatus < 0}
                   disabled={activity.checkinStatus === 0}
-                  description={activity.checkinStatus < 0 ? undefined : "Scan the QR code at the event location or visit the designated check-in point to confirm your attendance."}
+                  description={activity.checkinStatus === 1 ? "Scan the QR code at the event location or visit the designated check-in point to confirm your attendance." : undefined}
                 >
                   {activity.checkinStatus === 1 && (
                     <Button
@@ -268,20 +282,30 @@ export default function ActivityDetailPage() {
 
             {/* Step 3: Checked In */}
             {
-              activity.checkinStatus !== -1 && (
+              activity.checkinStatus > 0 && (
                 <StepperItem
                   index={3}
                   icon={CheckCircle}
-                  label={activity.checkinStatus === 3 ? "Activity Completed" : "Successfully Checked In"}
+                  label={activity.checkinStatus === 3 ? `${t("activity.timeline.activityEndedAt", {
+                  endAt: new Date(activity.metadata.endAt).toLocaleString(language === "th" ? "th-TH" : "en-US", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })
+                }            
+              )}` : "Successfully Checked In"}
                   active={activity.checkinStatus === 2}
                   completed={activity.checkinStatus === 3}
                   error={activity.checkinStatus < 0}
                   disabled={activity.checkinStatus === 0}
                   description={
                     activity.checkinStatus < 0 ? undefined :
-                      activity.checkinStatus === 3
+                      activity.checkinStatus === 3 && !activity.hasAnsweredAssessment
                         ? "Congratulations! You've completed the activity. Please take a moment to share your feedback through the assessment."
-                        : "Great! You're all set. Enjoy the activity and stay engaged throughout the session."
+                        : undefined
                   }
                 />
               )
@@ -291,13 +315,13 @@ export default function ActivityDetailPage() {
             <StepperItem
               index={4}
               icon={FileText}
-              label="Evaluation & Feedback"
+              label={activity.hasAnsweredAssessment ? t("activity.timeline.evaluated") : t("activity.timeline.evaluation")}
               active={!activity.hasAnsweredAssessment && activity.checkinStatus === 3}
               completed={activity.hasAnsweredAssessment}
               error={!activity.hasAnsweredAssessment && activity.checkinStatus === 3}
               disabled={activity.checkinStatus < 3}
               isLast
-              description="Help us improve by sharing your experience and feedback about this activity."
+              description={!activity.hasAnsweredAssessment ? "Help us improve by sharing your experience and feedback about this activity." : undefined}
             >
               <View
                 style={{

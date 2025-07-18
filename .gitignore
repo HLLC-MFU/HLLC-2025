@@ -107,6 +107,6 @@ hllc-2025.code-workspace
 *.apk
 *.ipa
 */ios
-GoogleService-Info.plist
-google-services.json
-eas.json
+# GoogleService-Info.plist
+# google-services.json
+# eas.json
