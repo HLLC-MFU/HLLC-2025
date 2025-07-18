@@ -53,7 +53,7 @@ func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService
 
 // NotifyUsersInRoom sends notifications to offline users in a room only (not online users)
 func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *model.ChatMessage, onlineUsers []string) {
-	log.Printf("[NotificationService] Starting offline notification process for room %s", message.RoomID.Hex())
+	log.Printf(" Starting offline notification process for room %s", message.RoomID.Hex())
 
 	// Create online user lookup map
 	onlineUserMap := make(map[string]bool)
@@ -124,12 +124,6 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 
 // createAndSendNotification creates the appropriate notification based on message type
 func (ns *NotificationService) createAndSendNotification(ctx context.Context, receiverID string, message *model.ChatMessage, room *SimpleRoom, sender *SimpleUser, role *chatModel.NotificationSenderRole) {
-	// เช็ค message ว่างก่อนส่ง
-	if strings.TrimSpace(message.Message) == "" {
-		log.Printf("[NotificationService] Empty message detected, skipping notification for receiver %s", receiverID)
-		return
-	}
-
 	messageType := ns.determineMessageType(message)
 
 	log.Printf("[NotificationService] Creating %s notification for receiver %s", messageType, receiverID)
@@ -330,7 +324,7 @@ func (ns *NotificationService) sendNotificationToKafka(ctx context.Context, rece
 		payload.Type != chatModel.MessageTypeEvoucher &&
 		payload.Type != chatModel.MessageTypeRestriction &&
 		payload.Type != chatModel.MessageTypeUnsend {
-		
+
 		log.Printf("[NotificationService] 🚫 Skipping notification: empty message for receiver=%s (type=%s)", receiverID, payload.Type)
 		return
 	}
@@ -344,7 +338,6 @@ func (ns *NotificationService) sendNotificationToKafka(ctx context.Context, rece
 		log.Printf("[NotificationService] ✅ Successfully sent notification to Kafka for %s", receiverID)
 	}
 }
-
 
 // NotifyOfflineUsersOnly sends notifications ONLY to users who are currently offline
 func (ns *NotificationService) NotifyOfflineUsersOnly(ctx context.Context, message *model.ChatMessage, onlineUsers []string, roomMembers []primitive.ObjectID) {
