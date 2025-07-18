@@ -7,9 +7,11 @@ import { Button, Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger }
 import clsx from "clsx";
 import { usePathname, useRouter } from "next/navigation";
 import { Href } from "@react-types/shared";
+import logo from "@/public/logo-sdad.png";
 
 import { siteConfig } from "@/config/site";
 import { useProfile } from "@/hooks/useProfile";
+import Image from "next/image";
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -60,7 +62,7 @@ export const Sidebar = () => {
         <div className="flex items-center justify-between p-4 border-b border-[#00000010] dark:border-[#ffffff25]">
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <Avatar className="w-8 h-8" size="sm" src="/logo.png" />
+              <Avatar className="w-8 h-8" size="sm" icon={<Image src={logo} alt="logo" width={24} height={24} className="rounded-full" />} />
               <span className="font-semibold text-default-900">
                 {user?.name.first} {user?.name.middle} {user?.name.last}
               </span>
@@ -148,7 +150,7 @@ export const Sidebar = () => {
             <Dropdown placement="top-start">
               <DropdownTrigger>
                 <div className="flex items-center gap-2 cursor-pointer hover:bg-default-100 p-2 rounded-md transition-colors">
-                  <Avatar className="w-8 h-8" size="sm" src="https://i.pravatar.cc/150?u=a042581f4e29026024d" />
+                  <Avatar className="w-8 h-8" size="sm" icon={<Image src={logo} alt="logo" width={24} height={24} className="rounded-full" />} />
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">
                       {user?.name.first} {user?.name.middle} {user?.name.last}

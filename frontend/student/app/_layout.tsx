@@ -35,6 +35,7 @@ export default function RootLayout() {
     'NotoSansThai-600': require('../assets/fonts/NotoSansThai-SemiBold.ttf'),
     'NotoSansThai-700': require('../assets/fonts/NotoSansThai-Bold.ttf'),
     'NotoSansThai-900': require('../assets/fonts/NotoSansThai-Black.ttf'),
+    'LibreBarcode39': require('../assets/fonts/LibreBarcode39-Regular.ttf'),
   });
 
   useEffect(() => {

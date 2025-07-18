@@ -114,7 +114,7 @@ export class PretestAnswersService {
           model: 'Major',
           populate: {
             path: 'school',
-            model:'School'
+            model: 'School'
           }
         },
       },]),
@@ -134,9 +134,12 @@ export class PretestAnswersService {
   async averageAllPretests(query: Record<string, string>): Promise<
     { pretest: PrepostQuestion; average: number; count: number }[]
   > {
+
+    const fullQuery = { ...query, limit: '0', page: '1' };
+
     const results = await queryAll<PretestAnswer>({
       model: this.pretestAnswerModel,
-      query,
+      query: fullQuery,
       filterSchema: {},
       populateFields: () => Promise.resolve([{ path: 'answers.pretest' }]),
     });
@@ -165,8 +168,14 @@ export class PretestAnswersService {
       }
     }
 
-    return Array.from(scoreMap.entries())
-      .slice(0, query.limit ? Number(query.limit) : undefined)
+    const limit = Number(query.limit);
+    const page = Number(query.page ?? 1);
+    const offset = limit > 0 ? (page - 1) * limit : 0;
+
+    const allEntries = Array.from(scoreMap.entries());
+
+    return allEntries
+      .slice(offset, limit > 0 ? offset + limit : undefined)
       .map(([pretest, { sum, count }]) => ({
         pretest,
         average: sum / count,

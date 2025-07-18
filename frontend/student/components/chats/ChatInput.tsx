@@ -37,7 +37,6 @@ const ChatInput = ({
   handleTextInput,
   handleSendMessage,
   handleImageUpload,
-  handleTyping,
   isMember,
   isConnected,
   inputRef,
@@ -244,7 +243,7 @@ const styles = StyleSheet.create({
   buttonInner: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 9999,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.15)',

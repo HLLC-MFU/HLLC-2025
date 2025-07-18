@@ -17,7 +17,7 @@ import { Activities } from '@/types/activities';
 
 interface ActivitiesTableProps {
   activities: Activities[];
-  onEdit: (activity: Activities) => void;
+  onEdit: (typeId: string) => void;
   onDelete: (activity: Activities) => void;
 }
 

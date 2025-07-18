@@ -71,9 +71,21 @@ export default function StampModal({
         const latestNewCoin = newCoins[newCoins.length - 1];
         setNewCoinIndex(latestNewCoin);
         setShowNewCoinEffect(true);
-        newCoinAnim.setValue(0);
+        // Get target position for the new coin
+        const { x: targetX, y: targetY } = getCoinPosition(
+          latestNewCoin,
+          NUM_SQUARES,
+          RADIUS,
+          KITE_INNER_RADIUS,
+          KITE_OUTER_RADIUS,
+          CENTER_X,
+          CENTER_Y,
+        );
+        // Set initial position to target position (no movement)
+        newCoinPosition.setValue({ x: targetX, y: targetY });
         newCoinScale.setValue(0.3);
-        newCoinPosition.setValue({ x: 0, y: 0 });
+        newCoinAnim.setValue(0);
+        // Only animate scale and rotation, no position movement
         Animated.parallel([
           Animated.timing(newCoinAnim, {
             toValue: 1,
@@ -81,15 +93,15 @@ export default function StampModal({
             useNativeDriver: true,
           }),
           Animated.timing(newCoinScale, {
-            toValue: 1.5,
-            duration: 400,
+            toValue: 1,
+            duration: 600,
             useNativeDriver: true,
           }),
         ]).start(() => {
           setTimeout(() => {
             setShowNewCoinEffect(false);
             setNewCoinIndex(null);
-          }, 500);
+          }, 300);
         });
       }
     }
@@ -184,7 +196,11 @@ export default function StampModal({
         onPress={showNewCoinEffect ? handleTapToPlace : undefined}
       >
         <View style={styles.modalContent}>
-          <Text style={styles.title}>{t('coinHunting.collection')}</Text>
+          <Text style={styles.title}>
+            {currentPage === 0
+              ? t('coinHunting.collection')
+              : t('coinHunting.sponsorCollection')}
+          </Text>
           <View style={styles.stampHexGridContainer}>
             {currentPage === 0 && showFirework && (
               <>
