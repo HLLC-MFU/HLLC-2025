@@ -146,10 +146,6 @@ const MessageList = ({
         onScroll={onScroll}
         scrollEventThrottle={scrollEventThrottle}
       />
-      
-      {typing && typing.length > 0 && (
-        <TypingIndicator typingUsers={typing} />
-      )}
     </>
   );
 };
@@ -160,7 +156,6 @@ const styles = StyleSheet.create({
   },
   messagesContent: { 
     padding: 16, 
-    paddingBottom: 80,
   },
 });
 

@@ -10,6 +10,9 @@
     "newArchEnabled": true,
     "jsEngine": "hermes",
     "owner": "hllc",
+    "fonts": {
+      "LibreBarcode128": "./assets/fonts/LibreBarcode128Text-Regular.ttf"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mfuactivity.hllc",
