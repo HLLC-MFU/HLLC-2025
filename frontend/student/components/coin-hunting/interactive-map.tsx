@@ -7,6 +7,7 @@ import {
   TouchableWithoutFeedback,
   ViewStyle,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -29,6 +30,8 @@ import {
 const mapsImage = require('@/assets/images/map.png');
 const screen = Dimensions.get('window');
 
+const isAndroid = Platform.OS === 'android';
+
 function clamp(value: number, min: number, max: number): number {
   'worklet';
   return Math.max(min, Math.min(value, max));
@@ -36,11 +39,13 @@ function clamp(value: number, min: number, max: number): number {
 
 type InteractiveMapProps = {
   onImageLoad?: (imageSize: { width: number; height: number }) => void;
+  onContainerSize?: (containerSize: { width: number; height: number }) => void;
   children?: React.ReactNode;
 };
 
 export default function InteractiveMap({
   onImageLoad,
+  onContainerSize,
   children,
 }: InteractiveMapProps) {
   const scale = useSharedValue(1);
@@ -54,12 +59,19 @@ export default function InteractiveMap({
   const [imageSize, setImageSize] = useState({ width: 6000, height: 2469 });
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
-  // Memoize initial scale calculation
+  const [containerSize, setContainerSize] = useState({ width: screen.width, height: screen.height });
+
   const initialScale = useMemo(() => {
+    if (isAndroid) {
+      // Android: scale ให้ภาพเต็ม container จริง
+      const scaleW = containerSize.width / imageSize.width;
+      const scaleH = containerSize.height / imageSize.height;
+      return Math.max(scaleW, scaleH);
+    }
     const scaleW = screen.width / imageSize.width;
     const scaleH = screen.height / imageSize.height;
     return Math.max(scaleW, scaleH);
-  }, [imageSize.width, imageSize.height]);
+  }, [imageSize.width, imageSize.height, containerSize.width, containerSize.height]);
 
   useEffect(() => {
     const resolvedSource = Image.resolveAssetSource(mapsImage);
@@ -70,11 +82,18 @@ export default function InteractiveMap({
         (width, height) => {
           setImageSize({ width, height });
 
-          const scaleW = screen.width / width;
-          const scaleH = screen.height / height;
-          const initialScale = Math.max(scaleW, scaleH);
+          let scaleW, scaleH, initialScaleValue;
+          if (isAndroid) {
+            scaleW = containerSize.width / width;
+            scaleH = containerSize.height / height;
+            initialScaleValue = Math.max(scaleW, scaleH);
+          } else {
+            scaleW = screen.width / width;
+            scaleH = screen.height / height;
+            initialScaleValue = Math.max(scaleW, scaleH);
+          }
 
-          scale.value = withSpring(initialScale, {
+          scale.value = withSpring(initialScaleValue, {
             damping: 20,
             stiffness: 200,
           });
@@ -97,7 +116,7 @@ export default function InteractiveMap({
       });
       setIsImageLoaded(true);
     }
-  }, [initialScale]);
+  }, [initialScale, containerSize.width, containerSize.height]);
 
   const pinchHandler = useAnimatedGestureHandler<
     PinchGestureHandlerGestureEvent,
@@ -117,15 +136,24 @@ export default function InteractiveMap({
       ctx.startFocalY = event.focalY;
     },
     onActive: (event, ctx) => {
-      const scaleW = screen.width / imageSize.width;
-      const scaleH = screen.height / imageSize.height;
-      const minScale = Math.max(scaleW, scaleH);
+      let scaleW, scaleH, minScale;
+      if (isAndroid) {
+        scaleW = containerSize.width / imageSize.width;
+        scaleH = containerSize.height / imageSize.height;
+        minScale = Math.max(scaleW, scaleH);
+      } else {
+        scaleW = screen.width / imageSize.width;
+        scaleH = screen.height / imageSize.height;
+        minScale = Math.max(scaleW, scaleH);
+      }
       const maxScale = 1;
       const newScale = clamp(ctx.startScale * event.scale, minScale, maxScale);
 
       // focal point relative to image center and current translate
-      const focalX = event.focalX - screen.width / 2 - ctx.startTranslateX;
-      const focalY = event.focalY - screen.height / 2 - ctx.startTranslateY;
+      const baseW = isAndroid ? containerSize.width : screen.width;
+      const baseH = isAndroid ? containerSize.height : screen.height;
+      const focalX = event.focalX - baseW / 2 - ctx.startTranslateX;
+      const focalY = event.focalY - baseH / 2 - ctx.startTranslateY;
 
       translateX.value = ctx.startTranslateX + (1 - event.scale) * focalX;
       translateY.value = ctx.startTranslateY + (1 - event.scale) * focalY;
@@ -134,18 +162,17 @@ export default function InteractiveMap({
       // Apply bounds
       const scaledWidth = imageSize.width * newScale;
       const scaledHeight = imageSize.height * newScale;
-      const boundX = Math.max(0, (scaledWidth - screen.width) / 2);
-      const boundY = Math.max(0, (scaledHeight - screen.height) / 2);
+      const boundX = Math.max(0, (scaledWidth - (isAndroid ? containerSize.width : screen.width)) / 2);
+      const boundY = Math.max(0, (scaledHeight - (isAndroid ? containerSize.height : screen.height)) / 2);
 
       translateX.value = clamp(translateX.value, -boundX, boundX);
       translateY.value = clamp(translateY.value, -boundY, boundY);
     },
     onEnd: () => {
-      // Smooth spring back to bounds if needed
       const scaledWidth = imageSize.width * scale.value;
       const scaledHeight = imageSize.height * scale.value;
-      const boundX = Math.max(0, (scaledWidth - screen.width) / 2);
-      const boundY = Math.max(0, (scaledHeight - screen.height) / 2);
+      const boundX = Math.max(0, (scaledWidth - (isAndroid ? containerSize.width : screen.width)) / 2);
+      const boundY = Math.max(0, (scaledHeight - (isAndroid ? containerSize.height : screen.height)) / 2);
 
       if (translateX.value < -boundX || translateX.value > boundX) {
         translateX.value = withSpring(
@@ -180,9 +207,8 @@ export default function InteractiveMap({
     onActive: (event, ctx) => {
       const scaledWidth = imageSize.width * scale.value;
       const scaledHeight = imageSize.height * scale.value;
-
-      const boundX = Math.max(0, (scaledWidth - screen.width) / 2);
-      const boundY = Math.max(0, (scaledHeight - screen.height) / 2);
+      const boundX = Math.max(0, (scaledWidth - (isAndroid ? containerSize.width : screen.width)) / 2);
+      const boundY = Math.max(0, (scaledHeight - (isAndroid ? containerSize.height : screen.height)) / 2);
 
       translateX.value = clamp(
         ctx.startX + event.translationX,
@@ -200,11 +226,10 @@ export default function InteractiveMap({
       panVelocityY.value = event.velocityY;
     },
     onEnd: () => {
-      // Apply decay animation for smooth momentum scrolling
       const scaledWidth = imageSize.width * scale.value;
       const scaledHeight = imageSize.height * scale.value;
-      const boundX = Math.max(0, (scaledWidth - screen.width) / 2);
-      const boundY = Math.max(0, (scaledHeight - screen.height) / 2);
+      const boundX = Math.max(0, (scaledWidth - (isAndroid ? containerSize.width : screen.width)) / 2);
+      const boundY = Math.max(0, (scaledHeight - (isAndroid ? containerSize.height : screen.height)) / 2);
 
       translateX.value = withDecay({
         velocity: panVelocityX.value * 0.8, // Dampen velocity
@@ -238,8 +263,26 @@ export default function InteractiveMap({
     };
   });
 
+  // Handler for tap on map to log absolute position
+  const handleMapPress = (event: any) => {
+    const { locationX, locationY, pageX, pageY } = event.nativeEvent;
+    let baseW = isAndroid ? containerSize.width : screen.width;
+    let baseH = isAndroid ? containerSize.height : screen.height;
+    const centerX = baseW / 2;
+    const centerY = baseH / 2;
+    const imgX = ((locationX - centerX - translateX.value) / scale.value) + imageSize.width / 2;
+    const imgY = ((locationY - centerY - translateY.value) / scale.value) + imageSize.height / 2;
+  };
+
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={isAndroid ? (e => {
+        const { width, height } = e.nativeEvent.layout;
+        setContainerSize({ width, height });
+        onContainerSize?.({ width, height });
+      }) : undefined}
+    >
       {!isImageLoaded && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#aaa" />
@@ -257,26 +300,61 @@ export default function InteractiveMap({
             simultaneousHandlers={[]}
           >
             <Animated.View style={styles.gestureContainer}>
-              <View style={styles.imageContainer}>
-                <Animated.View
-                  style={[
-                    { width: imageSize.width, height: imageSize.height },
-                    imageAnimatedStyle,
-                  ]}
-                >
-                  <Animated.Image
-                    source={mapsImage}
-                    style={[styles.image, !isImageLoaded && { opacity: 0 }]}
-                    resizeMode="contain"
-                    onLoad={() => setIsImageLoaded(true)}
-                    fadeDuration={300}
-                    progressiveRenderingEnabled={true}
-                  />
-                  <View style={styles.overlay} pointerEvents="none" />
-                  {/* Render children (markers) on top of the image, sharing the same transform */}
-                  {isImageLoaded && children}
-                </Animated.View>
-              </View>
+              {isAndroid ? (
+                <View style={{ width: containerSize.width, height: containerSize.height, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={styles.imageContainer}>
+                    <TouchableWithoutFeedback onPress={handleMapPress}>
+                      <Animated.View
+                        style={[
+                          { width: imageSize.width, height: imageSize.height },
+                          imageAnimatedStyle,
+                        ]}
+                      >
+                        <Animated.Image
+                          source={mapsImage}
+                          style={[
+                            styles.image,
+                            { width: imageSize.width, height: imageSize.height },
+                            !isImageLoaded && { opacity: 0 },
+                          ]}
+                          resizeMode={isAndroid ? 'stretch' : 'contain'}
+                          onLoad={() => setIsImageLoaded(true)}
+                          fadeDuration={300}
+                          progressiveRenderingEnabled={true}
+                        />
+                        <View style={styles.overlay} pointerEvents="none" />
+                        {isImageLoaded && children}
+                      </Animated.View>
+                    </TouchableWithoutFeedback>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.imageContainer}>
+                  <TouchableWithoutFeedback onPress={handleMapPress}>
+                    <Animated.View
+                      style={[
+                        { width: imageSize.width, height: imageSize.height },
+                        imageAnimatedStyle,
+                      ]}
+                    >
+                      <Animated.Image
+                        source={mapsImage}
+                        style={[
+                          styles.image,
+                          { width: imageSize.width, height: imageSize.height },
+                          !isImageLoaded && { opacity: 0 },
+                        ]}
+                        resizeMode="contain"
+                        onLoad={() => setIsImageLoaded(true)}
+                        fadeDuration={300}
+                        progressiveRenderingEnabled={true}
+                      />
+                      <View style={styles.overlay} pointerEvents="none" />
+                      {isImageLoaded && children}
+                    </Animated.View>
+                  </TouchableWithoutFeedback>
+                </View>
+              )}
             </Animated.View>
           </PinchGestureHandler>
         </Animated.View>
@@ -289,6 +367,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+
   },
   gestureContainer: {
     flex: 1,
