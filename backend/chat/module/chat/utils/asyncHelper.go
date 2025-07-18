@@ -309,10 +309,18 @@ func isValidChatMessage(msg *model.ChatMessage) bool {
 		(msg.Message != "" || msg.StickerID != nil || msg.FileName != "" ||
 			msg.EvoucherInfo != nil || msg.MentionInfo != nil || msg.ModerationInfo != nil)
 }
+func isValidChatMessage(msg *model.ChatMessage) bool {
+	return msg != nil &&
+		(msg.Message != "" || msg.StickerID != nil || msg.FileName != "" ||
+			msg.EvoucherInfo != nil || msg.MentionInfo != nil || msg.ModerationInfo != nil)
+}
 
 // **Job Processing**
 func (h *AsyncHelper) processDatabaseJob(job DatabaseJob, workerID int) {
 	var err error
+	if !isValidChatMessage(job.Message) {
+		// Process valid message
+		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
 	if !isValidChatMessage(job.Message) {
 		// Process valid message
 		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
@@ -487,6 +495,9 @@ func (h *AsyncHelper) processCacheMessageBatch(batch []DatabaseJob) error {
 }
 
 func (h *AsyncHelper) processNotificationJob(job NotificationJob, workerID int) {
+	if !isValidChatMessage(job.Message) {
+		// Process valid message
+		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
 	if !isValidChatMessage(job.Message) {
 		// Process valid message
 		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
