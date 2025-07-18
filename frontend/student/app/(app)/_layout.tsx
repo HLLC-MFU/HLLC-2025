@@ -1,24 +1,53 @@
-// (app)/_layout.tsx
-
-import { View, StyleSheet, ActivityIndicator, LogBox } from 'react-native';
-import { SplashScreen, Tabs, usePathname } from 'expo-router';
+import { View, StyleSheet, ActivityIndicator, LogBox, Animated, Platform } from 'react-native';
+import { router, SplashScreen, Tabs, usePathname } from 'expo-router';
 import { Redirect } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import useProfile from '@/hooks/useProfile';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import TabBar from '@/components/global/TabBar';
 import BackgroundScreen from '@/components/global/BackgroundScreen';
-import { useAppearance } from '@/hooks/useAppearance';
 import usePushNotification from '@/hooks/notifications/usePushNotification';
 import useDevice from '@/hooks/useDevice';
+import ProgressBar from '@/components/global/ProgressBar';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { GlassButton } from '@/components/ui/GlassButton';
+import NotificationModal from '@/components/global/NotificationModal';
+import AssetImage from '@/components/global/AssetImage';
+import { Bell } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useAppearance } from '@/hooks/useAppearance';
+import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 
+const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 export default function AppLayout() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
-  const assets = useAppearance();
+  const { assets } = useAppearance();
   const { initializePushNotification } = usePushNotification();
   const { registerDevice } = useDevice()
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  useEffect(() => {
+    async function setupBackgroundTask() {
+      try {
+        await registerBackgroundTaskAsync();
+        await syncStepsOnStartup();
+      } catch (e) {
+      }
+    }
+    setupBackgroundTask();
+  }, []);
+
+  const assetsImage = {
+    background: assets?.background ?? null,
+    profile: assets?.profile ?? null,
+    notification: assets?.notification ?? null,
+    progress: assets?.progress ?? null,
+    signOut: assets?.signOut ?? null,
+    lamduan: assets?.lamduan ?? null,
+  };
+  const isIndexPage = pathname === '/' || pathname === '/index';
+  const opacity = useRef(new Animated.Value(!isIndexPage ? 1 : 0)).current;
 
   useEffect(() => {
     getProfile().finally(() => {
@@ -30,24 +59,80 @@ export default function AppLayout() {
     });
   }, []);
 
+
+  useEffect(() => {
+    Animated.timing(opacity, {
+      toValue: isIndexPage ? 0 : 1,
+      useNativeDriver: true,
+    }).start();
+  }, [isIndexPage]);
+
+
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
   if (!user) return <Redirect href="/(auth)/login" />;
 
-  const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
+  const isCommunityRoute = /^\/community(\/.*)?$/.test(pathname) && pathname !== '/community/chat';
+
   LogBox.ignoreLogs([
-  'gl.pixelStorei() doesn\'t support this parameter yet',
-]);
+    'gl.pixelStorei() doesn\'t support this parameter yet',
+  ]);
 
   return (
     <View style={{ flex: 1 }}>
-      <BackgroundScreen 
-        background={assets?.assets?.background ?? null}
-        children={<BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />}
-      />
-      
+      <BackgroundScreen background={assetsImage?.background ?? null}>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity }]}>
+          <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
+        </Animated.View>
+      </BackgroundScreen>
+
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: isIndexPage ? 1 : 0 }]}>
+        <LinearGradient
+          colors={['rgba(0,0,0,0.8)', 'transparent']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.gradient, { top: 0 }]}
+        />
+
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.gradient, { bottom: 0 }]}
+        />
+      </Animated.View>
+      <SafeAreaView
+        style={{
+          display: isCommunityRoute ? 'none' : 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          paddingTop: Platform.OS === 'ios' ? 8 : 24,
+          paddingHorizontal: 16,
+        }}
+      >
+        <ProgressBar
+          avatarUrl={assetsImage.profile ?? undefined}
+          onClickAvatar={() => router.push('/profile')}
+        />
+        <GlassButton iconOnly onPress={() => setNotificationModalVisible(true)}>
+          {assetsImage.notification ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.notification}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <Bell fill={'white'} color="white" size={20} />
+          )}
+        </GlassButton>
+      </SafeAreaView>
       <Tabs
         screenOptions={{
-          sceneStyle: { backgroundColor: 'transparent' },
+          sceneStyle: { backgroundColor: 'transparent', paddingTop: isCommunityRoute ? 0 : Platform.OS === 'ios' ? 96 : 112, },
           headerShown: false,
           animation: "shift",
           transitionSpec: {
@@ -63,14 +148,27 @@ export default function AppLayout() {
             },
           }
         }}
-        tabBar={() => !isChatRoute ? <TabBar /> : null}
+        tabBar={() => <TabBar /> }
       >
-        <Tabs.Screen name="index" options={{ title: 'Home' }}/>
+        <Tabs.Screen name="index" options={{ title: 'Home' }} />
         <Tabs.Screen name="activities/index" options={{ title: 'Activities' }} />
         <Tabs.Screen name="qrcode" options={{ title: 'QR Code' }} />
         <Tabs.Screen name="evoucher/index" options={{ title: 'E-Voucher' }} />
-        <Tabs.Screen name="chat/index" options={{ title: 'Community' }} />
+        <Tabs.Screen name="community/chat/index" options={{ title: 'Community' }} />
       </Tabs>
+      <NotificationModal
+        visible={notificationModalVisible}
+        onClose={() => setNotificationModalVisible(false)}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  gradient: {
+    position: 'absolute',
+    height: 120,
+    left: 0,
+    right: 0,
+  },
+});

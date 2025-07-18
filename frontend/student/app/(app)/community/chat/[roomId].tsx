@@ -19,14 +19,14 @@ import { useTranslation } from 'react-i18next';
 import { BlurView } from 'expo-blur';
 
 // Hooks
-import { useChatRoom } from '../../../hooks/chats/useChatRoom';
+import { useChatRoom } from '../../../../hooks/chats/useChatRoom';
 import useProfile from '@/hooks/useProfile';
 
 // Types
-import { ChatRoom, RoomMember, Message } from '../../../types/chatTypes';
+import { ChatRoom, RoomMember, Message } from '../../../../types/chatTypes';
 
 // Styles
-import { chatStyles } from '../../../constants/chats/chatStyles';
+import { chatStyles } from '../../../../constants/chats/chatStyles';
 import ChatInput from '@/components/chats/ChatInput';
 import ErrorView from '@/components/chats/ErrorView';
 import JoinBanner from '@/components/chats/JoinBanner';
