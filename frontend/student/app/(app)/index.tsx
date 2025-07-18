@@ -18,8 +18,8 @@ import NotificationModal from '@/components/global/NotificationModal';
 import useDevice from '@/hooks/useDevice';
 import { useProgress } from '@/hooks/useProgress';
 import GooeyFabMenu from '@/components/GooeyFabMenu';
-import PretestModal from '@/components/pretest/PretestModal';
-import PosttestModal from '@/components/pretest/PosttestModal';
+import PretestModal from '@/components/prepost-modal/PretestModal';
+import PosttestModal from '@/components/prepost-modal/PosttestModal';
 import usePrePostModal from '@/hooks/usePrePostModal';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
