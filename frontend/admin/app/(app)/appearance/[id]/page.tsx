@@ -18,9 +18,8 @@ import useAppearance from '@/hooks/useAppearance';
 const uiSection = {
   background: [{ title: 'Background' }],
   header: [
-    { title: 'Progress' },
-    { title: 'Notification' },
     { title: 'Profile' },
+    { title: 'Notification' },
   ],
   navigation: [
     { title: 'Home' },
@@ -28,6 +27,12 @@ const uiSection = {
     { title: 'QRCode' },
     { title: 'EVoucher' },
     { title: 'Community' },
+  ],
+  menu: [
+    { title: 'Menu' },
+    { title: 'Step' },
+    { title: 'Coin' },
+    { title: 'Lamduan' },
   ],
 };
 

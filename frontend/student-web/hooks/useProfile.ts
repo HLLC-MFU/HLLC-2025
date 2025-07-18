@@ -67,6 +67,7 @@ export const useProfile = create<ProfileStore>()(
 
           if (!data) throw new Error('User not found');
 
+
           const majorName = data.metadata?.major?.name?.en ?? null;
           const schoolName = data.metadata?.major?.school?.name?.en ?? null;
           const schoolAcronym = data.metadata?.major?.school?.acronym ?? null;

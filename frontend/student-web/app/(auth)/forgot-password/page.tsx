@@ -45,6 +45,7 @@ export default function ResetPasswordPage({
   const [provinces, setProvinces] = useState<Province[]>([]);
   const router = useRouter();
   const { resetPassword } = useAuth();
+  const isSelectDisabled = isLoading;
 
   useEffect(() => {
     fetch('/data/province.json')
@@ -208,7 +209,7 @@ export default function ResetPasswordPage({
               onValueChange={setUsername}
             />
             <Select
-              disabled={disabled || isLoading}
+              isDisabled={isSelectDisabled}
               label="Province"
               radius="full"
               selectedKeys={[secret]}
