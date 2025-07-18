@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Modal, View, Text, Button, ActivityIndicator, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useLanguage } from '@/context/LanguageContext';
@@ -10,13 +10,20 @@ interface PretestModalProps {
   loading: boolean;
   error: string | null;
   onSubmit: (answers: Record<string, string>) => void;
+  onClose?: () => void; // เพิ่ม prop onClose
 }
 
-const PretestModal = ({ visible, questions, loading, error, onSubmit }:PretestModalProps) => {
+const PretestModal = ({ visible, questions, loading, error, onSubmit, onClose }:PretestModalProps) => {
   const { t, i18n } = useTranslation();
   // เก็บคำตอบแต่ละข้อ (key = question id, value = answer)
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, [visible]);
 
   const handleChange = (id: string, value: string) => {
     setAnswers(prev => ({ ...prev, [id]: value }));
@@ -25,7 +32,7 @@ const PretestModal = ({ visible, questions, loading, error, onSubmit }:PretestMo
   const handleSubmit = async () => {
     setSubmitting(true);
     await onSubmit(answers);
-    setSubmitting(false);
+    if (mounted.current) setSubmitting(false);
   };
 
   return (
@@ -33,7 +40,7 @@ const PretestModal = ({ visible, questions, loading, error, onSubmit }:PretestMo
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={() => {}}
+      onRequestClose={onClose} // ใช้ onClose
     >
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
         <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, minWidth: 320, maxHeight: '80%' }}>

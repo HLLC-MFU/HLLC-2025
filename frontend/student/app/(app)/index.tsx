@@ -4,9 +4,6 @@ import { router } from 'expo-router';
 
 import { Coins, Flower, Footprints } from 'lucide-react-native';
 import GooeyFabMenu from '@/components/GooeyFabMenu';
-import PretestModal from '@/components/prepost-modal/PretestModal';
-import PosttestModal from '@/components/prepost-modal/PosttestModal';
-import usePrePostModal from '@/hooks/usePrePostModal';
 
 
 export default function HomeScreen() {
@@ -33,23 +30,7 @@ export default function HomeScreen() {
   },
 ];
 
-  // Pretest modal hook
-  const {
-    modalVisible: pretestVisible,
-    questions: pretestQuestions,
-    loading: pretestLoading,
-    error: pretestError,
-    submit: submitPretest,
-  } = usePrePostModal({ type: 'pretest' });
 
-  // Posttest modal hook
-  const {
-    modalVisible: posttestVisible,
-    questions: posttestQuestions,
-    loading: posttestLoading,
-    error: posttestError,
-    submit: submitPosttest,
-  } = usePrePostModal({ type: 'posttest' });
 
   const content = (
     <SafeAreaView

@@ -43,10 +43,10 @@ export default function CoinHuntingScreen() {
   useEffect(() => {
     if (params.modal === 'success') {
       handleScannerSuccessWithRefresh(params.code ? { code: params.code as string } : undefined);
-      router.replace('/coin-hunting');
+      router.replace('/community/coin-hunting');
     } else if (params.modal === 'alert' && params.type) {
       handleAlert(params.type as any, params.remainingCooldownMs ? Number(params.remainingCooldownMs) : undefined);
-      router.replace('/coin-hunting');
+      router.replace('/community/coin-hunting');
     }
   }, [params.modal, params.type, params.code, params.remainingCooldownMs, handleScannerSuccessWithRefresh]);
 

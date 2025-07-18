@@ -108,7 +108,7 @@ export default function QRCodeScreen() {
   const goToCoinHuntingModal = (params: Record<string, any>) => {
     resetScanner();
     setTimeout(() => {
-      router.replace({ pathname: '/coin-hunting', params });
+      router.replace({ pathname: '/community/coin-hunting', params });
     }, 100);
   };
 

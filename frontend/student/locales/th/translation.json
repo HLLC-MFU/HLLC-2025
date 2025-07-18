@@ -159,7 +159,8 @@
         "online": "ออนไลน์"
     },
     "coinHunting": {
-        "collection": "คอลเลกชัน",
+        "collection": "14 ผลึกผู้พิทักษ์",
+        "sponsorCollection": "รางวัลพิเศษ",
         "checkInNow": "เช็คอินเลย",
         "collected": "เก็บเหรียญแล้ว"
     },

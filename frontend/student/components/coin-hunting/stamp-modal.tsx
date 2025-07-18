@@ -196,7 +196,11 @@ export default function StampModal({
         onPress={showNewCoinEffect ? handleTapToPlace : undefined}
       >
         <View style={styles.modalContent}>
-          <Text style={styles.title}>{t('coinHunting.collection')}</Text>
+          <Text style={styles.title}>
+            {currentPage === 0
+              ? t('coinHunting.collection')
+              : t('coinHunting.sponsorCollection')}
+          </Text>
           <View style={styles.stampHexGridContainer}>
             {currentPage === 0 && showFirework && (
               <>

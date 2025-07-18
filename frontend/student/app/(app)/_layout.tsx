@@ -17,6 +17,9 @@ import { Bell } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppearance } from '@/hooks/useAppearance';
 import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
+import PretestModal from '@/components/prepost-modal/PretestModal';
+import PosttestModal from '@/components/prepost-modal/PosttestModal';
+import usePrePostModal from '@/hooks/usePrePostModal';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 export default function AppLayout() {
@@ -27,6 +30,26 @@ export default function AppLayout() {
   const { initializePushNotification } = usePushNotification();
   const { registerDevice } = useDevice()
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+
+  // Pretest modal hook
+  const {
+    modalVisible: pretestVisible,
+    questions: pretestQuestions,
+    loading: pretestLoading,
+    error: pretestError,
+    submit: submitPretest,
+    closeModal: closePretestModal,
+  } = usePrePostModal({ type: 'pretest' });
+
+  // Posttest modal hook
+  const {
+    modalVisible: posttestVisible,
+    questions: posttestQuestions,
+    loading: posttestLoading,
+    error: posttestError,
+    submit: submitPosttest,
+  } = usePrePostModal({ type: 'posttest' });
+
   useEffect(() => {
     async function setupBackgroundTask() {
       try {
@@ -159,6 +182,21 @@ export default function AppLayout() {
       <NotificationModal
         visible={notificationModalVisible}
         onClose={() => setNotificationModalVisible(false)}
+      />
+      <PretestModal
+        visible={pretestVisible}
+        questions={pretestQuestions}
+        loading={pretestLoading}
+        error={pretestError}
+        onSubmit={submitPretest}
+        onClose={closePretestModal}
+      />
+      <PosttestModal
+        visible={posttestVisible}
+        questions={posttestQuestions}
+        loading={posttestLoading}
+        error={posttestError}
+        onSubmit={submitPosttest}
       />
     </View>
   );

@@ -7,9 +7,10 @@ export type PrePostType = 'pretest' | 'posttest';
 
 interface UsePrePostModalOptions {
   type: PrePostType;
+  progress?: number; // เพิ่มรับ progress เป็น prop
 }
 
-export default function usePrePostModal({ type }: UsePrePostModalOptions) {
+export default function usePrePostModal({ type, progress }: UsePrePostModalOptions) {
   const { t } = useTranslation();
   const toast = useToastController();
   // State สำหรับข้อมูล pretest/posttest
@@ -18,19 +19,28 @@ export default function usePrePostModal({ type }: UsePrePostModalOptions) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<any[]>([]); // TODO: ใส่ type ที่ถูกต้อง
+  const [posttestDueDate, setPosttestDueDate] = useState<boolean>(false); // เพิ่ม state
 
   // ดึงสถานะว่าทำ pretest/posttest แล้วหรือยัง
   const fetchStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const url = type === 'pretest' ? '/pretest-answers/user' : '/posttest-answers/user';
-      const res = await apiRequest<{ data: boolean }>(url, 'GET');
-      setIsDone(res.data?.data ?? false);
-      setModalVisible(!(res.data?.data ?? false));
+      if (type === 'pretest') {
+        const res = await apiRequest<{ data: boolean }>('/pretest-answers/user', 'GET');
+        setIsDone(res.data?.data ?? false);
+        setModalVisible(!(res.data?.data ?? false));
+      } else {
+        // posttest
+        const res = await apiRequest<{ data: boolean; dueDate: boolean }>('/posttest-answers/user', 'GET');
+        setIsDone(res.data?.data ?? false);
+        setPosttestDueDate(res.data?.dueDate ?? false);
+        setModalVisible(!(res.data?.data ?? false));
+      }
     } catch (err) {
       setIsDone(false);
       setModalVisible(true);
       setError(type === 'pretest' ? 'ไม่สามารถเช็คสถานะ pretest ได้' : 'ไม่สามารถเช็คสถานะ posttest ได้');
+      if (type === 'posttest') setPosttestDueDate(false);
     } finally {
       setLoading(false);
     }
@@ -40,7 +50,7 @@ export default function usePrePostModal({ type }: UsePrePostModalOptions) {
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiRequest<{ data: any[] }>('/prepost-questions', 'GET');
+      const res = await apiRequest<{ data: any[] }>('/prepost-questions?page=1&limit=30', 'GET');
       // filter เฉพาะ pretest หรือ posttest
       const allQuestions = Array.isArray(res.data?.data) ? res.data.data : [];
       const filteredQuestions = allQuestions.filter(q => q.displayType === type);
@@ -85,13 +95,25 @@ export default function usePrePostModal({ type }: UsePrePostModalOptions) {
     if (isDone) return; // ถ้าทำเสร็จแล้ว ไม่ต้อง fetch หรือเปิด modal
     fetchStatus();
     fetchQuestions();
-  }, [isDone, fetchStatus, fetchQuestions]);
+  }, [isDone, fetchStatus, fetchQuestions, type]);
+
+  // เงื่อนไขเปิด modal อัตโนมัติสำหรับ posttest
+  useEffect(() => {
+    if (
+      type === 'posttest' &&
+      posttestDueDate === true &&
+      (progress ?? 0) >= 80 &&
+      isDone === false
+    ) {
+      setModalVisible(true);
+    }
+  }, [type, posttestDueDate, progress, isDone]);
 
   const openModal = useCallback(() => setModalVisible(true), []);
   const closeModal = useCallback(() => setModalVisible(false), []);
 
   return {
-    isDone,
+    isDone, // == hasPosttestAnswers
     modalVisible,
     loading,
     error,
@@ -101,5 +123,7 @@ export default function usePrePostModal({ type }: UsePrePostModalOptions) {
     closeModal,
     fetchStatus,
     fetchQuestions,
+    posttestDueDate, // เพิ่มออกไป
+    progress,        // รับมาจาก prop
   };
 } 
