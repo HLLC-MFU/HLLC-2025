@@ -49,7 +49,7 @@ export class LamduanFlowersService {
 
     @InjectModel(Activities.name)
     private activityModel: Model<ActivityDocument>,
-  ) {}
+  ) { }
 
   async create(createLamduanFlowerDto: CreateLamduanFlowerDto) {
     await findOrThrow(
@@ -119,10 +119,43 @@ export class LamduanFlowersService {
   }
 
   async update(id: string, updateLamduanFlowerDto: UpdateLamduanFlowerDto) {
+    const userId = new Types.ObjectId(updateLamduanFlowerDto.user);
+    const settingId = new Types.ObjectId(updateLamduanFlowerDto.setting);
+
+    const lamduanFlowers = {
+      ...updateLamduanFlowerDto,
+      user: userId,
+      setting: settingId,
+    };
+
+    const activity = await this.activityModel.findOne({
+      'name.en': { $regex: '^Lamduan Flowers$', $options: 'i' },
+    });
+
+    if (!activity) {
+      throw new Error('Activity "Lamduan Flowers" not found');
+    }
+
+    // ตรวจสอบว่ามี checkin อยู่แล้วหรือยัง
+    const existingCheckin = await this.checkinModel.findOne({
+      user: userId,
+      activity: activity._id,
+    });
+
+    if (!existingCheckin) {
+      const newCheckin = new this.checkinModel({
+        user: userId,
+        staff: userId,
+        activity: activity._id,
+      });
+      await newCheckin.save();
+    }
+
+    // อัปเดตดอกลำดวน
     return queryUpdateOne<LamduanFlowers>(
       this.lamduanflowersModel,
       id,
-      updateLamduanFlowerDto,
+      lamduanFlowers,
     );
   }
 
