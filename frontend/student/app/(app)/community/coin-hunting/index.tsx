@@ -34,6 +34,8 @@ export default function CoinHuntingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 1, height: 1 });
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 1, height: 1 });
 
   const handleScannerSuccessWithRefresh = useCallback((data?: any) => {
     handleScannerSuccess(data);
@@ -57,13 +59,18 @@ export default function CoinHuntingScreen() {
         onStamp={() => handleGoToStamp()}
         centerText="Bloom possible"
       />
-      <InteractiveMap>
+      <InteractiveMap
+        onImageLoad={size => setImageSize(size)}
+        onContainerSize={size => setContainerSize(size)}
+      >
         <MapMarkers
           markers={markers}
           collectedIds={collectedIds}
           loading={loadingMarkers}
           error={errorMarkers}
           onMarkerPress={handleMarkerPress}
+          imageSize={imageSize}
+          containerSize={containerSize}
         />
       </InteractiveMap>
       <MarkerDetailModal
