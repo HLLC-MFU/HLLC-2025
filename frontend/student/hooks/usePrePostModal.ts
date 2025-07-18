@@ -55,7 +55,7 @@ export default function usePrePostModal({ type, progress }: UsePrePostModalOptio
       if (type === 'pretest') {
         const hasQuestion = filteredQuestions.length > 0;
         setHasPretestQuestions(hasQuestion);
-        setModalVisible(hasQuestion);
+        if (!isDone) setModalVisible(hasQuestion);
       }
 
       if (type === 'posttest') {
@@ -68,7 +68,7 @@ export default function usePrePostModal({ type, progress }: UsePrePostModalOptio
     } finally {
       setLoading(false);
     }
-  }, [type]);
+  }, [type, isDone]);
 
   const submit = useCallback(async (answerData: any = {}) => {
     setLoading(true);
