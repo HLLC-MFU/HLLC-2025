@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useTranslation } from 'react-i18next';
 
 interface StatusModalProps {
   isVisible: boolean;
@@ -17,12 +18,14 @@ interface StatusModalProps {
 }
 
 export default function StatusModal({ isVisible, onClose, status }: StatusModalProps) {
+  const { t, i18n } = useTranslation();
+
   const getStatusMessage = () => {
     switch (status) {
       case 'not-started':
-        return 'The activity has not started yet.';
+        return t('lamduanflower.notStarted');
       case 'ended':
-        return 'The activity has ended.';
+        return t('lamduanflower.ended');
       case 'active':
       default:
         return '';
@@ -33,11 +36,11 @@ export default function StatusModal({ isVisible, onClose, status }: StatusModalP
 
   const ModalContent = (
     <View style={Platform.OS === 'ios' ? styles.modalBoxIOS : styles.modalBoxAndroid}>
-      <Text style={styles.headerText}>Warning</Text>
+      <Text style={styles.headerText}>{t('lamduanflower.warning')}</Text>
       <Text style={styles.bodyText}>{getStatusMessage()}</Text>
 
       <TouchableOpacity style={styles.okButton} onPress={onClose}>
-        <Text style={styles.okText}>OK</Text>
+        <Text style={styles.okText}>{t('lamduanflower.ok')}</Text>
       </TouchableOpacity>
     </View>
   );
