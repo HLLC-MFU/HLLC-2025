@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { Camera, Image as Gallery } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
 type SelectPhotoModalProps = {
   visible: boolean
@@ -24,9 +25,12 @@ export default function SelectPhotoModal({
   onTakePhoto,
   onPickImage,
 }: SelectPhotoModalProps) {
+
+  const { t, i18n } = useTranslation();
+
   const ModalContent = (
     <View style={Platform.OS === 'ios' ? styles.modalBoxIOS : styles.modalBoxAndroid}>
-      <Text style={styles.modalTitle}>Upload Picture</Text>
+      <Text style={styles.modalTitle}>{t('lamduanflower.uploadPicture')}</Text>
 
       <TouchableOpacity
         style={styles.glassButton}
@@ -36,7 +40,7 @@ export default function SelectPhotoModal({
         }}
       >
         <Camera size={18} color="#fff" style={{ marginRight: 8 }} />
-        <Text style={styles.buttonText}>Take Photo</Text>
+        <Text style={styles.buttonText}>{t('lamduanflower.takePhoto')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -47,11 +51,11 @@ export default function SelectPhotoModal({
         }}
       >
         <Gallery size={18} color="#fff" style={{ marginRight: 8 }} />
-        <Text style={styles.buttonText}>Choose from Gallery</Text>
+        <Text style={styles.buttonText}>{t('lamduanflower.chooseFormGallery')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-        <Text style={styles.cancelText}>Cancel</Text>
+        <Text style={styles.cancelText}>{t('lamduanflower.cancel')}</Text>
       </TouchableOpacity>
     </View>
   )

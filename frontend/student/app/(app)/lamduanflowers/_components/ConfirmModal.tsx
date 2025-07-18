@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmModalProps {
   isVisible: boolean;
@@ -25,25 +26,23 @@ export default function ConfirmModal({
   username,
   mode = 'submit',
 }: ConfirmModalProps) {
+
+  const { t, i18n } = useTranslation();
+
   const ModalContent = (
     <View style={Platform.OS === 'ios' ? styles.modalBoxIOS : styles.modalBoxAndroid}>
       <Text style={styles.headerText}>
-        {mode === 'save' ? 'Confirm Save' : 'Confirm Submission'}
+        {mode === 'save' ? t('lamduanflower.confirmSave') : t('lamduanflower.confirmSubmit')}
       </Text>
 
-      <Text style={styles.bodyText}>
-        Are you sure you want to {mode === 'save' ? 'save changes' : 'submit'}
-        {username ? ` as ${username}` : ''}?
-      </Text>
-
-      <Text style={styles.noteText}>This action cannot be undone.</Text>
+      <Text style={styles.noteText}>{t('lamduanflower.actioncannot')}</Text>
 
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.cancelText}>Cancel</Text>
+          <Text style={styles.cancelText}>{t('lamduanflower.cancel')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.confirmButton} onPress={onConfirm}>
-          <Text style={styles.confirmText}>Confirm</Text>
+          <Text style={styles.confirmText}>{t('lamduanflower.confirm')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -82,7 +81,7 @@ const styles = StyleSheet.create({
   modalBoxIOS: {
     width: '85%',
     borderRadius: 20,
-    padding: 24,
+    padding: 30,
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1,
@@ -91,14 +90,14 @@ const styles = StyleSheet.create({
   modalBoxAndroid: {
     width: '85%',
     borderRadius: 20,
-    padding: 24,
+    padding: 30,
     backgroundColor: 'rgba(136, 136, 136, 0.75)',
     borderColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1,
     alignItems: 'center',
   },
   headerText: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '600',
     color: '#fff',
     marginBottom: 12,
@@ -119,7 +118,7 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: 30,
   },
   cancelButton: {
     marginRight: 12,
