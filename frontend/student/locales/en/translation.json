@@ -85,7 +85,9 @@
         "back": "Back to Home",
         "delete_confirm_title": "Confirm Account Delete",
         "delete_confirm_message": "Are you sure you want to delete your account? This action cannot be undone.",
-        "logout": "Logout"
+        "logout": "Logout",
+        "switch_to_thai": "Switch to Thai",
+        "switch_to_english": "Switch to English"
     },
     "nav": {
         "welcome": "Welcome Back",
@@ -236,7 +238,7 @@
             "updateSuccess": "Update Success",
             "updatedSuccessfully": "Flower updated successfully!",
             "error" : "Error",
-            "errorSubmit" : "Error submitting flower" 
+            "errorSubmit" : "Error submitting flower"
         }
     }
 }

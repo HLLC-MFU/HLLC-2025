@@ -86,14 +86,7 @@ export default function MarkerDetailModal({
                       styles.modalButton,
                       isCollected && styles.modalButtonDisabled
                     ]}
-                    onPress={() => {
-                      if (!isCollected) {
-                        onClose();
-                        setTimeout(() => {
-                          router.push({ pathname: '/qrcode', params: { tab: 'scan' } });
-                        }, 200);
-                      }
-                    }}
+                    onPress={onCheckIn}
                     disabled={isCollected}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>

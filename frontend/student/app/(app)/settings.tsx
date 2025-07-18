@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Alert, Linking, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Alert, Linking, Modal, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassButton } from '@/components/ui/GlassButton';
 import { router } from 'expo-router';
@@ -51,12 +51,14 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.center}>
+      <ScrollView contentContainerStyle={styles.center} showsVerticalScrollIndicator={false}>
         <Text style={styles.text}>{t('settings.title')}</Text>
         <GlassButton onPress={toggleLanguage}>
           <View style={styles.row}>
             <Globe color="white" size={20} style={styles.icon} />
-            <Text style={{ color: 'white' }}>{t('settings.language')}</Text>
+            <Text style={{ color: 'white' }}>
+              {language === 'en' ? t('settings.switch_to_thai') : t('settings.switch_to_english')}
+            </Text>
           </View>
         </GlassButton>
         <GlassButton onPress={() => setShowDeleteConfirm(true)}>
@@ -84,7 +86,7 @@ export default function SettingsScreen() {
         <GlassButton onPress={() => router.back()}>
           <Text style={{ color: 'white' }}>{t('settings.back')}</Text>
         </GlassButton>
-      </View>
+      </ScrollView>
       <Modal
         visible={showPolicy}
         transparent
@@ -126,12 +128,15 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: undefined, // keep as is or set if needed
   },
   center: {
-    flex: 1,
-    justifyContent: 'center',
+    flexGrow: 1,
+    justifyContent: 'flex-start',
     alignItems: 'center',
     gap: 24,
+    paddingVertical: 48,
+    minHeight: '100%',
   },
   text: {
     color: 'white',
