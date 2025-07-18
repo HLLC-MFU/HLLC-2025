@@ -22,7 +22,7 @@ export function useActivities(options?: { autoFetch?: boolean; useCanCheckin?: b
         setError(null);
         try {
             const [activitiesRes, typesRes] = await Promise.all([
-                apiRequest< Activities[] >(
+                apiRequest<Activities[]>(
                     '/activities',
                     'GET',
                 ),
@@ -31,13 +31,16 @@ export function useActivities(options?: { autoFetch?: boolean; useCanCheckin?: b
                     'GET',
                 ),
             ]);
-            
-            if (activitiesRes.data) {
-                setActivities(activitiesRes.data);
+
+            if (activitiesRes?.data) {
+                setActivities(activitiesRes?.data);
             }
 
+            console.log(activitiesRes.data);
+
+
             if (typesRes.data?.data) {
-                setActivityTypes(typesRes.data.data);
+                setActivityTypes(typesRes?.data?.data);
             }
         } catch (err) {
             const errorMessage = err && typeof err === 'object' && 'message' in err
@@ -114,9 +117,6 @@ export function useActivities(options?: { autoFetch?: boolean; useCanCheckin?: b
                 '/activities',
                 'POST',
                 formData,
-                {
-                    credentials: 'include',
-                }
             );
 
             if (res.data) {
