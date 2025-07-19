@@ -13,8 +13,10 @@ import { Eye, EyeOff, Settings, TriangleAlert } from 'lucide-react';
 import { ReportModal } from '../report/page';
 import { useAppearances } from '@/hooks/useAppearances';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { schoolAcronym } = useProfile();
   const { assets } = useAppearances();
 
@@ -22,7 +24,7 @@ export default function ProfilePage() {
   const [isReportOpen, setIsReportOpen] = useState(false);
 
   return (
-    <div className="flex flex-col justify-between fixed inset-0 pt-6 pb-16 px-4 z-50">
+    <div className="flex flex-col justify-between fixed inset-0 pt-24 pb-16 px-4 z-50">
       <div className="flex flex-col self-end gap-2 z-50">
         <Button
           className="bg-black/10 border rounded-full"
@@ -58,7 +60,7 @@ export default function ProfilePage() {
           className="bg-black/10 border rounded-full"
           size="lg"
           isIconOnly
-          onPress={() => { }}
+          onPress={() => {router.replace('/settings')}}
         >
           {(assets && assets.settings) ? (
             <Image
@@ -105,7 +107,7 @@ export default function ProfilePage() {
         }}
       >
         {schoolAcronym ? <SceneLights /> : <ambientLight intensity={0.05} />}
-        <Scene schoolAcronym={schoolAcronym} />
+        {/* <Scene schoolAcronym={schoolAcronym} /> */}
         <OrbitControls
           minDistance={10}
           maxDistance={15}
