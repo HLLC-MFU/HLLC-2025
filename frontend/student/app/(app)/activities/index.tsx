@@ -85,16 +85,23 @@ export default function ActivitiesPage() {
 
   // Find the nearest upcoming activity (end date in the future)
   const now = Date.now()
-  const upcomingActivity =
-    activities
-      .filter((a) => {
-        const endAt = new Date(a.metadata?.endAt).getTime()
-        return !isNaN(endAt) && endAt > now
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.metadata.startAt).getTime() - new Date(b.metadata.startAt).getTime()
-      )[0] ?? null
+  const sortedUpcomingActivities = activities
+    .filter((a) => {
+      const endAt = new Date(a.metadata?.endAt).getTime()
+      return !isNaN(endAt) && endAt > now
+    })
+    .sort(
+      (a, b) =>
+        new Date(a.metadata.startAt).getTime() - new Date(b.metadata.startAt).getTime()
+    )
+
+  let upcomingActivities: UserActivity[] = []
+  if (sortedUpcomingActivities.length > 0) {
+    const firstStartAt = new Date(sortedUpcomingActivities[0].metadata.startAt).getTime()
+    upcomingActivities = sortedUpcomingActivities.filter(
+      (a) => new Date(a.metadata.startAt).getTime() === firstStartAt
+    )
+  }
 
   // Navigate to activity details and store selected activity
   const handleActivityPress = (activity: UserActivity) => {
@@ -132,16 +139,21 @@ export default function ActivitiesPage() {
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
               {/* Upcoming Activity Section */}
-              {upcomingActivity && (
+              {upcomingActivities.length > 0 && (
                 <>
                   <YStack gap="$3" marginBottom="$5">
                     <H4 fontWeight="bold" color="white">
                       {t("activity.upcoming")}
                     </H4>
-                    <ActivityCard
-                      activity={upcomingActivity}
-                      onPress={() => handleActivityPress(upcomingActivity)}
-                    />
+                    <XStack flexWrap="wrap" justifyContent="space-between">
+                      {upcomingActivities.map((activity) => (
+                        <ActivityCard
+                          key={activity._id}
+                          activity={activity}
+                          onPress={() => handleActivityPress(activity)}
+                        />
+                      ))}
+                    </XStack>
                   </YStack>
                   <Separator marginVertical="$2" />
                 </>
