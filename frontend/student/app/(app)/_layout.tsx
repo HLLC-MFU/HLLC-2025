@@ -159,6 +159,7 @@ export default function AppLayout() {
         }}
       >
         <ProgressBar
+          avatarUrl={user?.data[0].metadata.major.school.photos?.avatar ?? assets.profile}
           progress={progress?.progressPercentage ?? 0}
           onClickAvatar={() => router.push('/profile')}
         />
