@@ -42,6 +42,11 @@ const AssessmentModal = ({ visible, onClose, activity }: AssessmentModalProps) =
           setAssessmentAnswers({})
         })
         .finally(() => setAssessmentLoading(false))
+    } else if (!visible) {
+      // Reset state when modal is closed
+      setAssessmentQuestions([])
+      setAssessmentAnswers({})
+      setAssessmentLoading(false)
     }
   }, [visible, activity?._id])
 
@@ -76,8 +81,8 @@ const AssessmentModal = ({ visible, onClose, activity }: AssessmentModalProps) =
           type: 'success',
         });
         fetchProgress()
+        onClose() // ปิด modal เฉพาะเมื่อส่งสำเร็จ
       }
-      onClose()
     } catch (e) {
       toast.show(t('assessment.failed'), {
         type: 'error',
@@ -88,6 +93,11 @@ const AssessmentModal = ({ visible, onClose, activity }: AssessmentModalProps) =
   }
 
   const gradientColors = ["#ef4444", "#f59e42", "#fde047", "#a7f3d0", "#22c55e"];
+
+  // Don't render modal if no activity is selected
+  if (!activity) {
+    return null
+  }
 
   return (
     <Modal visible={visible} animationType="fade" transparent>
@@ -159,17 +169,6 @@ const AssessmentModal = ({ visible, onClose, activity }: AssessmentModalProps) =
               )}
               {/* Action Buttons */}
               <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 16 }}>
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <Button
-                    backgroundColor="#f3f4f6"
-                    color="#222"
-                    borderRadius={12}
-                    onPress={onClose}
-                    disabled={assessmentSubmitting}
-                  >
-                    <Text>{t("assessment.cancel", "CANCEL")}</Text>
-                  </Button>
-                </View>
                 <View style={{ flex: 1, marginLeft: 8 }}>
                   <Button
                     backgroundColor={canSubmitAssessment ? "#22c55e" : "#a7f3d0"}

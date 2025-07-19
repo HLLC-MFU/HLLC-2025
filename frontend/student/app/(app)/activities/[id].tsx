@@ -15,6 +15,8 @@ import AssessmentModal from "./_components/AssessmentModal"
 import { getStatusBadge } from "@/utils/activityStatus"
 import { MapPin } from "lucide-react-native"
 import { useLanguage } from "@/context/LanguageContext"
+import { useProgress } from "@/hooks/useProgress"
+import { getRefreshActivitiesGlobal } from "./index"
 
 
 export default function ActivityDetailPage() {
@@ -22,7 +24,37 @@ export default function ActivityDetailPage() {
   const [selectedTab, setSelectedTab] = useState<"details" | "timeline">("details")
   const { t } = useTranslation()
   const [showAssessmentModal, setShowAssessmentModal] = useState(false)
+  const [hasShownAssessmentModal, setHasShownAssessmentModal] = useState(false)
   const { language } = useLanguage()
+  const { fetchProgress } = useProgress()
+  
+  // Check if activity needs assessment when component mounts
+  useEffect(() => {
+    if (activity && !hasShownAssessmentModal) {
+      const now = Date.now()
+      const endAt = new Date(activity.metadata?.endAt).getTime()
+      const isActivityEnded = !isNaN(endAt) && endAt < now
+      const isCheckedIn = activity.checkinStatus === 3
+      const hasNotAnsweredAssessment = !activity.hasAnsweredAssessment
+      
+      if (isActivityEnded && isCheckedIn && hasNotAnsweredAssessment) {
+        setShowAssessmentModal(true)
+        setHasShownAssessmentModal(true)
+      }
+    }
+  }, [activity, hasShownAssessmentModal])
+
+  // Handle assessment modal close
+  const handleAssessmentClose = async () => {
+    setShowAssessmentModal(false)
+    // Refresh activities from index.tsx first, then progress
+    const refreshActivities = getRefreshActivitiesGlobal()
+    if (refreshActivities) {
+      await refreshActivities()
+    }
+    fetchProgress()
+  }
+  
   if (!activity) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -354,7 +386,7 @@ export default function ActivityDetailPage() {
       )}
       <AssessmentModal
         visible={showAssessmentModal}
-        onClose={() => setShowAssessmentModal(false)}
+        onClose={handleAssessmentClose}
         activity={activity}
       />
     </View>
