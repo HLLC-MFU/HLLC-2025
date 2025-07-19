@@ -1,8 +1,8 @@
 'use client'
 import { PageHeader } from "@/components/ui/page-header";
 import { useActivities } from "@/hooks/useActivities";
-import { Accordion, AccordionItem, addToast, Button } from "@heroui/react";
-import { University, Plus } from "lucide-react";
+import { Accordion, AccordionItem, addToast, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, useUser } from "@heroui/react";
+import { University, Plus, EllipsisVertical, Pen, Trash } from "lucide-react";
 import ActivitiesTable from "./_components/ActivitiesTable";
 import { useMemo, useState } from "react";
 import { ActivitiesTypeModal } from "./_components/ActivitiesTypeModal";
@@ -10,9 +10,15 @@ import { Activities, ActivityType } from "@/types/activities";
 import ActivitiesModal from "./_components/ActivitiesModal";
 import TopContent from "./_components/TopContent";
 import { ConfirmModal } from "./_components/ConfirmModal";
+import { useSchools } from "@/hooks/useSchool";
+import { useMajors } from "@/hooks/useMajor";
+import { useUsers } from "@/hooks/useUsers";
 
 export default function ActivitiesPage() {
-    const { activities, activityTypes, loading, updateActivityType, createActivityType, fetchActivities, updateActivity, createActivity, deleteActivity } = useActivities({ autoFetch: true });
+    const { activities, activityTypes, loading, updateActivityType, createActivityType, fetchActivities, updateActivity, createActivity, deleteActivity, deleteActivityType } = useActivities({ autoFetch: true });
+    const { schools } = useSchools();
+    const { majors } = useMajors();
+    const { users } = useUsers();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedActivitiesType, setSelectedActivitiesType] = useState<ActivityType | undefined>();
     const [selectedActivity, setSelectedActivity] = useState<Activities | undefined>();
@@ -21,6 +27,8 @@ export default function ActivitiesPage() {
     const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
     const [filterValue, setFilterValue] = useState("");
     const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+    const [isConfirmTypeOpen, setIsConfirmTypeOpen] = useState(false);
+    const [selectedActivitiesTypeToDelete, setSelectedActivitiesTypeToDelete] = useState<ActivityType | undefined>()
 
     const filteredActivities = useMemo(() => {
         if (!activities) return [];
@@ -59,9 +67,51 @@ export default function ActivitiesPage() {
         setIsActivityModalOpen(true);
     };
 
+    const handleAddType = () => {
+        setModalMode('add');
+        setSelectedActivitiesType(undefined);
+        setIsTypeModalOpen(true);
+    };
+
+    const handleEditType = (activityType: ActivityType) => {
+        setModalMode('edit');
+        setSelectedActivitiesType(activityType);
+        setIsTypeModalOpen(true);
+    };
+
+
     const handleDeleteActivity = (activity: Activities) => {
         setSelectedActivity(activity);
         setIsConfirmOpen(true);
+    };
+
+    const handleDeleteType = (activityType: ActivityType) => {
+        setSelectedActivitiesTypeToDelete(activityType);
+        setIsConfirmTypeOpen(true);
+    };
+
+    const handleConfirmDeleteType = async () => {
+        if (!selectedActivitiesTypeToDelete) return;
+
+        try {
+            // สมมติว่า deleteActivityType มีใน useActivities (เพิ่มเองถ้ายังไม่มี)
+            await deleteActivityType(selectedActivitiesTypeToDelete._id);
+            await fetchActivities();
+            addToast({
+                title: 'Deleted',
+                description: 'Activity type deleted successfully.',
+                color: 'success'
+            });
+        } catch (error) {
+            addToast({
+                title: 'Error',
+                description: 'Failed to delete activity type.',
+                color: 'danger',
+            });
+        } finally {
+            setIsConfirmTypeOpen(false);
+            setSelectedActivitiesTypeToDelete(undefined);
+        }
     };
 
     const handleConfirmDeleteActivity = async () => {
@@ -126,7 +176,7 @@ export default function ActivitiesPage() {
                         color="primary"
                         endContent={<Plus size={20} />}
                         size="lg"
-                        onPress={() => setIsTypeModalOpen(true)}
+                        onPress={handleAddType}
                     >
                         New Type
                     </Button>
@@ -158,12 +208,14 @@ export default function ActivitiesPage() {
                                 className="font-medium mb-2"
                                 title={activityName}
                             >
-                                <div className="mb-5">
+                                <div className="mb-5 flex justify-between w-full">
                                     <TopContent
                                         filterValue={searchQuery}
                                         onClear={() => setSearchQuery("")}
                                         onSearchChange={setSearchQuery}
                                         onAdd={() => handleAddActivity(activityType)}
+                                        onEdit={() => handleEditType(activityType)}
+                                        onDelete={() => handleDeleteType(activityType)}
                                     />
                                 </div>
 
@@ -197,6 +249,9 @@ export default function ActivitiesPage() {
                 activity={selectedActivity}
                 typeId={selectedActivitiesType?._id ?? ""}
                 activityTypes={activityTypes}
+                schools={schools}
+                majors={majors}
+                users={users}
             />
 
             <ActivitiesTypeModal
@@ -206,13 +261,21 @@ export default function ActivitiesPage() {
                 onClose={() => setIsTypeModalOpen(false)}
                 onSubmit={handleSubmitType}
             />
-
+            {/* Confirm modal สำหรับลบ Activity */}
             <ConfirmModal
                 isOpen={isConfirmOpen}
                 subtitle="Are you sure you want to delete this activity?"
                 title="Confirm Delete"
                 onClose={() => setIsConfirmOpen(false)}
                 onConfirm={handleConfirmDeleteActivity}
+            />
+            {/* Confirm modal สำหรับลบ Activity Type */}
+            <ConfirmModal
+                isOpen={isConfirmTypeOpen}
+                subtitle="Are you sure you want to delete this activity type?"
+                title="Confirm Delete Type"
+                onClose={() => setIsConfirmTypeOpen(false)}
+                onConfirm={handleConfirmDeleteType}
             />
         </>
     )

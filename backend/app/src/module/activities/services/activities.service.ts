@@ -129,16 +129,16 @@ export class ActivitiesService {
       .findById(userId)
       .populate('role')
       .exec()) as unknown as Omit<UserDocument, 'role'> & {
-      role: Omit<RoleDocument, 'metadata'> & {
-        metadata: {
-          canCheckin: {
-            user: string[];
-            major: string[];
-            school: string[];
+        role: Omit<RoleDocument, 'metadata'> & {
+          metadata: {
+            canCheckin: {
+              user: string[];
+              major: string[];
+              school: string[];
+            };
           };
         };
       };
-    };
     if (!userDoc) {
       throw new NotFoundException('User not found');
     }
@@ -384,11 +384,6 @@ export class ActivitiesService {
         school: convertedScope.school.map((id) => id.toString()),
         user: convertedScope.user.map((id) => id.toString()),
       };
-      if (isValidObjectId(updateActivityDto.type)) {
-        updateActivityDto.type = new Types.ObjectId(updateActivityDto.type);
-      } else {
-        throw new BadRequestException('Invalid activity type ID');
-      }
     }
     const activity = await this.activitiesModel
       .findByIdAndUpdate(id, updateActivityDto, { new: true })

@@ -1,5 +1,5 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Divider, Form } from "@heroui/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ActivityType } from "@/types/activities";
 
@@ -14,6 +14,14 @@ type ActivitiesTypeModalProps = {
 
 export function ActivitiesTypeModal({ isOpen, onClose, onSubmit, mode, activityType, loading }: ActivitiesTypeModalProps) {
     const [name, setName] = useState(activityType?.name || '');
+
+    useEffect(() => {
+        if (mode === 'edit' && activityType) {
+            setName(activityType.name || '');
+        } else if (mode === 'add') {
+            setName('');
+        }
+    }, [mode, activityType, isOpen]);
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
