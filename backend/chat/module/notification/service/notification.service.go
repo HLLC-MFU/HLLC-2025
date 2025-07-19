@@ -55,6 +55,15 @@ func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService
 func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *model.ChatMessage, onlineUsers []string) {
 	log.Printf(" Starting offline notification process for room %s", message.RoomID.Hex())
 
+	// **NEW: Check if this is an evoucher message**
+	if message.EvoucherInfo != nil {
+		log.Printf("[NotificationService] ✅ EVOUCHER MESSAGE DETECTED: ID=%s, ClaimURL=%s, Message=%s",
+			message.ID.Hex(), message.EvoucherInfo.ClaimURL, message.EvoucherInfo.Message.Th)
+	} else {
+		log.Printf("[NotificationService] Regular message detected: ID=%s, Type=%s",
+			message.ID.Hex(), ns.determineMessageType(message))
+	}
+
 	// Create online user lookup map
 	onlineUserMap := make(map[string]bool)
 	for _, userID := range onlineUsers {
