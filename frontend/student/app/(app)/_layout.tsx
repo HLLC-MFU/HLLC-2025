@@ -32,7 +32,6 @@ export default function AppLayout() {
   const [showPretestModal, setShowPretestModal] = useState(false);
   const [showPosttestModal, setShowPosttestModal] = useState(false);
 
-
   // Pretest modal hook
   const {
     modalVisible: pretestVisible,
@@ -147,7 +146,7 @@ export default function AppLayout() {
         }}
       >
         <ProgressBar
-          avatarUrl={assets.profile ?? ''}
+          avatarUrl={user?.data[0].metadata.major.school.photos?.avatar ?? assets.profile}
           onClickAvatar={() => router.push('/profile')}
         />
         <GlassButton iconOnly onPress={() => setNotificationModalVisible(true)}>

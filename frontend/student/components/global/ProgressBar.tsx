@@ -23,7 +23,8 @@ export default function ProgressBar({
     const [imageError, setImageError] = useState(false);
     const { width } = useWindowDimensions();
     const { assets, colors } = useAppearance();
-    const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/${assets?.profile}`;
+    const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/${avatarUrl}`;
+
     useEffect(() => {
         setImageError(false);
     }, [assets?.profile]);
