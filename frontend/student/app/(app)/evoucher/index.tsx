@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   FlatList,
+  Platform,
 } from 'react-native';
 import { Search } from 'lucide-react-native';
 import { SponsorCard } from '../../../components/evoucher/SponsorCard';
@@ -141,6 +142,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'left',
+    marginTop: Platform.select({ ios: 16, default: 0 }),
   },
   headerTitlePadded: {
     textAlign: 'left',
