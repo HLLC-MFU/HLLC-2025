@@ -1,6 +1,7 @@
 import { IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
-import { Localization, Location, mapCoordinate } from "src/pkg/types/common";
+import { Localization } from "src/pkg/types/common";
 import { LandmarkType } from "../../enum/landmark-types.enum";
+import { mapCoordinate } from "src/pkg/types/activity";
 
 export class CreateLandmarkDto {
     @IsObject()
