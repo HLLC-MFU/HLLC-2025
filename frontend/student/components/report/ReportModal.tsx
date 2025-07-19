@@ -8,6 +8,7 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import { useReport } from '@/hooks/useReport';
 import { BlurView } from 'expo-blur';
 import { Background } from '@react-navigation/elements';
+import { useTranslation } from 'react-i18next';
 
 interface ReportType {
   _id: string;
@@ -68,6 +69,7 @@ export const ReportModal = ({ visible, onClose, onSuccess, onError }:ReportModal
       onError && onError();
     }
   };
+  const { t } = useTranslation();
 
   return (
     <Modal
@@ -79,11 +81,11 @@ export const ReportModal = ({ visible, onClose, onSuccess, onError }:ReportModal
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.overlay}>
         <View style={styles.iconWrap}>
-            <AlertTriangle color="#FF3333" size={64}  />
+            <AlertTriangle color="#FF4444" size={64}  />
           </View>
-          <BlurView intensity={40} tint="light" style={styles.glassContainer}>
-            <Text style={styles.title}>Report</Text>
-            <Text style={styles.label}>Topic</Text>
+          <BlurView intensity={40} tint="dark" style={styles.glassContainer}>
+            <Text style={styles.title}>{t('report.title')}</Text>
+            <Text style={styles.label}>{t('report.topic')}</Text>
             <DropDownPicker
               open={open}
               value={selectedTopic}
@@ -91,7 +93,7 @@ export const ReportModal = ({ visible, onClose, onSuccess, onError }:ReportModal
               setOpen={setOpen}
               setValue={setSelectedTopic}
               setItems={setDropdownItems}
-              placeholder="เลือกหัวข้อ"
+              placeholder={t('report.selectTopic')}
               style={styles.dropdownPicker}
               dropDownContainerStyle={styles.dropdownPickerContainer}
               textStyle={styles.dropdownPickerText}
@@ -100,12 +102,12 @@ export const ReportModal = ({ visible, onClose, onSuccess, onError }:ReportModal
               zIndexInverse={1000}
               disabled={fetching}
             />
-            <Text style={styles.label}>Description</Text>
+            <Text style={styles.label}>{t('report.description')}</Text>
             <View style={styles.textAreaWrap}>
               <TextInput
                 style={styles.textArea}
-                placeholder="Description"
-                placeholderTextColor="#aaa"
+                placeholder={t('report.description')}
+                placeholderTextColor="#ffffff70"
                 value={description}
                 onChangeText={text => {
                   if (text.length <= DESCRIPTION_LIMIT) setDescription(text);
@@ -120,14 +122,14 @@ export const ReportModal = ({ visible, onClose, onSuccess, onError }:ReportModal
             </View>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={loading}>
-                <Text style={styles.cancelBtnText}>CANCEL</Text>
+                <Text style={styles.cancelBtnText}>{t('report.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSubmit}
                 disabled={!selectedTopic || !description.trim() || loading}
                 style={[styles.confirmBtn, { opacity: (!selectedTopic || !description.trim() || loading) ? 0.5 : 1 }]}
               >
-                <Text style={styles.confirmBtnText}>{loading ? '...' : 'CONFIRM'}</Text>
+                <Text style={styles.confirmBtnText}>{loading ? '...' : t('report.confirm')}</Text>
               </TouchableOpacity>
             </View>
           </BlurView>
@@ -174,18 +176,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 10,
     overflow: 'hidden',
-    paddingTop: isTablet ? 72 : 56,
+    paddingTop: isTablet ? 120: 100,
   },
   title: {
     fontSize: isTablet ? 36 : 28,
     fontWeight: 'bold',
-    color: '#444',
+    color: '#fff',
     marginBottom: isTablet ? 16 : 12,
     marginTop: 4,
   },
   label: {
     alignSelf: 'flex-start',
-    color: '#444',
+    color: '#fff',
     fontSize: isTablet ? 18 : 16,
     marginTop: isTablet ? 12 : 8,
     marginBottom: 2,
@@ -239,10 +241,10 @@ const styles = StyleSheet.create({
   },
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     width: '100%',
     marginTop: isTablet ? 16 : 12,
-    gap: isTablet ? 16 : 12,
+    // gap: isTablet ? 16 : 12,
   },
   cancelBtn: {
     backgroundColor: 'rgba(255,0,0,0.7)',

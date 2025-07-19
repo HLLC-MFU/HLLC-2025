@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, FlatList, Dimensions } from 'react-native';
 import styles from './styles';
 import { Ranking } from '@/hooks/useStepLeaderboard';
+import { Image } from 'expo-image';
 
 interface Name {
   first: string;
@@ -31,9 +32,22 @@ const LeaderboardList = ({ data, valueLabel = 'steps' }: LeaderboardListProps) =
         <View style={styles.cardRankCircle}>
           <Text style={styles.cardRankText}>{index + 4}</Text> {/* Start from rank 4 */}
         </View>
-        <View style={styles.cardAvatar}>
-          {/* You can put Avatar/Image here */}
+        <View style={{paddingRight: 10}}>
+          {item.user.avatar ? (
+            <Image
+              source={{ uri: item.user.avatar }}
+              style={styles.avatarImage}
+            />
+          ) : (
+            <View style={styles.avatarFallback}>
+              <Text style={styles.avatarInitials}>
+                {item.user.name.first.charAt(0)}
+                {item.user.name.last?.charAt(0) || ''}
+              </Text>
+            </View>
+          )}
         </View>
+
         <Text style={[styles.cardName, { fontWeight: 'bold' }]}>
           {item.user.name.first} {item.user.name.last ? item.user.name.last.charAt(0) + '.' : ''}
         </Text>
@@ -45,5 +59,6 @@ const LeaderboardList = ({ data, valueLabel = 'steps' }: LeaderboardListProps) =
 
 
 );
+
 
 export default LeaderboardList; 

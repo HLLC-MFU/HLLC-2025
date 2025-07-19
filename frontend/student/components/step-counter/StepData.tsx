@@ -2,6 +2,7 @@ import useHealthData from "@/hooks/health/useHealthData";
 import { View, Text, StyleSheet } from "react-native";
 import Svg, { Circle, G } from "react-native-svg";
 import { AchievementData, LeaderboardData } from "@/hooks/useStepLeaderboard";
+import { t } from "i18next";
 type Props = {
     leaderboardData: LeaderboardData | null;
     achievementData: AchievementData[] | null;
@@ -45,9 +46,9 @@ export default function StepData({ leaderboardData, achievementData }: Props) {
                 {
                     leaderboardData && leaderboardData.myRank && (
                         <View style={styles.stepTextBox}>
-                            <Text style={styles.stepLabel}>Total</Text>
+                            <Text style={styles.stepLabel}>{t('step.total')}</Text>
                             <Text style={styles.stepNumber}>{leaderboardData.myRank.totalStep.toLocaleString()}</Text>
-                            <Text style={styles.stepLabel}>Today: {steps.toLocaleString()}</Text>
+                            <Text style={styles.stepLabel}>{t('step.step')}: {steps.toLocaleString()}</Text>
                         </View>
                     )
                 }
@@ -55,13 +56,13 @@ export default function StepData({ leaderboardData, achievementData }: Props) {
             <View style={styles.totalStepsBox}>
                 <Text style={styles.totalStepsDesc}>
                     {deviceMismatch
-                        ? "Device mismatch detected. Steps won’t count toward your campaign. Please update your device."
-                        : "Keep moving!"}
+                        ? t('step.deviceMismatch')
+                        : t('step.keepMoving')}
                 </Text>
             </View>
             <View style={styles.totalStepsBox}>
                 <Text style={styles.totalStepsDesc}>
-                    Your goal is {goal.toLocaleString()} steps.
+                    {t('step.goal', { goal: goal.toLocaleString() })}
                 </Text>
             </View>
         </>
@@ -85,6 +86,6 @@ const styles = StyleSheet.create({
     stepNumber: { fontSize: 32, fontWeight: "bold", color: "white" },
     stepLabel: { fontSize: 16, color: "#ffffff80" },
 
-    totalStepsBox: { alignItems: "center", marginTop: 12 },
+    totalStepsBox: { alignItems: "center", marginTop: 12, width: "100%", marginHorizontal: 20 },
     totalStepsDesc: { color: "#ddd", fontSize: 13, textAlign: "center" },
 });

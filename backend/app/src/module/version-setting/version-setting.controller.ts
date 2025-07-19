@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Delete } from '@nestjs/common';
 import { VersionSettingService } from './version-setting.service';
 import { UpdateVersionSettingDto } from './dto/update-version-setting.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('version-setting')
 export class VersionSettingController {
@@ -12,6 +13,7 @@ export class VersionSettingController {
   }
 
   @Get()
+  @Public()
   findAll() {
     return this.versionSettingService.find();
   }

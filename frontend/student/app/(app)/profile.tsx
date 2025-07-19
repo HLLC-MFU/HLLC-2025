@@ -12,6 +12,7 @@ import { ReportModal } from "@/components/report/ReportModal";
 import { onContextCreate } from "@/components/profile/Scene";
 import { useAppearance } from "@/hooks/useAppearance";
 import AssetImage from "@/components/global/AssetImage";
+import { useLanguage } from "@/context/LanguageContext";
 
 const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/`
 
@@ -23,6 +24,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true)
   const [isReportModalVisible, setReportModalVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const { language } = useLanguage();
 
   useEffect(() => {
     Animated.timing(
@@ -87,7 +89,7 @@ export default function ProfileScreen() {
               <Text style={styles.topic}>SCHOOL</Text>
             </View>
             <Text style={styles.school}>
-              {user?.data?.[0]?.metadata?.major?.school?.name?.en ?? '-'}
+              {user?.data?.[0]?.metadata?.major?.school?.name[language] ?? '-'}
             </Text>
           </View>
           {/* Major */}
@@ -97,7 +99,7 @@ export default function ProfileScreen() {
               <Text style={styles.topic}>MAJOR</Text>
             </View>
             <Text style={styles.school}>
-              {user?.data?.[0]?.metadata?.major?.name?.en ?? '-'}
+              {user?.data?.[0]?.metadata?.major?.name[language] ?? '-'}
             </Text>
           </View>
         </BlurView>
@@ -162,7 +164,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     overflow: 'hidden',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
