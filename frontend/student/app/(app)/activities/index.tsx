@@ -4,6 +4,7 @@ import {
   ScrollView,
   SafeAreaView,
   RefreshControl,
+  Platform,
 } from "react-native"
 import {
   Text,
@@ -130,7 +131,7 @@ export default function ActivitiesPage() {
       <SafeAreaView style={{ flex: 1 }}>
         <YStack padding="$4" gap="$4" flex={1}>
           {/* Page Title */}
-          <Text fontWeight="bold" fontSize={34} color="white">
+          <Text fontWeight="bold" fontSize={34} color="white" marginTop={Platform.OS === 'ios' ? "$4" : "$0"}>
             {t("activity.title")}
           </Text>
 
