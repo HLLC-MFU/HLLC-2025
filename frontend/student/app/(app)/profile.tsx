@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import { View, Text, StyleSheet, Animated, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GLView } from "expo-gl";
 import { router } from "expo-router";
@@ -75,8 +75,13 @@ export default function ProfileScreen() {
         }
       />
 
-      <Animated.View style={{ justifyContent: 'flex-end', position: 'absolute', width: '100%', height: '100%', paddingBottom: '10%', opacity: fadeAnim }}>
-        <BlurView style={styles.information}>
+      <Animated.View style={{ justifyContent: 'flex-end', position: 'absolute', width: '100%', height: '100%', paddingBottom: Platform.OS === 'android' ? '20%' : '10%', opacity: fadeAnim }}>
+        <BlurView
+          style={[
+            styles.information,
+            Platform.OS === 'android' && { backgroundColor: 'rgba(0,0,0,0.85)' }
+          ]}
+        >
           {/* Full name and Username */}
           <View style={styles.field}>
             <Text style={styles.name}>{user?.data[0].name.first} {user?.data[0].name.last ?? '-'}</Text>
