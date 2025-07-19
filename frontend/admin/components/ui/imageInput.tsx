@@ -113,7 +113,6 @@ export default function ImageInput({
         type="file"
         onChange={(e) => {
           const file = e.target.files?.[0];
-
           if (!file) return;
 
           if (file.size > sizeLimit) {
@@ -131,11 +130,12 @@ export default function ImageInput({
           onChange(file);
 
           const reader = new FileReader();
-
           reader.onload = () => {
             setPreviewImage(reader.result as string);
           };
           reader.readAsDataURL(file);
+
+          e.target.value = '';
         }}
       />
     </div>

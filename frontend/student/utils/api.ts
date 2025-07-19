@@ -7,6 +7,7 @@ export interface ApiResponse<T> {
   statusCode: number;
   message: string | null;
   data: T | null;
+  remainingCooldownMs?: number;
 }
 
 /**
@@ -51,6 +52,17 @@ export async function apiRequest<T>(
     } else if (response.ok) {
       return { data: responseData, statusCode: response.status, message: null };
     }
+    
+    // Handle cooldown case specifically
+    if (responseData.message && responseData.message.toLowerCase().includes('cooldown')) {
+      return { 
+        data: null, 
+        statusCode: response.status, 
+        message: responseData.message || "Request failed",
+        remainingCooldownMs: responseData.remainingCooldownMs
+      };
+    }
+    
     return { data: null, statusCode: response.status, message: responseData.message || "Request failed" };
   } catch (err) {
     return { data: null, statusCode: 500, message: (err as Error).message };

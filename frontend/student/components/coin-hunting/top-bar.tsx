@@ -1,6 +1,9 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import { ChevronLeft } from '@tamagui/lucide-icons';
+import chatStyles from '@/constants/chats/chatStyles';
+import { Icon, StampIcon } from 'lucide-react-native';
 
 interface TopBarProps {
   onScan: () => void;
@@ -17,11 +20,23 @@ export default function TopBar({
   return (
     <View style={styles.container}>
       <View style={styles.innerRow}>
+        <TouchableOpacity
+          style={[chatStyles.backButton]}
+          onPress={() => router.replace('/(app)')}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ChevronLeft color="#fff" size={24} />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.iconBtn} onPress={onStamp}>
-          <Image
+          {/* <Image
             source={require('@/assets/images/logo-sdad.png')}
             style={styles.stampIcon}
+          /> */}
+          <StampIcon
+            size={24}
+            color="#fff"
           />
+
         </TouchableOpacity>
       </View>
     </View>
@@ -39,10 +54,10 @@ const styles = StyleSheet.create({
   },
   innerRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     width: '100%',
     minWidth: 260,
-    paddingEnd: 20,
+    paddingHorizontal: 20,
   },
   iconBtn: {
     width: 36,

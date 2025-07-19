@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { Photo } from 'src/pkg/types/common';
+import { Localization, Photo } from 'src/pkg/types/common';
 
 export type LamduanSettingDocument = HydratedDocument<LamduanSetting>;
 
@@ -20,6 +20,9 @@ export class LamduanSetting {
 
   @Prop({ required: true, type: Date })
   endAt: Date;
+
+  @Prop({ required: true , type: Object })
+  description : Localization;
 }
 
 export const LamduanSettingSchema =

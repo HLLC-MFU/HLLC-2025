@@ -3,15 +3,19 @@ import {
   Text,
   SafeAreaView,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 import SegmentedToggle from '@/components/step-counter/SegmentedToggle';
 import { useState } from 'react';
 import { Spinner } from 'tamagui';
 import { LeaderboardData } from '@/hooks/useStepLeaderboard';
 import DynamicLeaderboard from './DynamicLeaderboard';
+import chatStyles from '@/constants/chats/chatStyles';
+import { router } from 'expo-router';
+import { ChevronLeft } from 'lucide-react-native';
 
 type Props = {
-  data:LeaderboardData | null;
+  data: LeaderboardData | null;
   loading: boolean,
 }
 
@@ -22,7 +26,7 @@ export default function LeaderBoard({ data, loading }: Props) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.text}><Spinner/></Text>
+        <Text style={styles.text}><Spinner /></Text>
       </View>
     );
   }
@@ -34,8 +38,16 @@ export default function LeaderBoard({ data, loading }: Props) {
     );
   }
 
-  return (
+  return (<>
+    <TouchableOpacity
+      style={[chatStyles.backButton, { position: 'absolute', top: 20, left: 20 }]}
+      onPress={() => router.replace('/(app)')}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <ChevronLeft color="#fff" size={24} />
+    </TouchableOpacity>
     <SafeAreaView style={styles.container}>
+
       <SegmentedToggle value={selectedTab} onChange={setSelectedTab} />
       <View style={styles.contentContainer}>
         {selectedTab === 0 && (
@@ -79,12 +91,15 @@ export default function LeaderBoard({ data, loading }: Props) {
         )}
       </View>
     </SafeAreaView>
+  </>
   );
+
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    marginHorizontal: 20,
+    marginTop: 80,
   },
   contentContainer: {
     flex: 1,

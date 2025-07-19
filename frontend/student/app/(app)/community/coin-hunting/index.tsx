@@ -17,6 +17,7 @@ export default function CoinHuntingScreen() {
     selectedMarker,
     evoucher,
     alertType,
+    remainingCooldownMs,
     stampCount,           
     handleMarkerPress,
     handleCheckIn,
@@ -33,6 +34,8 @@ export default function CoinHuntingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 1, height: 1 });
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 1, height: 1 });
 
   const handleScannerSuccessWithRefresh = useCallback((data?: any) => {
     handleScannerSuccess(data);
@@ -42,12 +45,12 @@ export default function CoinHuntingScreen() {
   useEffect(() => {
     if (params.modal === 'success') {
       handleScannerSuccessWithRefresh(params.code ? { code: params.code as string } : undefined);
-      router.replace('/coin-hunting');
+      router.replace('/community/coin-hunting');
     } else if (params.modal === 'alert' && params.type) {
-      handleAlert(params.type as any);
-      router.replace('/coin-hunting');
+      handleAlert(params.type as any, params.remainingCooldownMs ? Number(params.remainingCooldownMs) : undefined);
+      router.replace('/community/coin-hunting');
     }
-  }, [params.modal, params.type, params.code, handleScannerSuccessWithRefresh]);
+  }, [params.modal, params.type, params.code, params.remainingCooldownMs, handleScannerSuccessWithRefresh]);
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -56,18 +59,24 @@ export default function CoinHuntingScreen() {
         onStamp={() => handleGoToStamp()}
         centerText="Bloom possible"
       />
-      <InteractiveMap>
+      <InteractiveMap
+        onImageLoad={size => setImageSize(size)}
+        onContainerSize={size => setContainerSize(size)}
+      >
         <MapMarkers
           markers={markers}
           collectedIds={collectedIds}
           loading={loadingMarkers}
           error={errorMarkers}
           onMarkerPress={handleMarkerPress}
+          imageSize={imageSize}
+          containerSize={containerSize}
         />
       </InteractiveMap>
       <MarkerDetailModal
         visible={modal === 'marker-detail'}
         marker={selectedMarker}
+        collectedIds={collectedIds}
         onClose={closeModal}
         onCheckIn={handleCheckIn}
       />
@@ -83,6 +92,7 @@ export default function CoinHuntingScreen() {
         type="alert"
         onClose={closeModal}
         alertType={alertType ?? undefined}
+        remainingCooldownMs={remainingCooldownMs}
       />
       <StampModal
         visible={modal === 'stamp'}
@@ -104,5 +114,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+    position: 'relative',
   },
 });

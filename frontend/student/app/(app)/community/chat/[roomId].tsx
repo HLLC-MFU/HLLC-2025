@@ -19,14 +19,14 @@ import { useTranslation } from 'react-i18next';
 import { BlurView } from 'expo-blur';
 
 // Hooks
-import { useChatRoom } from '../../../hooks/chats/useChatRoom';
+import { useChatRoom } from '../../../../hooks/chats/useChatRoom';
 import useProfile from '@/hooks/useProfile';
 
 // Types
-import { ChatRoom, RoomMember, Message } from '../../../types/chatTypes';
+import { ChatRoom } from '../../../../types/chatTypes';
 
 // Styles
-import { chatStyles } from '../../../constants/chats/chatStyles';
+import { chatStyles } from '../../../../constants/chats/chatStyles';
 import ChatInput from '@/components/chats/ChatInput';
 import ErrorView from '@/components/chats/ErrorView';
 import JoinBanner from '@/components/chats/JoinBanner';
@@ -35,6 +35,7 @@ import RoomInfoModal from '@/components/chats/RoomInfoModal';
 import EvoucherModal from '@/components/chats/EvoucherModal';
 import StickerPicker from '@/components/chats/StickerPicker';
 import MentionSuggestions from '@/components/chats/MentionSuggestions';
+import useWebSocket from '@/hooks/chats/useWebSocket';
 
 export default function ChatRoomPage() {
   const router = useRouter();
@@ -47,27 +48,25 @@ export default function ChatRoomPage() {
   // Function to get room name based on current language
   const getRoomName = (room: any) => {
     if (!room?.name) return t('chat.chatRoom');
-    
+
     const currentLang = i18n.language;
     if (currentLang === 'th' && room.name.th) {
       return room.name.th;
     } else if (currentLang === 'en' && room.name.en) {
       return room.name.en;
     }
-    
+
     // Fallback: try th first, then en, then default
     return room.name.th || room.name.en || t('chat.chatRoom');
   };
-  
+
   const {
     room,
     isMember,
     messageText,
-    setMessageText,
     loading,
     error,
     joining,
-    showEmojiPicker,
     setShowEmojiPicker,
     isRoomInfoVisible,
     setIsRoomInfoVisible,
@@ -77,7 +76,6 @@ export default function ChatRoomPage() {
     setShowStickerPicker,
     isConnected,
     wsError,
-    connectedUsers,
     typing,
     inputRef,
     userId,
@@ -96,6 +94,7 @@ export default function ChatRoomPage() {
     initializeRoom,
     loadMembers,
     handleUnsendMessage,
+    handleDisconnect,
   } = useChatRoom();
 
   // Check if user has permission to send evoucher
@@ -167,7 +166,7 @@ export default function ChatRoomPage() {
             <View style={chatStyles.header}>
               <TouchableOpacity
                 style={chatStyles.backButton}
-                onPress={() => router.replace('/chat')}
+                onPress={() => { handleDisconnect(); router.replace('/community/chat') }}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <ChevronLeft color="#fff" size={24} />
@@ -330,20 +329,20 @@ export default function ChatRoomPage() {
               room={room as ChatRoom}
               isVisible={isRoomInfoVisible}
               onClose={() => setIsRoomInfoVisible(false)}
-                                connectedUsers={
-                    Array.isArray(members) && members.length > 0
-                      ? members.map((member) => ({
-                          id: member.user_id || member.user._id,
-                          name:
-                            member.user_id === userId
-                              ? t('chat.you')
-                              : member.user.name
-                              ? `${member.user.name.first || ''} ${member.user.name.last || ''}`.trim() || member.user.username || t('chat.unknownUser')
-                              : member.user.username || t('chat.unknownUser'),
-                          online: true,
-                        }))
-                      : []
-                  }
+              connectedUsers={
+                Array.isArray(members) && members.length > 0
+                  ? members.map((member) => ({
+                    id: member.user_id || member.user._id,
+                    name:
+                      member.user_id === userId
+                        ? t('chat.you')
+                        : member.user.name
+                          ? `${member.user.name.first || ''} ${member.user.name.last || ''}`.trim() || member.user.username || t('chat.unknownUser')
+                          : member.user.username || t('chat.unknownUser'),
+                    online: true,
+                  }))
+                  : []
+              }
             />
 
             {/* Sticker Picker Modal */}

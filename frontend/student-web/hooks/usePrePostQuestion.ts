@@ -21,6 +21,7 @@ export function usePrepostQuestion() {
     >([]);
     const [hasPretestAnswers, setHasPretestAnswers] = useState<boolean | null>(null);
     const [hasPosttestAnswers, setHasPosttestAnswers] = useState<boolean | null>(null);
+    const [posttestDueDate, setPosttestDueDate] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -61,11 +62,13 @@ export function usePrepostQuestion() {
     const fetchPosttestAnswers = async () => {
         setLoading(true);
         try {
-            const res = await apiRequest<{ data: boolean }>('/posttest-answers/user', 'GET');
+            const res = await apiRequest<{ data: boolean, dueDate: boolean }>('/posttest-answers/user', 'GET');
             setHasPosttestAnswers(res.data?.data ?? false);
+            setPosttestDueDate(res.data?.dueDate ?? false);
 
         } catch (err) {
             setHasPosttestAnswers(false);
+            setPosttestDueDate(false);
         } finally {
             setLoading(false);
         }
@@ -145,6 +148,7 @@ export function usePrepostQuestion() {
         posttestAnswers,
         hasPretestAnswers,
         hasPosttestAnswers,
+        posttestDueDate,
         pretestAnswersInput,
         setPretestAnswersInput,
         posttestAnswersInput,

@@ -5,9 +5,7 @@ export default function BannerImage() {
   return (
     <View style={styles.box}>
       <Image
-        source={{
-          uri: 'https://www.royalparkrajapruek.org/img/upload/20210309-6046ece04a35c.jpg',
-        }}
+        source={require('@/assets/images/lobby.png')} 
         style={styles.bannerImage}
       />
     </View>
@@ -17,17 +15,18 @@ export default function BannerImage() {
 const styles = StyleSheet.create({
   box: {
     width: '100%',
-    height: 120,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    height: 120,             
+    overflow: 'hidden',       
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#ddd',
+    position: 'relative',
     marginBottom: 16,
   },
   bannerImage: {
     width: '100%',
-    height: '100%',
-    borderRadius: 20,
+    height: '400%',          
     resizeMode: 'cover',
+    position: 'absolute',
+    bottom: 0,             
   },
 });
