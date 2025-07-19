@@ -1,14 +1,17 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-
-const options = ['INDIVIDUAL', 'SCHOOL', 'ACHIEVEMENT'];
-
 interface SegmentedToggleProps {
   value: number;
   onChange: (idx: number) => void;
 }
 
-const SegmentedToggle = ({ value, onChange }:SegmentedToggleProps) => {
+const SegmentedToggle = ({ value, onChange }: SegmentedToggleProps) => {
+
+  const { t } = useTranslation();
+  const options = [t('step.individual'), t('step.school'), t('step.achievement')];
+
+
   return (
     <View style={styles.container}>
       {options.map((option, idx) => (
