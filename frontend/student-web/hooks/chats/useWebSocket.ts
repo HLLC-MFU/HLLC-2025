@@ -335,16 +335,16 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     });
     
     if (!rid) {
-      errorLog('[WebSocket] No roomId provided, cannot connect');
+      warnLog('[WebSocket] No roomId provided, cannot connect');
       updateState({ error: 'No roomId provided' });
       return;
     }
     if (connectionState.current.isConnecting) {
-      warnLog('Already connecting, skipping');
+      debugLog('Already connecting, skipping');
       return;
     }
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      warnLog('WebSocket already open, skipping');
+      debugLog('WebSocket already open, skipping');
       return;
     }
     try {
@@ -417,13 +417,19 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       };
       socket.onerror = (error: Event) => {
         // Don't log the error object directly as it may contain circular references
-        errorLog('WebSocket connection error occurred');
-        console.warn('[WebSocket] Connection error details:', {
+        warnLog('WebSocket connection error occurred - this is normal during connection attempts');
+        
+        // Only update error state if we're not in a reconnection attempt
+        if (!connectionState.current.isConnecting) {
+          updateState({ error: 'WebSocket connection error' });
+        }
+        
+        // Don't trigger immediate reconnection on error - let onclose handle it
+        debugLog('[WebSocket] Error event details:', {
           type: error.type,
-          target: error.target ? 'WebSocket instance' : 'unknown',
+          readyState: socket.readyState,
           timestamp: new Date().toISOString()
         });
-        updateState({ error: 'WebSocket connection error' });
       };
     } catch (error) {
       errorLog('Failed to create WebSocket connection:', error);
@@ -501,7 +507,9 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
   useEffect(() => {
     const accessToken = getToken('accessToken');
     debugLog('useEffect [roomId, accessToken] called', { roomId, accessToken });
-    if (roomId && accessToken && !connectionState.current.isConnecting && !wsRef.current && !state.isConnected && !connectionState.current.hasAttemptedConnection) {
+    
+    // Only attempt connection if we have both roomId and token, and haven't already attempted
+    if (roomId && accessToken && !connectionState.current.hasAttemptedConnection) {
       updateConnectionState({ hasAttemptedConnection: true });
       connect(roomId);
     }
