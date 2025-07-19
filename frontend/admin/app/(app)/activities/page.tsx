@@ -2,16 +2,17 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { useActivities } from "@/hooks/useActivities";
 import { Accordion, AccordionItem, addToast, Button } from "@heroui/react";
-import { University, Plus, PlusIcon } from "lucide-react";
+import { University, Plus } from "lucide-react";
 import ActivitiesTable from "./_components/ActivitiesTable";
 import { useMemo, useState } from "react";
 import { ActivitiesTypeModal } from "./_components/ActivitiesTypeModal";
 import { Activities, ActivityType } from "@/types/activities";
 import ActivitiesModal from "./_components/ActivitiesModal";
 import TopContent from "./_components/TopContent";
+import { ConfirmModal } from "./_components/ConfirmModal";
 
 export default function ActivitiesPage() {
-    const { activities, activityTypes, loading, updateActivityType, createActivityType, fetchActivities, updateActivity, createActivity } = useActivities({ autoFetch: true });
+    const { activities, activityTypes, loading, updateActivityType, createActivityType, fetchActivities, updateActivity, createActivity, deleteActivity } = useActivities({ autoFetch: true });
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedActivitiesType, setSelectedActivitiesType] = useState<ActivityType | undefined>();
     const [selectedActivity, setSelectedActivity] = useState<Activities | undefined>();
@@ -19,6 +20,7 @@ export default function ActivitiesPage() {
     const [isActivityModalOpen, setIsActivityModalOpen] = useState(false)
     const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
     const [filterValue, setFilterValue] = useState("");
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false)
 
     const filteredActivities = useMemo(() => {
         if (!activities) return [];
@@ -36,11 +38,48 @@ export default function ActivitiesPage() {
         });
     }, [activities, searchQuery]);
 
+    const filteredActivitiesByType = (typeId: string) => {
+        return filteredActivities.filter((activity) => {
+            let activityTypeId: string | undefined;
+
+            if (typeof activity.type === 'string') {
+                const matchedType = activityTypes.find(t => t.name === activity.type);
+                activityTypeId = matchedType?._id;
+            } else {
+                activityTypeId = activity.type?._id;
+            }
+
+            return activityTypeId === typeId;
+        });
+    };
 
     const handleAddActivity = (activityType: ActivityType) => {
         setModalMode('add');
         setSelectedActivitiesType(activityType);
         setIsActivityModalOpen(true);
+    };
+
+    const handleDeleteActivity = (activity: Activities) => {
+        setSelectedActivity(activity);
+        setIsConfirmOpen(true);
+    };
+
+    const handleConfirmDeleteActivity = async () => {
+        if (!selectedActivity) return;
+
+        try {
+            await deleteActivity(selectedActivity._id);
+            await fetchActivities();
+        } catch (error) {
+            addToast({
+                title: "Error",
+                description: "Failed to delete activity.",
+                color: "danger",
+            });
+        } finally {
+            setIsConfirmOpen(false);
+            setSelectedActivity(undefined);
+        }
     };
 
     const handleSubmitActivity = async (formData: FormData, mode: 'add' | 'edit') => {
@@ -55,6 +94,7 @@ export default function ActivitiesPage() {
             console.error('Error creating/updating activity:', error);
         } finally {
             setIsActivityModalOpen(false);
+            await fetchActivities();
         }
     };
 
@@ -109,17 +149,7 @@ export default function ActivitiesPage() {
                 ) : (
                     activityTypes.map((activityType) => {
                         const activityName = activityType.name ?? "Unnamed";
-                        const filteredActivities = activities.filter((activity) => {
-                            let typeId: string | undefined;
-                            if (typeof activity.type === 'string') {
-                                const matchedType = activityTypes.find(t => t.name === activity.type);
-                                typeId = matchedType?._id;
-                            } else {
-                                typeId = activity.type?._id;
-                            }
-                            console.log('Comparing:', typeId, activityType._id);
-                            return typeId === activityType._id;
-                        });
+                        const activitiesForType = filteredActivitiesByType(activityType._id);
 
                         return (
                             <AccordionItem
@@ -130,14 +160,14 @@ export default function ActivitiesPage() {
                             >
                                 <div className="mb-5">
                                     <TopContent
-                                        filterValue={filterValue}
-                                        onClear={() => setFilterValue("")}
-                                        onSearchChange={setFilterValue}
+                                        filterValue={searchQuery}
+                                        onClear={() => setSearchQuery("")}
+                                        onSearchChange={setSearchQuery}
                                         onAdd={() => handleAddActivity(activityType)}
                                     />
                                 </div>
 
-                                {filteredActivities.length > 0 ? (
+                                {activitiesForType.length > 0 ? (
                                     <ActivitiesTable
                                         onAdd={() => handleAddActivity(activityType)}
                                         onEdit={(activity) => {
@@ -145,8 +175,8 @@ export default function ActivitiesPage() {
                                             setModalMode("edit");
                                             setIsActivityModalOpen(true);
                                         }}
-                                        onDelete={() => { }} // implement later
-                                        activities={filteredActivities}
+                                        onDelete={(activity) => handleDeleteActivity(activity)}
+                                        activities={activitiesForType}
                                     />
                                 ) : (
                                     <div className="p-4 text-sm text-gray-500">
@@ -154,7 +184,6 @@ export default function ActivitiesPage() {
                                     </div>
                                 )}
                             </AccordionItem>
-
                         );
                     })
                 )}
@@ -176,6 +205,14 @@ export default function ActivitiesPage() {
                 activityType={selectedActivitiesType}
                 onClose={() => setIsTypeModalOpen(false)}
                 onSubmit={handleSubmitType}
+            />
+
+            <ConfirmModal
+                isOpen={isConfirmOpen}
+                subtitle="Are you sure you want to delete this activity?"
+                title="Confirm Delete"
+                onClose={() => setIsConfirmOpen(false)}
+                onConfirm={handleConfirmDeleteActivity}
             />
         </>
     )

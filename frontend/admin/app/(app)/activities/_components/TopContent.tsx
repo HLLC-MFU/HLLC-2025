@@ -33,7 +33,7 @@ export default function TopContent({
                     endContent={<PlusIcon size={20} />}
                     onPress={onAdd}
                 >
-                    Add Evoucher
+                    Add Activity
                 </Button>
             </div>
         </div>
