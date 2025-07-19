@@ -5,7 +5,6 @@ import (
 	"chat/pkg/config"
 	"context"
 	"log"
-	"strings"
 	"sync"
 	"time"
 
@@ -304,28 +303,10 @@ func (h *AsyncHelper) calculateRetryDelay(retryCount int) time.Duration {
 
 	return time.Duration(delay)
 }
-func isValidChatMessage(msg *model.ChatMessage) bool {
-	return msg != nil &&
-		(msg.Message != "" || msg.StickerID != nil || msg.FileName != "" ||
-			msg.EvoucherInfo != nil || msg.MentionInfo != nil || msg.ModerationInfo != nil)
-}
-func isValidChatMessage(msg *model.ChatMessage) bool {
-	return msg != nil &&
-		(msg.Message != "" || msg.StickerID != nil || msg.FileName != "" ||
-			msg.EvoucherInfo != nil || msg.MentionInfo != nil || msg.ModerationInfo != nil)
-}
 
 // **Job Processing**
 func (h *AsyncHelper) processDatabaseJob(job DatabaseJob, workerID int) {
 	var err error
-	if !isValidChatMessage(job.Message) {
-		// Process valid message
-		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
-	if !isValidChatMessage(job.Message) {
-		// Process valid message
-		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
-		return
-	}
 
 	// Start batch processing if available
 	if job.Type == "save_message" || job.Type == "cache_message" {
@@ -338,7 +319,7 @@ func (h *AsyncHelper) processDatabaseJob(job DatabaseJob, workerID int) {
 		defer batchTimer.Stop()
 
 		// Collect more jobs if available
-batchLoop:
+	batchLoop:
 		for len(batch) < batchSize {
 			select {
 			case nextJob := <-h.dbWorkerPool.jobs:
@@ -430,22 +411,11 @@ func (h *AsyncHelper) processSaveMessageBatch(batch []DatabaseJob) error {
 
 	// Extract messages from batch
 	messages := make([]*model.ChatMessage, len(batch))
-	for _, job := range batch {
-		if !isValidChatMessage(job.Message) {
-			// Process valid message
-			log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
-			continue
-		}
-		
-		messages = append(messages, job.Message)
+	for i, job := range batch {
+		messages[i] = job.Message
 	}
 
 	// Perform bulk insert using interface method
-	if len(messages) == 0 {
-		log.Printf("[AsyncHelper] No valid messages in batch to save")
-		return nil
-	}
-	
 	return batch[0].Service.SaveMessageBatch(context.Background(), messages)
 }
 
@@ -457,25 +427,6 @@ func (h *AsyncHelper) processCacheMessageBatch(batch []DatabaseJob) error {
 	// Group messages by room for efficient caching
 	messagesByRoom := make(map[string][]*model.ChatMessage)
 	for _, job := range batch {
-
-		// **ENHANCED: Empty message avoidable - more comprehensive check**
-		if job.Message == nil {
-			log.Printf("[AsyncHelper] Skipping nil message in cache batch")
-			continue
-		}
-		
-		// Check for completely empty message
-		if strings.TrimSpace(job.Message.Message) == "" {
-			log.Printf("[AsyncHelper] Skipping cache for completely empty message %s", job.Message.ID.Hex())
-			continue
-		}
-		
-		// Empty message avoidable.
-		if job.Message.RoomID.IsZero() {
-			log.Printf("[AsyncHelper] Skipping cache for message %s with empty room ID", job.Message.ID.Hex())
-			continue
-		}
-		
 		roomID := job.Message.RoomID.Hex()
 		messagesByRoom[roomID] = append(messagesByRoom[roomID], job.Message)
 	}
@@ -495,15 +446,12 @@ func (h *AsyncHelper) processCacheMessageBatch(batch []DatabaseJob) error {
 }
 
 func (h *AsyncHelper) processNotificationJob(job NotificationJob, workerID int) {
-	if !isValidChatMessage(job.Message) {
-		// Process valid message
-		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
-	if !isValidChatMessage(job.Message) {
-		// Process valid message
-		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
+	if job.Message == nil || job.Message.Message == "" || job.Message.RoomID.IsZero() {
+		log.Printf("[AsyncHelper] Skipping notification for empty message %s", job.Message.ID.Hex())
+		job.Service.UpdateMessageStatus(job.Message.ID, "notification_sent", false)
+		h.checkMessageCompletion(job.Message.ID)
 		return
 	}
-	
 	err := job.Service.SendNotifications(job.Context, job.Message, job.OnlineUsers)
 
 	if err != nil {
