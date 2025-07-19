@@ -118,6 +118,10 @@ export default function useCoinHunting() {
               th: item.hint?.th || '',
               en: item.hint?.en || '',
             },
+            name: {
+              th: item.name?.th || '',
+              en: item.name?.en || '',
+            },
             mapsUrl: item.location?.mapUrl || '',
             _id: item._id,
             coinImage: item.coinImage,
@@ -170,7 +174,7 @@ export default function useCoinHunting() {
 
   // Handlers
   const handleMarkerPress = (marker: typeof markers[0]) => {
-    setState(s => ({ ...s, selectedMarker: marker, modal: 'marker-detail' }));
+    router.push(`/community/coin-hunting/marker-detail/${marker._id}`);
   };
 
   const handleCheckIn = () => {

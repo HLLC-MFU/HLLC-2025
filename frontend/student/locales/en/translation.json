@@ -165,7 +165,9 @@
         "collection": "14 Guardian Crystals",
         "sponsorCollection": "Special Rewards",
         "checkInNow": "Check in Now",
-        "collected": "Collected"
+        "collected": "Checked in",
+        "notCheckedIn": "Not checked in yet",
+        "description": "Description"
     },
     "assessment": {
         "title": "Assessment Activity",

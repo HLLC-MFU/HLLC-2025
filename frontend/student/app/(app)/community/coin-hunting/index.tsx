@@ -80,13 +80,6 @@ export default function CoinHuntingScreen() {
           containerSize={containerSize}
         />
       </InteractiveMap>
-      <MarkerDetailModal
-        visible={modal === 'marker-detail'}
-        marker={selectedMarker}
-        collectedIds={collectedIds}
-        onClose={closeModal}
-        onCheckIn={handleCheckIn}
-      />
       <CombinedModal
         visible={modal === 'success'}
         type="success"
