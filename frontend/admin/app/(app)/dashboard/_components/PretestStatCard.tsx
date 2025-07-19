@@ -24,15 +24,6 @@ export default function PretestStatCard({ pretestAnswer }: PretestStatCardProps)
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                     <CardHeader className="pb-2">
-                        <div className="text-sm font-medium text-muted-foreground">Total Questions</div>
-                    </CardHeader>
-                    <CardBody>
-                        <div className="text-2xl font-bold">{pretestData.length}</div>
-                    </CardBody>
-                </Card>
-
-                <Card>
-                    <CardHeader className="pb-2">
                         <div className="text-sm font-medium text-muted-foreground">Total Responses</div>
                     </CardHeader>
                     <CardBody>
@@ -48,6 +39,14 @@ export default function PretestStatCard({ pretestAnswer }: PretestStatCardProps)
                         <div className="text-2xl font-bold">
                             {formatAverage(overallAverage)}
                         </div>
+                    </CardBody>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-2">
+                        <div className="text-sm font-medium text-muted-foreground">Total Questions</div>
+                    </CardHeader>
+                    <CardBody>
+                        <div className="text-2xl font-bold">{pretestData.length}</div>
                     </CardBody>
                 </Card>
             </div>

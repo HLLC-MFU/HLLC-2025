@@ -20,20 +20,21 @@ export default function PretestAnswerTable({ PretestAnswers }: PretestAnswerTabl
             <Table aria-label="Pretest Answer Table">
                 <TableHeader>
                     <>
-                        <TableColumn>Student ID</TableColumn>
-                        <TableColumn>Name</TableColumn>
-                        <TableColumn>School</TableColumn>
-                        <TableColumn>Major</TableColumn>
+                        <TableColumn className="bg-transparent">Student ID</TableColumn>
+                        <TableColumn className="bg-transparent">Name</TableColumn>
+                        <TableColumn className="bg-transparent">School</TableColumn>
+                        <TableColumn className="bg-transparent">Major</TableColumn>
                         {questions.map((q) => (
-                            <TableColumn key={q._id}>
+                            <TableColumn key={q._id} className="break-words whitespace-normal max-w-[200px] bg-transparent">
                                 {q.question.en || q.question.th || 'Question'}
                             </TableColumn>
                         ))}
                     </>
                 </TableHeader>
+
                 <TableBody emptyContent="No answers found." items={PretestAnswers}>
                     {(answer) => (
-                        <TableRow key={answer._id}>
+                        <TableRow key={answer._id} className="border-b-1 border-t-1 border-gay-400">
                             {[
                                 <TableCell key="username">{answer.user?.username || '-'}</TableCell>,
                                 <TableCell key="name">
