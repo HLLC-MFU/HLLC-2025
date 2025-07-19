@@ -239,5 +239,6 @@ export default function useCoinHunting() {
     handleAlert,
     closeModal,
     setState, // เผื่ออยาก set อะไรเอง
+    setRefreshKey, // สำหรับ refresh ข้อมูล
   };
 } 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Image, Linking, StyleSheet, ScrollView, Dimensions, Platform } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import useCoinHunting from '@/hooks/useCoinHunting';
 import { BlurView } from 'expo-blur';
 import { ImagePreviewModal } from '@/components/chats/ImagePreviewModal';
+import { useFocusEffect } from '@react-navigation/native';
+import { apiRequest } from '@/utils/api';
 
 export default function MarkerDetailScreen() {
   const router = useRouter();
@@ -14,6 +16,7 @@ export default function MarkerDetailScreen() {
   const { language } = useLanguage();
   const { t } = useTranslation();
   const [showImagePreview, setShowImagePreview] = useState(false);
+  const [localIsCollected, setLocalIsCollected] = useState(false);
   const {
     markers,
     collectedIds,
@@ -21,11 +24,30 @@ export default function MarkerDetailScreen() {
   } = useCoinHunting();
 
   const marker = markers.find((m) => m._id === id);
-  const isCollected = marker ? collectedIds.includes(marker._id) : false;
+  // Use local state if available, otherwise fall back to global state
+  const isCollected = localIsCollected || (marker ? collectedIds.includes(marker._id) : false);
+  
 
-  // Dummy data for demo (rating, image count)
-  const rating = 4.9;
-  const imageCount = 3;
+  // Light refresh only when returning from QR scanner
+  useFocusEffect(
+    useCallback(() => {
+      // Only refresh if we just came back from QR scanner (check if we have a recent scan)
+      const refreshOnFocus = async () => {
+        try {
+          const response = await apiRequest('/coin-collections/my-coin', 'GET');
+          if (response && (response as any).data && Array.isArray((response as any).data.data)) {
+            const allLandmarks = (response as any).data.data.flatMap((c: any) => c.landmarks || []);
+            const freshCollectedIds = allLandmarks.map((l: any) => l.landmark?._id).filter(Boolean) as string[];
+            const isFreshCollected = freshCollectedIds.includes(id as string);
+            setLocalIsCollected(isFreshCollected);
+          }
+        } catch (error) {
+          // Silent fail - keep current state
+        }
+      };
+      refreshOnFocus();
+    }, [id])
+  );
 
   if (loadingMarkers) {
     return (
@@ -70,7 +92,6 @@ export default function MarkerDetailScreen() {
           )}
         </TouchableOpacity>
         
-        {/* Floating action buttons (rating, image count) */}
         <View style={styles.actionOverlay}>
           {Platform.OS === 'ios' ? (
             <BlurView intensity={40} tint="dark" style={styles.actionButton}>
