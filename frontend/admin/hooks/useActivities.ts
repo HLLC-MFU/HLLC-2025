@@ -36,9 +36,6 @@ export function useActivities(options?: { autoFetch?: boolean; useCanCheckin?: b
                 setActivities(activitiesRes?.data);
             }
 
-            console.log(activitiesRes.data);
-
-
             if (typesRes.data?.data) {
                 setActivityTypes(typesRes?.data?.data);
             }

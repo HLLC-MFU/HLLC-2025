@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Bell, X, Check, ArrowDown, Clock } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { useNotification } from "@/hooks/notifications/useNotification";
 import { useApi } from "@/hooks/useApi";
 import { NotificationItem } from "@/types/notification";
@@ -18,6 +18,8 @@ import { NotificationItem } from "@/types/notification";
 import tinycolor from "tinycolor2";
 import { AnimatePresence, MotiView } from "moti";
 import useProfile from "@/hooks/useProfile";
+import { useLanguage } from "@/context/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   visible: boolean;
@@ -38,7 +40,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
   const { notifications = [], loading } = useNotification();
   const { user } = useProfile();
   const { request } = useApi();
-
+  const {language} = useLanguage();
   const [showing, setShowing] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
   const [markingAsRead, setMarkingAsRead] = useState(false);
@@ -126,6 +128,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
 
   // Type assertion for user with theme
   const userWithTheme = user as UserWithTheme;
+  const {t} = useTranslation();
 
   return (
     <Modal
@@ -153,7 +156,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
               <View style={styles.trianglePointer} />
               <View style={styles.header}>
                 <View style={styles.headerContent}>
-                  <Text style={styles.headerTitle}>Notifications</Text>
+                  <Text style={styles.headerTitle}>{t("notification.title")}</Text>
                   {unreadCount > 0 && (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>{unreadCount}</Text>
@@ -176,9 +179,9 @@ export default function NotificationModal({ visible, onClose }: Props) {
                 ListEmptyComponent={() => (
                   <View style={styles.emptyContainer}>
                     <Bell size={40} color="#d1d5db" />
-                    <Text style={styles.emptyText}>No notifications yet</Text>
+                    <Text style={styles.emptyText}>{t("notification.noNotifications")}</Text>
                     <Text style={styles.emptySubtext}>
-                      We'll notify you when something arrives
+                      {t("notification.noNotificationsSubtext")}
                     </Text>
                   </View>
                 )}
@@ -193,8 +196,8 @@ export default function NotificationModal({ visible, onClose }: Props) {
                       <View style={styles.cardHeader}>
                         <View style={styles.iconWrap}>{getIconComponent(n.icon)}</View>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.cardTitle}>{n.title["en"] ?? "Untitled"}</Text>
-                          <Text style={styles.cardSubtitle}>{n.subtitle["en"] ?? "No detail"}</Text>
+                          <Text style={styles.cardTitle}>{n.title[language] ?? "Untitled"}</Text>
+                          <Text style={styles.cardSubtitle}>{n.subtitle[language] ?? "No detail"}</Text>
                         </View>
                         <Text style={styles.cardDate}>
                           {formatDate(n.createdAt || n.timestamp || new Date().toISOString())}
@@ -202,7 +205,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
                       </View>
                       <View style={styles.cardDivider} />
                       <View style={styles.cardBodyRow}>
-                        <Text style={styles.cardBody}>{n.body && n.body["en"]}</Text>
+                        <Text style={styles.cardBody}>{n.body && n.body[language]}</Text>
                         {n.image && n.image.trim() !== "" && (
                           <Image
                             source={{ uri: `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${n.image}` }}
@@ -235,7 +238,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
                         },
                       ]}
                     >
-                      {markingAsRead ? "Marking as read..." : "Mark all as read"}
+                      {markingAsRead ? t("notification.markAllAsRead") : t("notification.markAllAsRead")}
                     </Text>
                   </TouchableOpacity>
                 </>
@@ -259,12 +262,12 @@ export default function NotificationModal({ visible, onClose }: Props) {
                 <>
                   <View style={styles.detailHeaderRow}>
                     <View style={styles.iconWrap}>{getIconComponent(selectedNotification.icon)}</View>
-                    <Text style={styles.detailTitle}>{selectedNotification.title["en"]}</Text>
+                    <Text style={styles.detailTitle}>{selectedNotification.title[language]}</Text>
                   </View>
-                  <Text style={styles.detailSubtitle}>{selectedNotification.subtitle["en"]}</Text>
+                  <Text style={styles.detailSubtitle}>{selectedNotification.subtitle[language]}</Text>
                   <Text style={styles.detailDate}>{formatDate(selectedNotification.createdAt || selectedNotification.timestamp || new Date().toISOString())}</Text>
                   <View style={styles.detailDivider} />
-                  <Text style={styles.detailBody}>{selectedNotification.body && selectedNotification.body["en"]}</Text>
+                  <Text style={styles.detailBody}>{selectedNotification.body && selectedNotification.body[language]}</Text>
                   {selectedNotification.image && selectedNotification.image.trim() !== "" && (
                     <Image
                       source={{ uri: `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${selectedNotification.image}` }}
@@ -327,7 +330,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
     color: "#111827",
   },
@@ -567,7 +570,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   detailTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     color: '#111827',
     marginLeft: 8,
@@ -575,7 +578,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   detailSubtitle: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#888',
     marginBottom: 8,
     width: '100%',

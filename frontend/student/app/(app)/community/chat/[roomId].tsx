@@ -173,7 +173,7 @@ export default function ChatRoomPage() {
 
               <TouchableOpacity
                 style={chatStyles.headerInfo}
-                onPress={() => setIsRoomInfoVisible(true)}
+                onPress={() => { }}
                 activeOpacity={0.7}
               >
                 <Text style={chatStyles.headerTitle} numberOfLines={1}>
@@ -197,13 +197,7 @@ export default function ChatRoomPage() {
                   <Info color="#0A84FF" size={20} />
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity
-                  style={chatStyles.infoButton}
-                  onPress={() => setIsRoomInfoVisible(true)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Info color="#0A84FF" size={20} />
-                </TouchableOpacity>
+                <></>
               )}
             </View>
 
@@ -326,7 +320,7 @@ export default function ChatRoomPage() {
             <RoomInfoModal
               room={room as ChatRoom}
               isVisible={isRoomInfoVisible}
-              onClose={() => setIsRoomInfoVisible(false)}
+              onClose={() => { }}
               connectedUsers={
                 Array.isArray(members) && members.length > 0
                   ? members.map((member) => ({

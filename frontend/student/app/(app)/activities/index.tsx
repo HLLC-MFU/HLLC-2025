@@ -4,6 +4,7 @@ import {
   ScrollView,
   SafeAreaView,
   RefreshControl,
+  Platform,
 } from "react-native"
 import {
   Text,
@@ -24,6 +25,15 @@ import ActivityCard from "./_components/activity-card"
 import { useTranslation } from "react-i18next"
 import { SearchInput } from "@/components/global/SearchInput"
 import { useProgress } from "@/hooks/useProgress"
+
+// Create a global function to refresh activities
+let refreshActivitiesGlobal: (() => Promise<void>) | null = null
+
+export const setRefreshActivitiesGlobal = (fn: () => Promise<void>) => {
+  refreshActivitiesGlobal = fn
+}
+
+export const getRefreshActivitiesGlobal = () => refreshActivitiesGlobal
 
 export default function ActivitiesPage() {
   const router = useRouter()
@@ -51,6 +61,15 @@ export default function ActivitiesPage() {
       const response: ApiResponse = await apiRequest("/activities/user", "GET")
       const apiData = response.data && Array.isArray(response.data.data) ? response.data.data : []
       setActivities(apiData)
+      
+      // Update selected activity in store if it exists
+      const selectedActivity = useActivityStore.getState().selectedActivity
+      if (selectedActivity) {
+        const updatedActivity = apiData.find(a => a._id === selectedActivity._id)
+        if (updatedActivity) {
+          useActivityStore.getState().setSelectedActivity(updatedActivity)
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch activities:", error)
     } finally {
@@ -58,6 +77,11 @@ export default function ActivitiesPage() {
       setRefreshing(false)
     }
   }
+
+  // Set global refresh function
+  useEffect(() => {
+    setRefreshActivitiesGlobal(fetchActivities)
+  }, [])
 
   // Pull-to-refresh handler
   const onRefresh = () => {
@@ -85,16 +109,23 @@ export default function ActivitiesPage() {
 
   // Find the nearest upcoming activity (end date in the future)
   const now = Date.now()
-  const upcomingActivity =
-    activities
-      .filter((a) => {
-        const endAt = new Date(a.metadata?.endAt).getTime()
-        return !isNaN(endAt) && endAt > now
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.metadata.startAt).getTime() - new Date(b.metadata.startAt).getTime()
-      )[0] ?? null
+  const sortedUpcomingActivities = activities
+    .filter((a) => {
+      const endAt = new Date(a.metadata?.endAt).getTime()
+      return !isNaN(endAt) && endAt > now
+    })
+    .sort(
+      (a, b) =>
+        new Date(a.metadata.startAt).getTime() - new Date(b.metadata.startAt).getTime()
+    )
+
+  let upcomingActivities: UserActivity[] = []
+  if (sortedUpcomingActivities.length > 0) {
+    const firstStartAt = new Date(sortedUpcomingActivities[0].metadata.startAt).getTime()
+    upcomingActivities = sortedUpcomingActivities.filter(
+      (a) => new Date(a.metadata.startAt).getTime() === firstStartAt
+    )
+  }
 
   // Navigate to activity details and store selected activity
   const handleActivityPress = (activity: UserActivity) => {
@@ -107,7 +138,7 @@ export default function ActivitiesPage() {
       <SafeAreaView style={{ flex: 1 }}>
         <YStack padding="$4" gap="$4" flex={1}>
           {/* Page Title */}
-          <Text fontWeight="bold" fontSize={34} color="white">
+          <Text fontWeight="bold" fontSize={34} color="white" marginTop={Platform.OS === 'ios' ? "$4" : "$0"}>
             {t("activity.title")}
           </Text>
 
@@ -132,16 +163,21 @@ export default function ActivitiesPage() {
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
               {/* Upcoming Activity Section */}
-              {upcomingActivity && (
+              {upcomingActivities.length > 0 && (
                 <>
                   <YStack gap="$3" marginBottom="$5">
                     <H4 fontWeight="bold" color="white">
                       {t("activity.upcoming")}
                     </H4>
-                    <ActivityCard
-                      activity={upcomingActivity}
-                      onPress={() => handleActivityPress(upcomingActivity)}
-                    />
+                    <XStack flexWrap="wrap" justifyContent="space-between">
+                      {upcomingActivities.map((activity) => (
+                        <ActivityCard
+                          key={activity._id}
+                          activity={activity}
+                          onPress={() => handleActivityPress(activity)}
+                        />
+                      ))}
+                    </XStack>
                   </YStack>
                   <Separator marginVertical="$2" />
                 </>
