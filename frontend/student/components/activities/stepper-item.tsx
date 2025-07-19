@@ -204,34 +204,6 @@ function StepperItem({
             >
               {label}
             </Text>
-
-            {/* Status Badge */}
-            {(active || completed || error) && (
-              <View
-                style={{
-                  alignSelf: "flex-start",
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                  borderRadius: 12,
-                  backgroundColor: config.contentBg,
-                  borderWidth: 1,
-                  borderColor: config.contentBorder,
-                  marginTop: 4,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: "600",
-                    color: config.accent,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  {completed ? "Completed" : error ? "Action Required" : active ? "In Progress" : "Pending"}
-                </Text>
-              </View>
-            )}
           </View>
 
           {isInteractive && <ChevronRight size={20} color={config.accent} />}

@@ -42,6 +42,7 @@ export class SchoolsController {
     return this.schoolsService.findOne(id);
   }
 
+  @UseInterceptors(new MultipartInterceptor())
   @Patch(':id')
   @Permissions('schools:update')
   update(@Param('id') id: string, @Body() updateSchoolDto: UpdateSchoolDto) {

@@ -79,7 +79,7 @@ export default function EvoucherPage() {
                                     key={index}
                                     alt={sponsor.name?.en ?? ""}
                                     src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.logo.logoPhoto}`}
-                                    className="border-2 border-[#b1b1b1ff] rounded-3xl active:brightness-50"
+                                    className="aspect-square object-contain bg-white/40 border-2 border-[#b1b1b1ff] rounded-3xl active:brightness-50"
                                     onClick={() => handleSponsorCardClick(sponsor._id)}
                                 />
                             )
@@ -87,7 +87,7 @@ export default function EvoucherPage() {
                             return (
                                 <div
                                     key={index}
-                                    className="flex aspect-square justify-center items-center rounded-3xl shadow-xl bg-white/40 backdrop-blur-md border border-white active:brightness-50"
+                                    className="flex justify-center items-center aspect-square bg-white/20 rounded-3xl shadow-xl backdrop-blur-md border border-white active:brightness-50"
                                     onClick={() => handleSponsorCardClick(sponsor._id)}
                                 >
                                     <p className="font-semibold">{sponsor?.name?.en ?? ""}</p>

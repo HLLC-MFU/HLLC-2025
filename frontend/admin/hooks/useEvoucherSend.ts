@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Evoucher } from "@/types/evoucher";
 import { EvoucherData } from "@/types/chat";
+import { Sponsors } from "@/types/sponsors";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import { useSponsors } from "@/hooks/useSponsors";
 import { apiGolangRequest } from "@/utils/api";
@@ -57,15 +58,19 @@ export function useEvoucherSend(roomId: string | null) {
             const claimURL = `${process.env.NEXT_PUBLIC_API_URL}/evouchers/${evoucher._id}/claim`;
             let sponsorImage = '';
 
-            if (evoucher.sponsor) {
+            // Check if evoucher already has sponsor data populated
+            if (evoucher.sponsor && typeof evoucher.sponsor === 'object' && evoucher.sponsor.logo?.logoPhoto) {
+                sponsorImage = evoucher.sponsor.logo.logoPhoto;
+            } else if (evoucher.sponsor && typeof evoucher.sponsor === 'string') {
+                // If sponsor is just an ID, fetch sponsor info
                 try {
-                    const sponsorInfo = await fetchSponsorById(evoucher.sponsor as string);
+                    const sponsorInfo = await fetchSponsorById(evoucher.sponsor);
                     
                     if (sponsorInfo && sponsorInfo.length > 0) {
-                        const sponsor = sponsorInfo[0];
+                        const sponsorData = sponsorInfo[0] as unknown as Sponsors;
                         
-                        if (sponsor.data?.logo?.logoPhoto) {
-                            sponsorImage = sponsor.data.logo.logoPhoto;
+                        if (sponsorData.logo?.logoPhoto) {
+                            sponsorImage = sponsorData.logo.logoPhoto;
                         }
                     }
                 } catch (error) {
@@ -160,6 +165,12 @@ export function useEvoucherSend(roomId: string | null) {
         }
     };
 
+    const refreshEvouchers = async () => {
+        // This would trigger a re-fetch of evouchers from useEvoucher hook
+        // The actual refresh logic is handled by useEvoucher hook
+        window.location.reload();
+    };
+
     return {
         // State
         evouchers,
@@ -172,5 +183,6 @@ export function useEvoucherSend(roomId: string | null) {
         handleEvoucherSelect,
         handleEvoucherDataChange,
         handleSendEvoucher,
+        refreshEvouchers,
     };
 }

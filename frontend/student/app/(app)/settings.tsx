@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Trans } from 'react-i18next';
 import GlassConfirmModal from '@/components/evoucher/GlassConfirmModal';
 import useAuth from '@/hooks/useAuth';
+import AssetImage from '@/components/global/AssetImage';
 
 export default function SettingsScreen() {
   const { user } = useProfile();
@@ -55,10 +56,11 @@ export default function SettingsScreen() {
         <Text style={styles.text}>{t('settings.title')}</Text>
         <GlassButton onPress={toggleLanguage}>
           <View style={styles.row}>
-            <Globe color="white" size={20} style={styles.icon} />
-            <Text style={{ color: 'white' }}>
-              {language === 'en' ? t('settings.switch_to_thai') : t('settings.switch_to_english')}
-            </Text>
+            <AssetImage
+              uri={language === 'en' ? require('@/assets/images/icon/uk.png') : require('@/assets/images/icon/th.png')}
+              style={{ width: 24, height: 24, borderRadius: 12 }}
+            />
+            <Text style={{ color: 'white' }}>{language === 'en' ? 'English' : 'ไทย'}</Text>
           </View>
         </GlassButton>
         <GlassButton onPress={() => setShowDeleteConfirm(true)}>
@@ -131,8 +133,8 @@ const styles = StyleSheet.create({
     backgroundColor: undefined, // keep as is or set if needed
   },
   center: {
-    flexGrow: 1,
-    justifyContent: 'flex-start',
+    // flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     gap: 24,
     paddingVertical: 48,

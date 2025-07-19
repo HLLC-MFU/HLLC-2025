@@ -13,9 +13,10 @@ import { useAppearance } from '@/hooks/useAppearance';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProgressBar({
-    avatarUrl = '',
     onClickAvatar,
+    progress
 }: {
+    progress: number;
     avatarUrl?: string;
     onClickAvatar?: () => void;
 }) {
@@ -23,7 +24,8 @@ export default function ProgressBar({
     const [imageError, setImageError] = useState(false);
     const { width } = useWindowDimensions();
     const { assets, colors } = useAppearance();
-    const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/${assets?.profile}`;
+    const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/${avatarUrl}`;
+
     useEffect(() => {
         setImageError(false);
     }, [assets?.profile]);
@@ -56,7 +58,7 @@ export default function ProgressBar({
                     colors={[colors?.primary ?? '#62cff4', colors?.secondary ?? '#2c67f2']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={[styles.progressFill, { width: `${0}%` }]}
+                    style={[styles.progressFill, { width: `${progress}%` }]}
                 />
 
                 <View
@@ -73,7 +75,7 @@ export default function ProgressBar({
                         },
                     ]}
                 >
-                    <Text style={[styles.bubbleText, { color: colors?.text ?? '#ffffff' }]}>{0}%</Text>
+                    <Text style={[styles.bubbleText, { color: colors?.text ?? '#ffffff' }]}>{progress}%</Text>
                 </View>
             </View>
         </View>

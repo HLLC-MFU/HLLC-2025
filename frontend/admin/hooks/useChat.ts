@@ -1,177 +1,238 @@
 import { useState, useEffect } from "react";
 import { addToast } from "@heroui/react";
 
-import { 
-    RoomByIdResponse, 
+import type { 
+    Room, 
     RoomMembersResponse, 
     RoomMember, 
     RestrictionStatus, 
     RoomRestrictionsResponse,
-    UseChatReturn 
+    UseChatReturn
 } from "../types/room";
 
 import { apiGolangRequest } from "@/utils/api";
 
 export function useChat(): UseChatReturn {
-    const [room, setRoom] = useState<RoomByIdResponse[]>([]);
+    const [rooms, setRooms] = useState<Room[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    /**
+     * Fetch all rooms from the API
+     * @returns Promise<void>
+     */
+    const fetchRooms = async (): Promise<void> => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await apiGolangRequest<{ data: Room[]}>(
+                `/rooms?limit=0`,
+                "GET",
+            );
 
-        /**
-         * Fetch all rooms from the API with pagination.
-         * @param page - Page number (default: 1)
-         * @param limit - Items per page (default: 10)
-         * @return {Promise<void>} A promise that resolves when the rooms are fetched.
-         * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
-         */
-        const fetchRoom = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const res = await apiGolangRequest<{ data: RoomByIdResponse[]}>(
-                    `/rooms?limit=0`,
-                    "GET",
-                );
-
-                setRoom(Array.isArray(res.data?.data) ? res.data?.data : [])
-            } catch (err) {
-                addToast({
-                    title: 'Failed to fetch rooms. Please try again.',
-                    color: 'danger',
-                });
-                setError(
-                    err && typeof err === 'object' && 'message' in err
-                        ? (err as { message?: string }).message || 'Failed to fetch rooms.'
-                        : 'Failed to fetch rooms.',
-                );
-            } finally {
-                setLoading(false);
+            if (res.data?.data) {
+                setRooms(Array.isArray(res.data.data) ? res.data.data : []);
+            } else {
+                setRooms([]);
             }
-        };
+        } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to fetch rooms.'
+                : 'Failed to fetch rooms.';
+            
+            setError(errorMessage);
+            addToast({
+                title: 'Failed to fetch rooms. Please try again.',
+                color: 'danger',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     /**
-     * Create a new room with the provided data.
-     * @param {FormData} roomData - The data to create the room with.
-     * @return {Promise<ApiResponse<{ data: Room }>>} A promise that resolves when the room is created.
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * Create a new room
+     * @param roomData - FormData containing room information
+     * @returns Promise<void>
      */
-    const createRoom = async (roomData: FormData) => {
+    const createRoom = async (roomData: FormData): Promise<void> => {
+        setLoading(true);
+        setError(null);
         try {
-            setLoading(true);
-
             const groupType = roomData.get('groupType');
             const endpoint = groupType ? "/rooms/group" : "/rooms";
             
-            const res = await apiGolangRequest<RoomByIdResponse>(endpoint, "POST", roomData);
+            const res = await apiGolangRequest<Room>(endpoint, "POST", roomData);
 
             if (res.data) {
-                setRoom(prev => [...prev, res.data as unknown as RoomByIdResponse]);
+                addToast({
+                    title: 'Room created successfully!',
+                    color: 'success',
+                });
+                
+                // Refresh rooms list immediately
+                await fetchRooms();
             }
         } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to create room.'
+                : 'Failed to create room.';
+            
+            setError(errorMessage);
             addToast({
                 title: 'Failed to create room. Please try again.',
                 color: 'danger',
             });
-            setError(
-                err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to create room.'
-                    : 'Failed to create room.',
-            );
+            throw err; // Re-throw to let component handle it
         } finally {
             setLoading(false);
         }
     };
 
     /**
-     * Update an existing room with the provided data.
-     * @param {string} id - The ID of the room to update.
-     * @param {FormData} roomData - The data to update the room with.
-     * @return {Promise<ApiResponse<{ data: Room }>>} A promise that resolves when the room is updated.
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * Update an existing room
+     * @param id - Room ID
+     * @param roomData - FormData containing updated room information
+     * @returns Promise<void>
      */
-    const updateRoom = async (id: string, roomData: FormData) => {
+    const updateRoom = async (id: string, roomData: FormData): Promise<void> => {
+        setLoading(true);
+        setError(null);
         try {
-            setLoading(true);
-            const res = await apiGolangRequest<RoomByIdResponse>(`/rooms/${id}`, "PATCH", roomData);
+            const res = await apiGolangRequest<Room>(`/rooms/${id}`, "PATCH", roomData);
 
             if (res.data) {
-                setRoom(prev => prev.map(room => room._id === id ? res.data as unknown as RoomByIdResponse: room));
+                addToast({
+                    title: 'Room updated successfully!',
+                    color: 'success',
+                });
+                
+                // Refresh rooms list immediately
+                await fetchRooms();
             }
         } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to update room.'
+                : 'Failed to update room.';
+            
+            setError(errorMessage);
             addToast({
                 title: 'Failed to update room. Please try again.',
                 color: 'danger',
             });
-            setError(
-                err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to update room.'
-                    : 'Failed to update room.',
-            );
+            throw err; // Re-throw to let component handle it
         } finally {
             setLoading(false);
         }
     };
 
     /**
-     * Delete an existing room.
-     * @param {string} id - The ID of the room to delete.
-     * @return {Promise<ApiResponse<{ data: Room }>>} A promise that resolves when the room is deleted.
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * Delete a room
+     * @param id - Room ID
+     * @returns Promise<void>
      */
-    const deleteRoom = async (id: string) => {
+    const deleteRoom = async (id: string): Promise<void> => {
         setLoading(true);
+        setError(null);
         try {
-            const res = await apiGolangRequest<RoomByIdResponse>(`/rooms/${id}`, "DELETE");
+            const res = await apiGolangRequest<Room>(`/rooms/${id}`, "DELETE");
 
             if (res.data) {
-                setRoom(prev => prev.filter(room => room._id !== id));
+                addToast({
+                    title: 'Room deleted successfully!',
+                    color: 'success',
+                });
+                
+                // Refresh rooms list immediately
+                await fetchRooms();
             }
         } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to delete room.'
+                : 'Failed to delete room.';
+            
+            setError(errorMessage);
             addToast({
                 title: 'Failed to delete room. Please try again.',
                 color: 'danger',
             });
-            setError(
-                err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to delete room.'
-                    : 'Failed to delete room.',
-            );
+            throw err; // Re-throw to let component handle it
         } finally {
             setLoading(false);
         }
     };
 
-    // **NEW: Get room by ID**
-    const getRoomById = async (roomId: string): Promise<RoomByIdResponse | undefined> => {
+    /**
+     * Toggle room status (active/inactive)
+     * @param id - Room ID
+     * @returns Promise<void>
+     */
+    const toggleRoomStatus = async (id: string): Promise<void> => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await apiGolangRequest<Room>(`/rooms/${id}/toggle-status`, "PATCH");
+
+            if (res.data) {
+                addToast({
+                    title: 'Room status updated successfully!',
+                    color: 'success',
+                });
+                
+                // Refresh rooms list immediately
+                await fetchRooms();
+            }
+        } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to toggle room status.'
+                : 'Failed to toggle room status.';
+            
+            setError(errorMessage);
+            addToast({
+                title: 'Failed to toggle room status. Please try again.',
+                color: 'danger',
+            });
+            throw err; // Re-throw to let component handle it
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /**
+     * Get room by ID
+     * @param roomId - Room ID
+     * @returns Promise<Room | undefined>
+     */
+    const getRoomById = async (roomId: string): Promise<Room | undefined> => {
         try {
             setLoading(true);
             
-            const res = await apiGolangRequest<{ data: RoomByIdResponse }>(`/rooms/${roomId}`, "GET");
+            const res = await apiGolangRequest<{ data: Room }>(`/rooms/${roomId}`, "GET");
             
             if (res.data) {
                 return res.data.data || res.data;
             }
         } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to fetch room.'
+                : 'Failed to fetch room.';
+            
+            setError(errorMessage);
             addToast({
                 title: 'Failed to fetch room. Please try again.',
                 color: 'danger',
             });
-            setError(
-                err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to fetch room.'
-                    : 'Failed to fetch room.',
-            );
         } finally {
             setLoading(false);
         }
+        return undefined;
     };
 
     /**
      * Get restriction status for a user in a room
-     * @param roomId - The room ID
-     * @param userId - The user ID
-     * @returns The restriction status
+     * @param roomId - Room ID
+     * @param userId - User ID
+     * @returns Promise<RestrictionStatus | null>
      */
     const getRestrictionStatus = async (roomId: string, userId: string): Promise<RestrictionStatus | null> => {
         try {
@@ -187,14 +248,13 @@ export function useChat(): UseChatReturn {
     };
 
     /**
-     * Get room members with optional pagination query string and restriction status.
-     * @param roomId - The room ID, optionally with query string (e.g., "abc123?page=1&limit=10")
-     * @returns The API response with members and meta if available.
+     * Get room members with restriction status
+     * @param roomId - Room ID with optional query parameters
+     * @returns Promise with members data
      */
     const getRoomMembers = async (roomId: string) => {
         try {
             setLoading(true);
-            // Accept query string in roomId (e.g., "abc123?page=1&limit=10")
             const [id, query] = roomId.split("?");
             const endpoint = query ? `/rooms/${id}/members?${query}` : `/rooms/${id}/members`;
             const res = await apiGolangRequest<{ data: RoomMembersResponse }>(
@@ -203,11 +263,11 @@ export function useChat(): UseChatReturn {
             );
             
             if (res.data) {
-                // Handle nested data structure - the actual data is in res.data.data
                 const responseData = res.data.data || res.data;
                 const members = Array.isArray(responseData?.members)
                     ? responseData.members
                     : [];
+                
                 let roomRestrictions: RoomRestrictionsResponse = {};
                 try {
                     const restrictionRes = await apiGolangRequest<{data: RoomRestrictionsResponse}>(
@@ -219,7 +279,6 @@ export function useChat(): UseChatReturn {
                     console.error('Failed to get room restrictions:', err);
                 }
 
-                // Map restriction status to each member
                 const membersWithRestrictionStatus = members.map((member: RoomMember) => {
                     const memberRestrictions = roomRestrictions[member.user._id] || {
                         isBanned: false,
@@ -242,35 +301,34 @@ export function useChat(): UseChatReturn {
             }
             return { data: { members: [] } };
         } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to fetch room members.'
+                : 'Failed to fetch room members.';
+            
+            setError(errorMessage);
             addToast({
                 title: 'Failed to fetch room members. Please try again.',
                 color: 'danger',
             });
-            setError(
-                err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to fetch room members.'
-                    : 'Failed to fetch room members.',
-            );
             return { data: { members: [] } };
         } finally {
             setLoading(false);
         }
     };
 
-
-
     useEffect(() => {
-        fetchRoom();
+        fetchRooms();
     }, []);
 
     return {
-        room,
+        rooms,
         loading,
         error,
-        fetchRoom,
+        fetchRooms,
         createRoom,
         updateRoom,
         deleteRoom,
+        toggleRoomStatus,
         getRoomById,
         getRoomMembers,
         getRestrictionStatus,

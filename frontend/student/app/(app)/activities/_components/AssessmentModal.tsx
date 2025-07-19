@@ -3,6 +3,8 @@ import { Modal, View, Text, KeyboardAvoidingView, Platform, Keyboard, TouchableW
 import { Button, Input } from "tamagui"
 import { useTranslation } from "react-i18next"
 import { apiRequest } from "@/utils/api"
+import { useProgress } from "@/hooks/useProgress"
+import { useToastController } from "@tamagui/toast"
 
 interface AssessmentModalProps {
   visible: boolean
@@ -10,12 +12,14 @@ interface AssessmentModalProps {
   activity: any
 }
 
-const AssessmentModal = ({ visible, onClose, activity }:AssessmentModalProps) => {
+const AssessmentModal = ({ visible, onClose, activity }: AssessmentModalProps) => {
   const { t, i18n } = useTranslation()
   const [assessmentQuestions, setAssessmentQuestions] = useState<any[]>([])
   const [assessmentLoading, setAssessmentLoading] = useState(false)
   const [assessmentAnswers, setAssessmentAnswers] = useState<{ [questionId: string]: number | string }>({})
   const [assessmentSubmitting, setAssessmentSubmitting] = useState(false)
+  const { fetchProgress } = useProgress()
+  const toast = useToastController();
 
   useEffect(() => {
     if (visible && activity?._id) {
@@ -66,17 +70,23 @@ const AssessmentModal = ({ visible, onClose, activity }:AssessmentModalProps) =>
           answer: String(assessmentAnswers[q._id]),
         })),
       }
-      await apiRequest("/assessment-answers", "POST", payload)
+      const res = await apiRequest("/assessment-answers", "POST", payload)
+      if (res && (res.statusCode === 200 || res.statusCode === 201)) {
+        toast.show(t('assessment.success'), {
+          type: 'success',
+        });
+        fetchProgress()
+      }
       onClose()
     } catch (e) {
-      // TODO: แจ้ง error
-      console.error(e)
+      toast.show(t('assessment.failed'), {
+        type: 'error',
+      });
     } finally {
       setAssessmentSubmitting(false)
     }
   }
 
-  // ไล่ระดับสีจากแดงไปเขียว
   const gradientColors = ["#ef4444", "#f59e42", "#fde047", "#a7f3d0", "#22c55e"];
 
   return (

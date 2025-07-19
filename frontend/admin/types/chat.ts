@@ -1,17 +1,7 @@
-export type Room = {
-    _id: string;
-    name: Name;
-    type: RoomType;
-    status?: "active" | "inactive";
-    capacity: number;
-    memberCount: number;
-    createdBy: string;
-    image: string;
-    members?: string[];
-    createdAt: string;
-    updatedAt: string;
-    metadata: RoomMetadata;
-};
+import type { Room, RoomType, RoomSchedule, Name, RoomMetadata } from './room';
+
+// Re-export commonly used types for convenience
+export type { Room, RoomType, RoomSchedule, Name, RoomMetadata };
 
 export type Members = {
     _id: string;
@@ -27,7 +17,7 @@ export type Members = {
     };
 };
 
-// **NEW: Evoucher types**
+// **Evoucher types**
 export type EvoucherData = {
     roomId: string;
     message: {
@@ -54,7 +44,7 @@ export type EvoucherResponse = {
     };
 };
 
-// **NEW: User restriction types**
+// **User restriction types**
 export type RestrictionAction = {
     userId: string;
     roomId: string;
@@ -80,29 +70,6 @@ export type RestrictionResponse = {
         status: string;
         restrictor: string;
     };
-};
-
-export enum RoomType {
-    NORMAL = "normal",
-    READONLY = "readonly",
-}
-
-export type RoomMetadata = {
-    groupType?: "school" | "major" | "global";
-    description?: string;
-    tags?: string[];
-    settings?: {
-        allowFileUpload?: boolean;
-        maxFileSize?: number;
-        allowedFileTypes?: string[];
-        moderationEnabled?: boolean;
-    };
-    [key: string]: any;
-};
-
-export type Name = {
-    en: string;
-    th: string;
 };
 
 export type Message = {
