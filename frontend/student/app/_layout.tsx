@@ -55,8 +55,8 @@ export default function RootLayout() {
               onPress: () => {
                 const storeUrl =
                   Platform.OS === 'ios'
-                    ? 'itms-apps://itunes.apple.com/app/idYOUR_APP_ID'
-                    : 'market://details?id=YOUR_PACKAGE_NAME';
+                    ? 'itms-apps://itunes.apple.com/app/id6748238190'
+                    : 'https://hllc.mfu.ac.th/download';
                 Linking.openURL(storeUrl);
               },
             },
