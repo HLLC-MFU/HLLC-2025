@@ -65,7 +65,7 @@ export default function AppLayout() {
     setupBackgroundTask();
   }, []);
   useEffect(() => {
-    if (pretestVisible && pretestQuestions.length < 0) {
+    if (pretestVisible && pretestQuestions.length > 0) {
       setShowPretestModal(true);
     }
   }, [pretestVisible, pretestQuestions]);
