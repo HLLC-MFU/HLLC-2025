@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -33,18 +32,9 @@ func (s *ChatService) CanUserViewMessages(ctx context.Context, userID, roomID pr
 // Optimize ให้ Support SendMsg ให้ handling phantom message (ข้อความผี = ไม่ได้ save ลงใน DB)
 func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage, metadata interface{}) error {
 	log.Printf("[ChatService] SendMessage called for room %s by user %s", msg.RoomID.Hex(), msg.UserID.Hex())
-	
-	// **ENHANCED: Strict empty message validation**
-	if msg == nil {
-		return fmt.Errorf("message is nil")
+	if !isValidChatMessage(msg) {
+		return fmt.Errorf("invalid message: empty or unsupported content")
 	}
-	
-	// Check for completely empty message (no content at all)
-	if strings.TrimSpace(msg.Message) == "" {
-		log.Printf("[ChatService] Rejecting completely empty message from user %s in room %s", msg.UserID.Hex(), msg.RoomID.Hex())
-		return fmt.Errorf("message cannot be empty")
-	}
-
 	// ตรวจสอบ moderation status ก่อนส่งข้อความ
 	if !s.CanUserSendMessages(ctx, msg.UserID, msg.RoomID) {
 		// ตรวจสอบว่าถูก ban หรือ mute

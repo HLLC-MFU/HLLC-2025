@@ -1,7 +1,6 @@
 package dto
 
 import (
-	"chat/module/room/room/model"
 	"chat/pkg/common"
 	"time"
 
@@ -22,7 +21,6 @@ type (
 		Metadata    map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"`
 		MemberCount int                    `bson:"memberCount" json:"memberCount"`
 		CanJoin     bool                   `json:"canJoin,omitempty"`
-		Schedule    *model.RoomSchedule    `bson:"schedule,omitempty" json:"schedule,omitempty"` // เพิ่มฟิลด์ schedule
 	}
 
 	ResponseAllRoomForUserDto struct {
@@ -39,7 +37,6 @@ type (
 		IsMember    bool                   `json:"isMember"`
 		CanJoin     bool                   `json:"canJoin"`
 		MemberCount int                    `json:"memberCount"`
-		Schedule    *model.RoomSchedule    `bson:"schedule,omitempty" json:"schedule,omitempty"` // เพิ่มฟิลด์ schedule
 	}
 
 	ResponseRoomMemberDto struct {

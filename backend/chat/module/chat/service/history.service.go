@@ -37,29 +37,6 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 	if err == nil && len(cachedMessages) > 0 {
 		log.Printf("[HistoryService] Found %d cached messages for room %s", len(cachedMessages), roomID)
 		
-		// **NEW: Check if cache has sufficient data**
-		// If we got fewer messages than requested and it's not a complete dataset, query database
-		if int64(len(cachedMessages)) < limit {
-			log.Printf("[HistoryService] Cache has insufficient data (%d/%d messages), checking database for more", len(cachedMessages), limit)
-			
-			// Query database for more messages
-			dbMessages, err := h.queryDatabaseMessages(ctx, roomID, limit)
-			if err != nil {
-				log.Printf("[HistoryService] Database query failed, using cached messages only: %v", err)
-			} else if len(dbMessages) > len(cachedMessages) {
-				log.Printf("[HistoryService] Database has more messages (%d vs %d cached), using database data", len(dbMessages), len(cachedMessages))
-				
-				// Cache the complete database results
-				for _, enriched := range dbMessages {
-					if err := h.cache.SaveMessage(ctx, roomID, &enriched); err != nil {
-						log.Printf("[HistoryService] Failed to cache message %s: %v", enriched.ChatMessage.ID.Hex(), err)
-					}
-				}
-				
-				return dbMessages, nil
-			}
-		}
-		
 		// **ENHANCED: Re-populate all missing data for cached messages**
 		for i, msg := range cachedMessages {
 			// Re-populate ReplyTo if missing
@@ -73,6 +50,7 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 					log.Printf("[HistoryService] Successfully re-populated ReplyTo for message %s", msg.ChatMessage.ID.Hex())
 				}
 			}
+
 		}
 		
 		// Limit the results
@@ -80,16 +58,11 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 			cachedMessages = cachedMessages[:limit]
 		}
 		
-		log.Printf("[HistoryService] Using %d cached messages for room %s", len(cachedMessages), roomID)
 		return cachedMessages, nil
 	}
 
 	log.Printf("[HistoryService] Cache miss for room %s, querying database", roomID)
-	return h.queryDatabaseMessages(ctx, roomID, limit)
-}
 
-// queryDatabaseMessages queries messages from database
-func (h *HistoryService) queryDatabaseMessages(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {
 	// Convert roomID to ObjectID
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
@@ -116,8 +89,6 @@ func (h *HistoryService) queryDatabaseMessages(ctx context.Context, roomID strin
 		return nil, fmt.Errorf("failed to query chat history: %w", err)
 	}
 
-	log.Printf("[HistoryService] Database query returned %d messages for room %s", len(result.Data), roomID)
-
 	// **ENHANCED: Convert to enriched messages with complete data**
 	enrichedMessages := make([]model.ChatMessageEnriched, len(result.Data))
 	for i, msg := range result.Data {
@@ -140,23 +111,14 @@ func (h *HistoryService) queryDatabaseMessages(ctx context.Context, roomID strin
 		if msg.EvoucherInfo != nil {
 			log.Printf("[HistoryService] Found evoucher message %s", msg.ID.Hex())
 		}
-		if msg.MentionInfo != nil && len(msg.MentionInfo) > 0 {
-			log.Printf("[HistoryService] Found mention message %s with %d mentions", msg.ID.Hex(), len(msg.MentionInfo))
+		if msg.MentionInfo != nil {
+			log.Printf("[HistoryService] Found mention message %s with %d mentions", msg.ID.Hex(), len(msg.Mentions))
 		}
 		if msg.ModerationInfo != nil {
 			log.Printf("[HistoryService] Found restriction message %s", msg.ID.Hex())
 		}
 		if msg.StickerID != nil {
 			log.Printf("[HistoryService] Found sticker message %s", msg.ID.Hex())
-		}
-		if msg.Image != "" && msg.StickerID == nil {
-			log.Printf("[HistoryService] Found upload message %s", msg.ID.Hex())
-		}
-		if msg.ReplyToID != nil {
-			log.Printf("[HistoryService] Found reply message %s", msg.ID.Hex())
-		}
-		if msg.Message != "" && msg.StickerID == nil && msg.EvoucherInfo == nil && msg.ReplyToID == nil && len(msg.MentionInfo) == 0 {
-			log.Printf("[HistoryService] Found text message %s: '%s'", msg.ID.Hex(), msg.Message)
 		}
 
 		enrichedMessages[i] = enriched

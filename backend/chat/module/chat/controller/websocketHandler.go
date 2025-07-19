@@ -155,10 +155,6 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 		} else if msg.ChatMessage.EvoucherInfo != nil {
 			eventType = model.EventTypeEvoucher
 			messageType = model.MessageTypeEvoucher
-		} else if msg.ChatMessage.ModerationInfo != nil {
-			// Determine specific restriction type from message content
-			eventType = h.determineRestrictionEventType(msg.ChatMessage.Message)
-			messageType = model.MessageTypeRestriction
 		} else if msg.ChatMessage.Image != "" {
 			eventType = "upload"
 			messageType = "upload"
@@ -282,27 +278,6 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 	}
 	
 	log.Printf("[WebSocket] ✅ Successfully sent %d/%d history messages to client for room %s", messagesSent, len(reversedMessages), roomID)
-}
-
-// determineRestrictionEventType determines the specific restriction event type from message content
-func (h *WebSocketHandler) determineRestrictionEventType(messageContent string) string {
-	// Check message content to determine restriction type
-	msgContent := strings.ToLower(messageContent)
-	
-	if strings.Contains(msgContent, "banned") {
-		return model.EventTypeRestrictionBan
-	} else if strings.Contains(msgContent, "unbanned") {
-		return model.EventTypeRestrictionUnban
-	} else if strings.Contains(msgContent, "muted") {
-		return model.EventTypeRestrictionMute
-	} else if strings.Contains(msgContent, "unmuted") {
-		return model.EventTypeRestrictionUnmute
-	} else if strings.Contains(msgContent, "kicked") {
-		return model.EventTypeRestrictionKick
-	}
-	
-	// Default fallback
-	return model.EventTypeRestriction
 }
 
 func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
@@ -472,43 +447,6 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 
 		messageText := strings.TrimSpace(string(msg))
 
-		// **NEW: Check for empty messages before processing**
-		if messageText == "" {
-			log.Printf("[WebSocket] Skipping empty message from user %s in room %s", userID, roomID)
-			continue
-		}
-
-		// **NEW: Check schedule before processing any message**
-		room, err := h.roomService.GetRoomById(ctx, roomObjID)
-		if err != nil {
-			log.Printf("[WS] Failed to get room %s: %v", roomObjID.Hex(), err)
-			continue
-		}
-
-		// Check if room schedule has expired
-		if room.IsScheduleEnabled() && !room.IsRoomAccessibleForWebSocket(time.Now()) {
-			log.Printf("[WS] Room %s schedule has expired, disconnecting user %s", roomObjID.Hex(), userID)
-			
-			// Send schedule expiration message
-			expirationMsg := map[string]interface{}{
-				"type": "room_schedule_expired",
-				"data": map[string]interface{}{
-					"roomId":    roomObjID.Hex(),
-					"message":   "ห้องนี้หมดเวลาแล้ว คุณจะถูกตัดการเชื่อมต่อ",
-					"timestamp": time.Now(),
-				},
-			}
-			
-			if msgBytes, err := json.Marshal(expirationMsg); err == nil {
-				conn.WriteMessage(websocket.TextMessage, msgBytes)
-			}
-			
-			// Close connection after a short delay
-			time.Sleep(1 * time.Second)
-			conn.Close()
-			return
-		}
-
 		// **IMPROVED: Enhanced WebSocket command handling**
 
 		// ให้มัน support action ต่างๆใน socket message เช่น /reply /react /unsend
@@ -525,6 +463,12 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 				conn.WriteMessage(websocket.TextMessage, []byte("You have been kicked from this room"))
 				conn.Close()
 				return
+			}
+			// Check if room is still active (prevent messages in inactive rooms)
+			room, err := h.roomService.GetRoomById(ctx, roomObjID)
+			if err != nil {
+				log.Printf("[WS] Failed to get room %s: %v", roomObjID.Hex(), err)
+				continue
 			}
 			
 			if room.IsInactive() {
@@ -621,8 +565,6 @@ func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.C
 		ReplyToID: &replyToID,
 		Timestamp: time.Now(),
 	}
-
-	
 	// ส่งข้อความ reply ไปยังห้อง
 	metadata := map[string]interface{}{
 		"type": "reply",

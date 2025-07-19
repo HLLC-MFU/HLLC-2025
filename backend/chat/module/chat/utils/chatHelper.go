@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 
 	"github.com/gofiber/websocket/v2"
@@ -43,51 +42,20 @@ func getRoomTopic(roomID string) string {
 func isEmptyMessage(payload interface{}) bool {
     switch msg := payload.(type) {
     case map[string]interface{}:
-        // **ENHANCED: More comprehensive empty message check**
-        messageText := ""
-        if msg["Message"] != nil {
-            if str, ok := msg["Message"].(string); ok {
-                messageText = strings.TrimSpace(str)
-            }
-        }
-        
-        // Check if all content fields are empty
-        if messageText == ""  {
-            log.Printf("[DEBUG] Empty message detected in payload: %+v", msg)
+        // ตรวจสอบ fields ใน map
+        if msg["Message"] == "" &&
+            (msg["StickerID"] == nil || msg["StickerID"] == "") &&
+            msg["FileName"] == "" &&
+            msg["EvoucherInfo"] == nil &&
+            msg["MentionInfo"] == nil &&
+            msg["ModerationInfo"] == nil {
             return true
         }
-        
-        log.Printf("[DEBUG] Message has content - text: '%s', sticker: %v, file: '%s', image: '%s'", 
-            messageText)
-        return false
-        
-    case []byte:
-        // Handle byte array payloads (WebSocket messages)
-        if len(msg) == 0 {
-            log.Printf("[DEBUG] Empty byte array payload detected")
-            return true
-        }
-        
-        // Try to unmarshal and check
-        var data map[string]interface{}
-        if err := json.Unmarshal(msg, &data); err == nil {
-            return isEmptyMessage(data)
-        }
-        
-        log.Printf("[DEBUG] Non-empty byte array payload: %d bytes", len(msg))
-        return false
-        
     default:
-        // For other types, check if they're nil or empty
-        if msg == nil {
-            log.Printf("[DEBUG] Nil payload detected")
-            return true
-        }
-        
-        // Use reflection for struct types if needed
-        log.Printf("[DEBUG] Non-nil payload of type %T", msg)
-        return false
+        // ใช้ reflection หรือแปลงเป็น map เพื่อตรวจสอบ (ถ้าจำเป็น)
+        // หรือถ้า payload เป็น struct type ที่คุณรู้จัก ก็แปลงและเช็คตรงๆได้
     }
+    return false
 }
 
 func (h *Hub) Register(c Client) {
@@ -158,15 +126,9 @@ func (h *Hub) countRoomStats(roomID string) (users int, connections int) {
 func (h *Hub) BroadcastEvent(event ChatEvent) {
 	log.Printf("[ChatMessage] Broadcasting event type=%s", event.Type)
 
-	// **ENHANCED: Check if the event payload is empty**
+	// Check if the event payload is empty
 	if isEmptyMessage(event.Payload) {
-		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected for event type=%s", event.Type)
-		return
-	}
-	
-	// **NEW: Additional validation for empty payload**
-	if event.Payload == nil {
-		log.Printf("[DEBUG] Skipping broadcast: nil payload for event type=%s", event.Type)
+		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected")
 		return
 	}
 
@@ -236,37 +198,15 @@ func (h *Hub) BroadcastEvent(event ChatEvent) {
 }
 
 func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {
-	log.Printf("[TRACE] BroadcastToRoom called for room %s with %d bytes", roomID, len(payload))
-	
 	successCount := 0
 	failCount := 0
-	
-	// **ENHANCED: Check if the event payload is empty**
+	// Check if the event payload is empty
 	if isEmptyMessage(payload) {
-		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected for room %s", roomID)
+		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected")
 		return
 	}
-	
-	// **NEW: Additional validation for empty payload**
-	if len(payload) == 0 {
-		log.Printf("[DEBUG] Skipping broadcast: empty payload for room %s", roomID)
-		return
-	}
-	
-	log.Printf("[TRACE] BroadcastToRoom: payload validation passed, checking for clients in room %s", roomID)
-	
 	if roomMap, ok := h.clients.Load(roomID); ok {
 		log.Printf("[WS] Broadcasting to room %s", roomID)
-		
-		// Count users in room for debugging
-		userCount := 0
-		roomMap.(*sync.Map).Range(func(userID, userConns interface{}) bool {
-			userCount++
-			log.Printf("[TRACE] Found user %s in room %s", userID, roomID)
-			return true
-		})
-		
-		log.Printf("[TRACE] Broadcasting to %d users in room %s", userCount, roomID)
 		
 		roomMap.(*sync.Map).Range(func(userID, userConns interface{}) bool {
 			log.Printf("[WS] Broadcasting to user %s in room %s", userID, roomID)
@@ -411,26 +351,27 @@ func (h *Hub) GetOnlineUsersInRoom(roomID string) []string {
 func (h *Hub) GetConnectedRooms() map[string]bool {
 	connectedRooms := make(map[string]bool)
 	
+	// Iterate through all rooms in the hub
 	h.clients.Range(func(roomID, roomMap interface{}) bool {
-		roomIDStr, ok := roomID.(string)
-		if !ok {
-			return true
-		}
-		
-		// Check if room has any active connections
-		hasConnections := false
-		roomMap.(*sync.Map).Range(func(_, userConns interface{}) bool {
-			userConns.(*sync.Map).Range(func(_, _ interface{}) bool {
-				hasConnections = true
-				return false // Stop iteration - we found at least one connection
+		if roomIDStr, ok := roomID.(string); ok {
+			// Check if the room has any active users
+			if roomMapSync, ok := roomMap.(*sync.Map); ok {
+				hasActiveUsers := false
+				roomMapSync.Range(func(userID, userConns interface{}) bool {
+					if userConnsSync, ok := userConns.(*sync.Map); ok {
+						userConnsSync.Range(func(connID, conn interface{}) bool {
+							hasActiveUsers = true
+							return false // Stop after finding one active connection
 						})
-			return !hasConnections // Continue only if no connections found yet
+					}
+					return !hasActiveUsers // Stop if we found active users
 				})
 				
-		if hasConnections {
+				if hasActiveUsers {
 					connectedRooms[roomIDStr] = true
+				}
+			}
 		}
-		
 		return true
 	})
 	

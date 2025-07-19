@@ -86,13 +86,6 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		return nil, err
 	}
 
-	// Validate schedule if provided
-	if createDto.Schedule != nil {
-		if err := createDto.Schedule.ValidateSchedule(); err != nil {
-			return nil, fmt.Errorf("schedule validation error: %w", err)
-		}
-	}
-
 	roomType := createDto.Type
 	if roomType == "" {
 		roomType = model.RoomTypeNormal
@@ -120,16 +113,6 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		members = append(members, createdBy)
 	}
 
-	// Convert schedule DTO to model
-	var schedule *model.RoomSchedule
-	if createDto.Schedule != nil {
-		var err error
-		schedule, err = createDto.Schedule.ToRoomSchedule()
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse schedule: %w", err)
-		}
-	}
-
 	room := &model.Room{
 		Name:      createDto.Name,
 		Type:      roomType,
@@ -140,7 +123,6 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		UpdatedAt: time.Now(),
 		Members:   members,
 		Image:     createDto.Image,
-		Schedule:  schedule, // เพิ่มฟิลด์ schedule
 		Metadata: map[string]interface{}{
 			"isGroupRoom": true,
 			"groupType":   createDto.GroupType,
