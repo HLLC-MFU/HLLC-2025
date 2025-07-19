@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, View, Text, Button, ActivityIndicator, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import { Modal, View, Text, Button, ActivityIndicator, ScrollView, TextInput, TouchableOpacity, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useTranslation } from 'react-i18next';
 
@@ -57,7 +57,11 @@ const PosttestModal = ({ visible, questions, loading, error, onSubmit }: Posttes
       animationType="fade"
       onRequestClose={() => {}}
     >
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
+      <View style={[
+        Platform.OS === 'android'
+          ? { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center'}
+          : { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }
+      ]}>
         <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, minWidth: 320, maxHeight: '80%', paddingHorizontal: 16 }}>
           <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>{t('posttest.title')}</Text>
           {loading ? (

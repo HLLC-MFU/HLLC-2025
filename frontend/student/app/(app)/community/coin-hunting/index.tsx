@@ -20,7 +20,6 @@ export default function CoinHuntingScreen() {
     remainingCooldownMs,
     stampCount,           
     handleMarkerPress,
-    handleCheckIn,
     handleGoToStamp,
     closeModal,
     markers,
@@ -41,6 +40,14 @@ export default function CoinHuntingScreen() {
     handleScannerSuccess(data);
     setRefreshKey((k) => k + 1);
   }, [handleScannerSuccess]);
+
+  // ปรับ handleCheckIn ให้ปิด modal แล้ว push ไปหน้า qrcode tab scan
+  const handleCheckIn = useCallback(() => {
+    closeModal();
+    setTimeout(() => {
+      router.push({ pathname: '/qrcode', params: { tab: 'scan', t: Date.now() } });
+    }, 200);
+  }, [closeModal, router]);
 
   useEffect(() => {
     if (params.modal === 'success') {
@@ -73,13 +80,6 @@ export default function CoinHuntingScreen() {
           containerSize={containerSize}
         />
       </InteractiveMap>
-      <MarkerDetailModal
-        visible={modal === 'marker-detail'}
-        marker={selectedMarker}
-        collectedIds={collectedIds}
-        onClose={closeModal}
-        onCheckIn={handleCheckIn}
-      />
       <CombinedModal
         visible={modal === 'success'}
         type="success"

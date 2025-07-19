@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { apiRequest } from "@/utils/api";
 import { PretestAnswer, PretestAverage } from "@/types/pretestAnswer";
 
-export function usePretest() {
+export function usePretest({ page = 1, limit = 5 } = {}) {
     const [pretestAnswer, setPretestAnswer] = useState<PretestAnswer[]>([]);
     const [pretestAverage, setPretestAverage] = useState<PretestAverage[]>([]);
     const [loading, setLoading] = useState(false);
+    const [totalAverageCount, setTotalAverageCount] = useState(0);
+    const [totalAnswerCount, setTotalAnswerCount] = useState(0);
     const [error, setError] = useState<string | null>(null);
 
 
@@ -13,10 +15,12 @@ export function usePretest() {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: PretestAnswer[] }>("/pretest-answers", "GET");
-            console.log('kuy', res);
-
+            const res = await apiRequest<{ data: PretestAnswer[], total: number }>(
+                `/pretest-answers?page=${page}&limit=${limit}`,
+                "GET");
+            console.log('data by fetchPretestAnswer here =>', res);
             setPretestAnswer(Array.isArray(res.data?.data) ? res.data.data : []);
+            setTotalAnswerCount(res.data?.total || 0);
             return res;
         } catch (err) {
             setError(
@@ -29,36 +33,35 @@ export function usePretest() {
         }
     };
 
-    // Fetch pretest average.
     const fetchPretestAverage = async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: PretestAverage[] }>("/pretest-answers/all/average?limit=0", "GET");
-            console.log('ไอหน้าหี', res);
-
-            setPretestAverage(Array.isArray(res.data) ? res.data : []);
-            return res;
-        } catch (err) {
-            setError(
-                err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to fetch pretests.'
-                    : 'Failed to fetch pretests.',
+            const res = await apiRequest<{ data: PretestAverage[], total: number }>(
+                `/pretest-answers/all/average?page=${page}&limit=${limit}`,
+                'GET'
             );
+
+            setPretestAverage(res.data?.data || []);
+            setTotalAverageCount(res.data?.total || 0);
+        } catch (err) {
+            setError('Failed to fetch pretests.');
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchPretestAverage();
         fetchPretestAnswer();
-    }, []);
+        fetchPretestAverage();
+    }, [page, limit]);
 
     return {
         pretestAverage,
         pretestAnswer,
+        totalAverageCount,
+        totalAnswerCount,
         loading,
         error,
-    }
+    };
 }

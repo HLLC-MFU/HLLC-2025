@@ -1,15 +1,15 @@
 import { Lang } from './lang';
 export class Location {
-  latitude: number;
-  longitude: number;
-  mapUrl: string;
-  th: string;
-  en: string;
+    latitude: number;
+    longitude: number;
+    mapUrl: string;
+    th: string;
+    en: string;
 }
 
 export type mapCoordinate = {
-  x: number;
-  y: number;
+    x: number;
+    y: number;
 };
 
 export type Activities = {
@@ -18,7 +18,7 @@ export type Activities = {
     acronym: string;
     fullDetails: Lang;
     shortDetails: Lang;
-    type: ActivityType | string;
+    type: string | ActivityType;
     photo: Photo;
     location: Location;
     metadata: Metadata;

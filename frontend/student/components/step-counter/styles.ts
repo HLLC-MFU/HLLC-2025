@@ -3,7 +3,7 @@ import { StyleSheet, Dimensions, Platform } from 'react-native';
 const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
-  container: { flex: 1 ,backgroundColor: 'transparent', marginTop: 36 },
+  container: { flex: 1, backgroundColor: 'transparent', marginTop: 36 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -300,12 +300,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     height: 48,
   },
-  cardContainer:{
+  cardContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginVertical: height * 0.022,
     marginTop: height * 0.13,
-  }
+  },
+  avatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+  },
+  avatarInitials: {
+    fontWeight: 'bold',
+    color: 'white',
+  },
+
 });
 
 export default styles;

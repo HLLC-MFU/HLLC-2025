@@ -7,6 +7,7 @@ import GooeyFabMenu from '@/components/GooeyFabMenu';
 import { useAppearance } from '@/hooks/useAppearance';
 import useProfile from '@/hooks/useProfile';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 
 export default function HomeScreen() {
@@ -18,7 +19,7 @@ export default function HomeScreen() {
       fetchAppearance(user?.data[0].metadata.major.school._id);
     };
   }, [user?.data[0].metadata.major.school._id]);
-
+  const { t } = useTranslation();
   const subFabs = [
     {
       key: 'step',
@@ -35,7 +36,7 @@ export default function HomeScreen() {
     {
       key: 'lamduanflowers',
       icon: <Flower color={"white"} />,
-      label: 'LAMDUAN FLOWER',
+      label: t('lamduanflower.title'),
       onPress: () => router.replace('/lamduanflowers'),
     },
   ];

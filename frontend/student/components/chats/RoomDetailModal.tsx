@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { Modal, View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { ChatRoom } from '@/types/chatTypes';
 import { CHAT_BASE_URL } from '@/configs/chats/chatConfig';
@@ -45,7 +45,14 @@ export const RoomDetailModal = ({ visible, room, language, onClose }: RoomDetail
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill}>
+      <BlurView 
+        intensity={Platform.OS === 'android' ? 70 : 60} 
+        tint="light" 
+        style={[
+          StyleSheet.absoluteFill,
+          Platform.OS === 'android' && { backgroundColor: 'rgba(0,0,0,0.9)' }
+        ]}
+      >
         <View style={styles.centered}>
           <View style={styles.modalContent}>
             {imageUrl && (
@@ -104,7 +111,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: 320,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: Platform.OS === 'android' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)',
     borderRadius: 22,
     padding: 20,
     alignItems: 'center',
