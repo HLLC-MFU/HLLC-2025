@@ -1,9 +1,6 @@
 package model
 
-import (
-	"chat/pkg/common"
-	"time"
-)
+import "time"
 
 // Event Types - Global constants
 const (
@@ -18,15 +15,6 @@ const (
     EventTypeEvoucher   = "evoucher"
     EventTypeUnsendMessage = "unsend_message" // **NEW: Unsend message event**
 	EventTypeRestriction = "restriction"
-
-	// Restriction
-	EventTypeRestrictionMute = "restriction_mute"
-	EventTypeRestrictionUnmute = "restriction_unmute"
-	EventTypeRestrictionBan = "restriction_ban"
-	EventTypeRestrictionUnban = "restriction_unban"
-	EventTypeRestrictionKick = "restriction_kick"
-
-
     EventTypePresence     = "presence"
     EventTypeUpload       = "upload"
 )
@@ -62,9 +50,8 @@ type (
 
 	// Core Information Structures
 	RoomInfo struct {
-		ID    string               `json:"_id"`
-		Name  common.LocalizedName `json:"name,omitempty"`
-		Image string               `json:"image,omitempty"`
+		ID   string `json:"_id"`
+		Name string `json:"name,omitempty"`
 	}
 
 	UserInfo struct {

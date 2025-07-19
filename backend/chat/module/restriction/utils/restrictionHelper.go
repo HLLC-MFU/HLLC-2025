@@ -20,7 +20,7 @@ func BuildRestrictionMessage(action string, userID, roomID, restrictorID primiti
 	return &model.ChatMessage{
 		RoomID:    roomID,
 		UserID:    restrictorID,
-		Message:   generateRestrictionMessage(action, "", reason), // Will be updated below with username
+		Message:   generateRestrictionMessage(action, reason),
 		Timestamp: time.Now(),
 		ModerationInfo: &model.ModerationMessageInfo{
 			ID:          primitive.NewObjectID(),
@@ -32,25 +32,20 @@ func BuildRestrictionMessage(action string, userID, roomID, restrictorID primiti
 	}
 }
 
-func generateRestrictionMessage(action, username, reason string) string {
-	target := username
-	if target == "" {
-		target = "User" // fallback for backward compatibility
-	}
-	
+func generateRestrictionMessage(action, reason string) string {
 	switch action {
 	case "ban":
-		return "🚫 " + target + " has been banned. Reason: " + reason
+		return "🚫 User has been banned. Reason: " + reason
 	case "mute":
-		return "🔇 " + target + " has been muted. Reason: " + reason
+		return "🔇 User has been muted. Reason: " + reason
 	case "kick":
-		return "👢 " + target + " has been kicked. Reason: " + reason
+		return "👢 User has been kicked. Reason: " + reason
 	case "unban":
-		return "✅ " + target + " has been unbanned"
+		return "✅ User has been unbanned"
 	case "unmute":
-		return "✅ " + target + " has been unmuted"
+		return "✅ User has been unmuted"
 	default:
-		return "ℹ️ Moderation action on " + target + ": " + action + ". Reason: " + reason
+		return "ℹ️ Moderation action: " + action + ". Reason: " + reason
 	}
 }
 
@@ -75,19 +70,10 @@ func EmitAndNotifyRestriction(
 	action, reason, duration, restriction string,
 	endTime *time.Time,
 ) error {
-	// 1. Get target user info to include username in message
-	targetUser, err := GetUserById(ctx, db, userID)
-	if err != nil {
-		// Log error but continue with fallback
-		targetUser = &userModel.User{Username: "User"}
-	}
-
-	// 2. Build moderation message with target username
+	// 1. Build moderation message
 	msg := BuildRestrictionMessage(action, userID, roomID, restrictorID, reason, duration, endTime, restriction)
-	// Update message with target username
-	msg.Message = generateRestrictionMessage(action, targetUser.Username, reason)
 
-	// 3. Save moderation message to chat-messages collection
+	// 2. Save moderation message to chat-messages collection
 	chatMsgCollection := db.Collection("chat-messages")
 	msg.CreatedAt = time.Now()
 	msg.UpdatedAt = time.Now()
@@ -97,16 +83,16 @@ func EmitAndNotifyRestriction(
 	}
 	msg.ID = res.InsertedID.(primitive.ObjectID)
 
-	// 4. Emit event
+	// 3. Emit event
 	sender, err := GetUserById(ctx, db, restrictorID)
 	if err != nil {
 		return err
 	}
-	if err := emitter.EmitRestrictionMessage(ctx, msg, sender, record, action); err != nil {
+	if err := emitter.EmitRestrictionMessage(ctx, msg, sender, record); err != nil {
 		return err
 	}
 
-	// 5. Get all room members
+	// 4. Get all room members
 	roomCollection := db.Collection("rooms")
 	var room struct {
 		Members []primitive.ObjectID `bson:"members"`
@@ -116,14 +102,14 @@ func EmitAndNotifyRestriction(
 		return err
 	}
 
-	// 6. Get online users in room
+	// 5. Get online users in room
 	onlineUsers := emitter.GetHub().GetOnlineUsersInRoom(roomID.Hex())
 	onlineMap := make(map[string]bool)
 	for _, uid := range onlineUsers {
 		onlineMap[uid] = true
 	}
 
-	// 7. Notify all offline members (except target user)
+	// 6. Notify all offline members (except target user)
 	targetUserHex := userID.Hex()
 	for _, memberID := range room.Members {
 		memberHex := memberID.Hex()
@@ -136,7 +122,7 @@ func EmitAndNotifyRestriction(
 		}
 	}
 
-	// 8. Notify target user if offline
+	// 7. Notify target user if offline
 	if !onlineMap[targetUserHex] {
 		// **FIXED: Use restriction type instead of message type**
 		notificationService.SendOfflineNotification(ctx, targetUserHex, msg, "restriction")
