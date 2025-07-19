@@ -152,6 +152,7 @@ export default function ChatPage() {
       type: item.type || 'normal',
       image: item.image || '',
       image_url: item.image_url || '',
+      metadata: item.metadata || {},
       ...item,
     };
     
@@ -208,10 +209,10 @@ export default function ChatPage() {
           onCategoryChange={setSelectedCategory}
         />
         
-        {/* Enhanced Rooms Grid/List Container - Full Width */}
+        {/* Enhanced Rooms Grid/List Container - Responsive */}
         <div className={`${
           activeTab === 'discover' 
-            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' 
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' 
             : 'flex flex-col gap-4'
         } px-4 pb-32 pt-6`}> 
           {filteredRooms.map((item: ChatRoomWithId, idx: number) => renderRoomItem(item, idx))}

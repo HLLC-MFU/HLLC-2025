@@ -18,20 +18,28 @@ export const createTempMessage = (
   text: string,
   user: { _id: string; name: { first: string; middle: string; last: string }; username: string },
   replyTo?: Message
-): Message => ({
-  id: Date.now().toString(),
-  text,
-  user: safeUser(user),
-  type: 'message',
-  timestamp: new Date().toISOString(),
-  isRead: false,
-  replyTo: replyTo ? {
-    id: replyTo.id || '',
-    text: replyTo.text || '',
-    user: safeUser(replyTo.user),
-  } : undefined,
-  isTemp: true
-});
+): Message => {
+  // Generate more unique temporary message ID
+  const timestamp = Date.now();
+  const random1 = Math.random().toString(36).substring(2, 15);
+  const random2 = Math.random().toString(36).substring(2, 9);
+  const tempId = `temp-${timestamp}-${random1}-${random2}`;
+  
+  return {
+    id: tempId,
+    text,
+    user: safeUser(user),
+    type: 'message',
+    timestamp: new Date().toISOString(),
+    isRead: false,
+    replyTo: replyTo ? {
+      id: replyTo.id || '',
+      text: replyTo.text || '',
+      user: safeUser(replyTo.user),
+    } : undefined,
+    isTemp: true
+  };
+};
 
 export const createFileMessage = (
   fileData: any,

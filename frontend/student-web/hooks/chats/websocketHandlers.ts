@@ -11,6 +11,29 @@ export function onMessage(event: MessageEvent, args: any) {
   try {
     const data = JSON.parse(event.data);
     console.log('[WebSocket] Received message:', data);
+    
+    // Block system messages that shouldn't be displayed in chat
+    if (data.type === 'room_status' || data.eventType === 'room_status') {
+      console.log('[WebSocket] Blocking room_status message:', data);
+      return; // Don't add to chat messages
+    }
+    
+    // Block other system messages
+    const systemMessageTypes = [
+      'room_status',
+      'user_status', 
+      'connection_status',
+      'ping',
+      'pong',
+      'heartbeat',
+      'system_notification'
+    ];
+    
+    if (systemMessageTypes.includes(data.type) || systemMessageTypes.includes(data.eventType)) {
+      console.log('[WebSocket] Blocking system message:', data);
+      return; // Don't add to chat messages
+    }
+    
     const hasRoom = data.room || (data.payload && data.payload.room);
     const isSticker = data.type === 'sticker' && (data.payload.sticker || data.payload.image);
     if (!(data.type && data.payload && (hasRoom || isSticker))) {

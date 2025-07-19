@@ -97,15 +97,31 @@ const MessageBubble = memo(({
         const mention = part.slice(1);
         const isMatch = mention === currentUsername;
         if (isMatch) {
+          // Highlight current user mention with better contrast for my-message
           return (
-            <span key={i} className="text-blue-400 font-semibold bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded-md">{part}</span>
+            <span key={i} className={`font-semibold px-1.5 py-0.5 rounded-md ${
+              isMyMessage 
+                ? 'text-yellow-200 bg-yellow-600/30 border' 
+                : 'text-blue-400 bg-blue-100 dark:bg-blue-900'
+            }`}>
+              {part}
+            </span>
           );
         }
-        return <span key={i} className="text-blue-500 font-medium">{part}</span>;
+        // Other mentions with better contrast for my-message
+        return (
+          <span key={i} className={`font-medium px-1 py-0.5 rounded ${
+            isMyMessage 
+              ? 'text-cyan-200 bg-cyan-600/30' 
+              : 'text-blue-500'
+          }`}>
+            {part}
+          </span>
+        );
       }
       return <span key={i}>{part}</span>;
     });
-  }, []);
+  }, [isMyMessage]);
 
   // Always resolve sticker image from message or stickers list
   const stickerImageUrl = useMemo(() => {

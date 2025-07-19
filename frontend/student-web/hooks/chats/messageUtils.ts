@@ -20,7 +20,7 @@ export function createMessage(data: any, isHistory = false): Message {
   if (!data) {
     console.warn('createMessage called with null data');
     return {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${Math.random().toString(36).substring(2, 9)}`,
       user: { _id: '', name: { first: '', middle: '', last: '' }, username: '' },
       type: 'message',
       timestamp: new Date().toISOString(),
@@ -42,7 +42,25 @@ export function createMessage(data: any, isHistory = false): Message {
     });
   }
 
-  const id = data.id || data._id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  // Generate more unique ID
+  const generateUniqueId = () => {
+    const timestamp = Date.now();
+    const random1 = Math.random().toString(36).substring(2, 15);
+    const random2 = Math.random().toString(36).substring(2, 9);
+    return `msg-${timestamp}-${random1}-${random2}`;
+  };
+
+  // Ensure we have a unique ID, especially for messages from server
+  let id = data.id || data._id;
+  if (!id || id === 'undefined' || id === 'null') {
+    id = generateUniqueId();
+    console.log('[DEBUG][createMessage] Generated new ID:', id, 'for data:', {
+      hasId: !!data.id,
+      has_id: !!data._id,
+      type: data.type,
+      text: data.text || data.message
+    });
+  }
   const baseMessage = {
     id,
     user: safeUser(data.user),

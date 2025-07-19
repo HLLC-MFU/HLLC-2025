@@ -13,7 +13,9 @@ interface RoomListItemProps {
 
 const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => {
   const avatarChar = (language === 'th' ? room.name?.th : room.name?.en)?.charAt(0)?.toUpperCase() || '?';
-  let imageUrl = room.image_url || room.image;
+  
+  // Prioritize room.image
+  let imageUrl = room.image || room.image_url;
   if (imageUrl && typeof imageUrl === 'string' && !imageUrl.startsWith('http')) {
     imageUrl = `${CHAT_BASE_URL}/uploads/${imageUrl}`;
   }
@@ -57,17 +59,25 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
             </span>
           </div>
           
-          <div className="flex flex-row items-center gap-2 group/item">
-            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center transition-all duration-300 group-hover/item:scale-110 group-hover/item:bg-white/30">
-              <Clock size={12} className="text-white/80" />
-            </div>
-            <span className="text-sm text-white/80 font-medium group-hover/item:text-white/95 transition-colors duration-300">
-              {room.type === 'readonly'
-                ? (language === 'th' ? 'อ่านอย่างเดียว' : 'Read-only')
-                : room.type === 'normal'
-                  ? (language === 'th' ? 'ปกติ' : 'Normal')
-                  : '-' }
-            </span>
+          {/* Room type and group type badges */}
+          <div className="flex flex-wrap gap-2">
+            {/* Room type badge */}
+            {room.type && (
+              <div className="inline-block bg-white/15 backdrop-blur-sm text-white/90 text-xs font-semibold rounded-full px-2 py-1 border border-white/30">
+                {room.type === 'readonly'
+                  ? (language === 'th' ? 'อ่านอย่างเดียว' : 'Read-only')
+                  : room.type === 'normal'
+                    ? (language === 'th' ? 'ปกติ' : 'Normal')
+                    : room.type}
+              </div>
+            )}
+            
+            {/* Group type badge */}
+            {room.metadata?.isGroupRoom && room.metadata?.groupType && (
+              <div className="inline-block bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm text-white/90 text-xs font-semibold rounded-full px-2 py-1 border border-purple-300/30">
+                {room.metadata.groupType}
+              </div>
+            )}
           </div>
         </div>
       </div>

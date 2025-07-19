@@ -52,9 +52,38 @@ export const useChatRooms = () => {
 
   const filteredRooms = useMemo(() => {
     const baseRooms = activeTab === 'my' ? myRooms : discoverRooms;
+    
+    console.log('[DEBUG] Filtering rooms:', {
+      selectedCategory,
+      totalRooms: baseRooms.length,
+      roomTypes: baseRooms.map(r => ({ 
+        id: r.id, 
+        type: r.type, 
+        metadata: r.metadata,
+        category: r.category 
+      }))
+    });
+    
     return baseRooms.filter(room => {
-      const matchesCategory = selectedCategory === 'All' || room.category === selectedCategory;
-      return matchesCategory;
+      if (selectedCategory === 'All') {
+        return true;
+      }
+      
+      // Handle different category types
+      switch (selectedCategory) {
+        case 'normal':
+          return room.type === 'normal';
+        case 'readonly':
+          return room.type === 'readonly';
+        case 'major':
+          // Check if it's a group room with major type
+          return room.metadata?.isGroupRoom === true && room.metadata?.groupType === 'major';
+        case 'school':
+          // Check if it's a group room with school type
+          return room.metadata?.isGroupRoom === true && room.metadata?.groupType === 'school';
+        default:
+          return false;
+      }
     });
   }, [activeTab, myRooms, discoverRooms, selectedCategory]);
 

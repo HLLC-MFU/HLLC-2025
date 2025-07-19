@@ -428,33 +428,10 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
 
       const data = await response.json();
       
-      // Find sticker image from stickers list
-      const stickerObj = stickers.find(s => s.id === (data.stickerId || stickerId));
-      const imageUrl = stickerObj ? `${CHAT_BASE_URL}/uploads/${stickerObj.image}` : undefined;
-
-      // Add the sticker message to WebSocket state
-      const myUser = user ? {
-        _id: user._id,
-        name: {
-          first: user.name?.first || '',
-          middle: user.name?.middle || '',
-          last: user.name?.last || '',
-        },
-        username: user.username || '',
-      } : undefined;
-      if (!myUser) return;
-      const stickerMessage: Message = {
-        id: data.id || Date.now().toString(),
-        user: myUser,
-        type: 'sticker',
-        timestamp: data.timestamp || new Date().toISOString(),
-        isRead: false,
-        isTemp: false,
-        stickerId: data.stickerId || stickerId,
-        image: imageUrl,
-      };
+      // Don't add message immediately - wait for WebSocket message from server
+      // This prevents duplicate messages when the server sends the sticker back
+      console.log('[ChatRoom] Sticker sent successfully, waiting for WebSocket confirmation');
       
-      addMessage(stickerMessage);
       updateUIState({ showStickerPicker: false });
     } catch (error) {
       console.error('Error sending sticker:', error);

@@ -14,64 +14,103 @@ interface RoomCardProps {
 
 const RoomCard = ({ room, width, language, onPress, onJoin, onShowDetail }: RoomCardProps) => {
   const getImageUrl = () => {
-    if (room.image) return `${CHAT_BASE_URL}/uploads/${room.image}`;
+    // Prioritize room.image for discover page
+    if (room.image) {
+      if (room.image.startsWith('http')) {
+        return room.image;
+      }
+      return `${CHAT_BASE_URL}/uploads/${room.image}`;
+    }
+    
+    // Fallback to image_url
+    if (room.image_url) {
+      if (room.image_url.startsWith('http')) {
+        return room.image_url;
+      }
+      return `${CHAT_BASE_URL}/uploads/${room.image_url}`;
+    }
+    
     return undefined;
   };
 
   const imageUrl = getImageUrl();
-  const memberCount = room?.members_count;
+  const memberCount = room?.members_count || 0;
 
   return (
     <div
-      className="relative group cursor-pointer transition-all duration-500 hover:scale-[1.03] hover:rotate-1"
-      style={{ width: (width - 66) / 2, minWidth: 180, maxWidth: 260, margin: 8 }}
+      className="relative group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:rotate-1"
+      style={{ 
+        width: '100%', 
+        maxWidth: '100%',
+        minWidth: '280px'
+      }}
       onClick={onShowDetail ? onShowDetail : onPress}
       role="button"
       tabIndex={0}
     >
       {/* Glass morphism card with enhanced effects */}
-      <div className="relative bg-white/10 backdrop-blur-xl rounded-[24px] overflow-hidden border border-white/40 shadow-2xl hover:shadow-white/20 transition-all duration-500">
+      <div className="relative bg-white/10 backdrop-blur-xl rounded-[20px] overflow-hidden border border-white/40 shadow-2xl hover:shadow-white/20 transition-all duration-500">
         {/* Animated gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/10 pointer-events-none z-10 rounded-[24px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/10 pointer-events-none z-10 rounded-[20px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
         {/* Shimmer effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none z-20" />
         
         {/* Image container with enhanced styling */}
-        <div className="w-full aspect-[1.7] bg-gradient-to-br from-indigo-100 to-purple-100 relative overflow-hidden">
+        <div className="w-full h-48 bg-gradient-to-br from-indigo-100 to-purple-100 relative overflow-hidden">
           {imageUrl ? (
             <img
               src={imageUrl}
               alt={room.name?.th || room.name?.en || 'Room'}
-              className="w-full h-full object-cover rounded-t-[20px] transition-all duration-700 group-hover:scale-110 group-hover:rotate-1"
-              onError={e => { (e.target as HTMLImageElement).src = 'https://www.gravatar.com/avatar/?d=mp'; }}
+              className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:rotate-1"
+              onError={e => { 
+                console.log('[RoomCard] Image failed to load, using fallback');
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const fallback = target.parentElement?.querySelector('.fallback-emoji');
+                if (fallback) fallback.classList.remove('hidden');
+              }}
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100 rounded-t-[20px] group-hover:scale-105 transition-transform duration-500">
-              <span className="text-5xl group-hover:scale-110 transition-transform duration-300">🏠</span>
-            </div>
-          )}
+          ) : null}
+          
+          {/* Fallback emoji - always present but hidden when image loads */}
+          <div className={`fallback-emoji ${imageUrl ? 'hidden' : ''} w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100 group-hover:scale-105 transition-transform duration-500`}>
+            <span className="text-6xl group-hover:scale-110 transition-transform duration-300">🏠</span>
+          </div>
         </div>
 
         {/* Info container with enhanced glass effect */}
         <div className="p-4 space-y-3 relative z-30 bg-white/5 backdrop-blur-sm">
-          <h3 className="font-bold text-white text-[16px] truncate leading-tight drop-shadow-lg">
+          <h3 className="font-bold text-white text-lg truncate leading-tight drop-shadow-lg">
             {language === 'th' ? room.name?.th || 'Unnamed' : room.name?.en || 'Unnamed'}
           </h3>
           
-          {room.category && (
-           <div className="inline-block bg-white/15 backdrop-blur-sm text-white/90 text-xs font-semibold rounded-full px-3 py-1.5 border border-white/30 shadow-lg">
-              {room.category}
-            </div>
-          )}
+          {/* Room type and group type badges */}
+          <div className="flex flex-wrap gap-2">
+            {/* Room type badge */}
+            {room.type && (
+              <div className="inline-block bg-white/15 backdrop-blur-sm text-white/90 text-xs font-semibold rounded-full px-3 py-1.5 border border-white/30 shadow-lg">
+                {room.type}
+              </div>
+            )}
+            
+            {/* Group type badge */}
+            {room.metadata?.isGroupRoom && room.metadata?.groupType && (
+              <div className="inline-block bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm text-white/90 text-xs font-semibold rounded-full px-3 py-1.5 border border-purple-300/30 shadow-lg">
+                {room.metadata.groupType}
+              </div>
+            )}
+          </div>
           
+          {/* Members count */}
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
               <span className="text-white text-xs">👥</span>
             </div>
-            <span className="text-white/90 text-xs font-medium">{memberCount} Members</span>
+            <span className="text-white/90 text-sm font-medium">{memberCount} Members</span>
           </div>
           
+          {/* Join button */}
           {onJoin && (
             <button
               onClick={e => { e.stopPropagation(); onJoin(); }}

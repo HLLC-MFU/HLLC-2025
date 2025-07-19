@@ -47,12 +47,43 @@ function warnLog(...args: any[]) {
   }
 }
 
+// Utility function to generate unique message IDs
+const generateUniqueMessageId = (prefix: string = 'msg'): string => {
+  const timestamp = Date.now();
+  const random1 = Math.random().toString(36).substring(2, 15);
+  const random2 = Math.random().toString(36).substring(2, 9);
+  return `${prefix}-${timestamp}-${random1}-${random2}`;
+};
+
 // Patch onMessage to handle unsend event and remove message from state
 function onMessage(event: MessageEvent, args: any) {
   const { state, addMessage, userId, setState } = args;
   try {
     const data = JSON.parse(event.data);
     debugLog('[onMessage] Received:', data);
+    
+    // Block system messages that shouldn't be displayed in chat
+    if (data.type === 'room_status' || data.eventType === 'room_status') {
+      debugLog('[onMessage] Blocking room_status message:', data);
+      return; // Don't add to chat messages
+    }
+    
+    // Block other system messages
+    const systemMessageTypes = [
+      'room_status',
+      'user_status', 
+      'connection_status',
+      'ping',
+      'pong',
+      'heartbeat',
+      'system_notification'
+    ];
+    
+    if (systemMessageTypes.includes(data.type) || systemMessageTypes.includes(data.eventType)) {
+      debugLog('[onMessage] Blocking system message:', data);
+      return; // Don't add to chat messages
+    }
+    
     // Handle unsend event
     if (
       data.eventType === 'unsend' ||
@@ -136,16 +167,7 @@ function onMessage(event: MessageEvent, args: any) {
           ...extra,
         };
         
-        // Debug logging for evoucher messages
-        if (data.type === 'evoucher') {
-          debugLog(`[onMessage] 🎟️ Processing evoucher message data:`, {
-            type: data.type,
-            hasPayload: !!data.payload,
-            hasEvoucherInfo: !!data.payload?.evoucherInfo,
-            messageDataKeys: Object.keys(messageData),
-            payloadKeys: data.payload ? Object.keys(data.payload) : []
-          });
-        }
+
         
         const newMessage = require('@/hooks/chats/messageUtils').createMessage(messageData, true);
         debugLog(`[onMessage] Adding ${data.type} message:`, newMessage);
@@ -212,55 +234,88 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
   const addMessage = useCallback((message: Message | null) => {
     if (!message) return;
     
+    // Generate a more unique ID if not present
     if (!message.id) {
-      message.id = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      message.id = generateUniqueMessageId();
     }
     
-    debugLog('[addMessage] called with:', message);
-    
-    // Debug logging for evoucher messages
-    if (message.type === 'evoucher') {
-      debugLog('[addMessage] 🎟️ Adding evoucher message:', {
-        messageId: message.id,
-        hasEvoucherInfo: !!message.evoucherInfo,
-        hasPayload: !!message.payload,
-        hasPayloadEvoucherInfo: !!(message.payload && message.payload.evoucherInfo),
-        evoucherInfoKeys: message.evoucherInfo ? Object.keys(message.evoucherInfo) : [],
-        payloadKeys: message.payload ? Object.keys(message.payload) : []
-      });
-    }
+
     
     setState(prev => {
       const messageId = message.id || '';
       if (!messageId) return prev;
 
+      // Improved deduplication logic
       const isDuplicate = prev.messages.some(msg => {
-        if (msg.id === messageId) return true;
-        
-        if (!msg.id || !messageId) {
-          return (
-            msg.text === message.text &&
-            msg.user?._id === message.user?._id &&
-            msg.timestamp === message.timestamp
-          );
+        // First check: exact ID match (most reliable)
+        if (msg.id === messageId) {
+          return true;
         }
+        
+        // Second check: if both messages have IDs but they're different, they're not duplicates
+        if (msg.id && messageId && msg.id !== messageId) {
+          return false;
+        }
+        
+        // Third check: only compare content for temporary messages within a very short time window
+        // This prevents blocking real messages that might have similar content
+        if (message.isTemp && msg.isTemp) {
+          const timeDiff = Math.abs(new Date(message.timestamp).getTime() - new Date(msg.timestamp).getTime());
+          if (timeDiff < 1000) { // Reduced to 1 second window for temp messages only
+            const contentMatch = (
+              msg.text === message.text &&
+              msg.user?._id === message.user?._id &&
+              msg.type === message.type
+            );
+            if (contentMatch) {
+              return true;
+            }
+          }
+        }
+        
+        // Fourth check: for non-temp messages, only block if they have the exact same ID
+        // This allows similar content messages to be sent
+        if (!message.isTemp && !msg.isTemp) {
+          // Only block if they have the same ID, not based on content
+          return false;
+        }
+        
         return false;
       });
 
       if (isDuplicate) {
-        debugLog('[addMessage] duplicate message detected:', messageId);
+        debugLog('[addMessage] duplicate message detected:', {
+          messageId,
+          text: message.text,
+          userId: message.user?._id,
+          type: message.type,
+          isTemp: message.isTemp
+        });
         return prev;
       }
 
+      // Remove temporary messages with same content from same user
       let filteredMessages = prev.messages;
       if (!message.isTemp && message.text) {
+        const beforeCount = filteredMessages.length;
         filteredMessages = prev.messages.filter(
           m => !(m.isTemp && m.text === message.text && m.user?._id === message.user?._id)
         );
+        const afterCount = filteredMessages.length;
+        if (beforeCount !== afterCount) {
+          debugLog('[addMessage] Removed temp messages:', beforeCount - afterCount);
+        }
       }
 
       const newMessages = [...filteredMessages, message].slice(-MAX_MESSAGES);
-      debugLog('[addMessage] adding new message:', message);
+      debugLog('[addMessage] adding new message:', {
+        id: message.id,
+        text: typeof message.text === 'string' ? (message.text.substring(0, 50) + (message.text.length > 50 ? '...' : '')) : '',
+        userId: message.user?._id,
+        type: message.type,
+        isTemp: message.isTemp,
+        totalMessages: newMessages.length
+      });
       
       return { ...prev, messages: newMessages };
     });
