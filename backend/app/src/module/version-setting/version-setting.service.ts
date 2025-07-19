@@ -28,10 +28,13 @@ export class VersionSettingService {
     return result.data[0] as VersionSettingDocument;
   }
 
-  async remove(): Promise<void> {
+  async remove() {
     const doc = await this.settingModel.findOne().select('_id');
     if (!doc) throw new NotFoundException('Version setting not found');
 
     await queryDeleteOne<VersionSetting>(this.settingModel, doc._id.toString());
+    return {
+      message: 'Version setting deleted successfully',
+    };
   }
 }
