@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Categories } from '@/constants/chats/categories';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 interface CategoryFilterProps {
@@ -13,6 +14,7 @@ export default function CategoryFilter({
   selectedCategory,
   onCategoryChange,
 }: CategoryFilterProps) {
+  const { language } = useLanguage();
   return (
     <View style={styles.categoryFilterContainer}>
       <ScrollView 
@@ -20,15 +22,14 @@ export default function CategoryFilter({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoryFilterContent}
       >
-        {Categories.map(({ name, color }) => (
+        {Categories.map(({ name, key, color }) => (
           <TouchableOpacity
-            key={name}
+            key={key}
             style={[
               styles.categoryFilterButton,
-              selectedCategory === name && styles.categoryFilterButtonActive,
-             
+              selectedCategory === key && styles.categoryFilterButtonActive,
             ]}
-            onPress={() => onCategoryChange(name)}
+            onPress={() => onCategoryChange(key)}
             activeOpacity={0.8}
           >
             <BlurView
@@ -37,15 +38,14 @@ export default function CategoryFilter({
               style={styles.categoryFilterBlur}
             >
               <LinearGradient
-                colors={selectedCategory === name ? [color, `${color}dd`] : ['transparent', 'transparent']}
+                colors={selectedCategory === key ? [color, `${color}dd`] : ['transparent', 'transparent']}
                 style={styles.categoryFilterGradient}
               >
-               
                 <Text style={[
                   styles.categoryFilterText,
-                  selectedCategory === name && styles.categoryFilterTextActive
+                  selectedCategory === key && styles.categoryFilterTextActive
                 ]}>
-                  {name}
+                  {name[language]}
                 </Text>
               </LinearGradient>
             </BlurView>

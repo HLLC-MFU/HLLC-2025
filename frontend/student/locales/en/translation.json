@@ -182,7 +182,8 @@
         "you": "You",
         "unknownUser": "Unknown User",
         "connecting": "Connecting...",
-        "typeMessage": "Type your message here..."
+        "typeMessage": "Type your message here...",
+        "noCommunities": "No chat rooms found."
     },
     "roomInfo": {
         "roomDetails": "Room Details",
