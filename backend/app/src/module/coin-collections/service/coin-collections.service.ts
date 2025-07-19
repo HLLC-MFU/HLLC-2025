@@ -9,7 +9,7 @@ import { UserDocument } from 'src/module/users/schemas/user.schema';
 import { CoinCollectionsHelper } from '../utils/coin-collections.helper';
 import { EvoucherCode, EvoucherCodeDocument } from 'src/module/evouchers/schemas/evoucher-code.schema';
 import { Evoucher, EvoucherDocument } from 'src/module/evouchers/schemas/evoucher.schema';
-import { EvoucherCodesService } from 'src/module/evouchers/services/evoucher-codes.service';
+import { NotificationsService } from 'src/module/notifications/notifications.service';
 
 @Injectable()
 export class CoinCollectionsService {
@@ -18,7 +18,7 @@ export class CoinCollectionsService {
     @InjectModel(Landmark.name) private landmarkModel: Model<LandmarkDocument>,
     @InjectModel(EvoucherCode.name) private evoucherCodeModel: Model<EvoucherCodeDocument>,
     @InjectModel(Evoucher.name) private evoucherModel: Model<EvoucherDocument>,
-    private evoucherCodeService: EvoucherCodesService,
+    private notificationsService: NotificationsService,
     private coinCollectionsHelper: CoinCollectionsHelper,
   ) { }
 
@@ -282,7 +282,12 @@ export class CoinCollectionsService {
     if (collectedCount === 0) return null;
 
     //ใช้โอกาสแจกตรง ๆ เช่น 1 ใน 27
-    const dropChance = 1 / 6;
+    // const dropChance = 1 / 6;
+    // if (Math.random() >= dropChance) {
+    //   return null; // ไม่แจกครั้งนี้
+    // }
+
+    const dropChance = 1;
     if (Math.random() >= dropChance) {
       return null; // ไม่แจกครั้งนี้
     }
@@ -331,9 +336,40 @@ export class CoinCollectionsService {
       { $set: { user: new Types.ObjectId(userId) } },
       { sort: { createdAt: 1 }, new: true },
     );
+    const userObjectId = userId;
 
     if (!code) {
       throw new NotFoundException('No available evoucher codes to claim');
+    } else {
+
+      const evoucher = await this.evoucherModel.findById(evoucherId).lean();
+
+      if (!evoucher) {
+        throw new NotFoundException('Evoucher not found');
+      }
+
+      await this.notificationsService.create({
+        title: {
+          en: 'Get Evoucher successfully',
+          th: 'ได้รับคูปองสำเร็จ',
+        },
+        subtitle: {
+          en: '',
+          th: '',
+        },
+        body: {
+          en: `You have received the evoucher "${evoucher.name.en}" successfully.`,
+          th: `คุณได้รับคูปอง "${evoucher.name.th}" เรียบร้อยแล้ว`,
+        },
+        icon: 'Ticket',
+        image: evoucher.photo.home ?? undefined,
+        scope: [
+          {
+            type: 'user',
+            id: [userObjectId.toString()],
+          },
+        ],
+      });
     }
 
     return {

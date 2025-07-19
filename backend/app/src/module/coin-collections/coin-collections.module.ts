@@ -9,6 +9,7 @@ import { CoinCollectionsHelper } from './utils/coin-collections.helper';
 import { EvoucherCode, EvoucherCodeSchema } from '../evouchers/schemas/evoucher-code.schema';
 import { Evoucher, EvoucherSchema } from '../evouchers/schemas/evoucher.schema';
 import { EvouchersModule } from '../evouchers/evouchers.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [MongooseModule.forFeature([
@@ -32,7 +33,7 @@ import { EvouchersModule } from '../evouchers/evouchers.module';
       name: EvoucherCode.name,
       schema: EvoucherCodeSchema
     },
-  ]), EvouchersModule],
+  ]), EvouchersModule ,NotificationsModule],
   controllers: [CoinCollectionsController],
   providers: [CoinCollectionsService, CoinCollectionsHelper],
   exports: [CoinCollectionsService],
