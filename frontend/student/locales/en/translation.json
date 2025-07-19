@@ -265,5 +265,40 @@
             "error" : "Error",
             "errorSubmit" : "Error submitting flower" 
         }
+    },
+    "step": {
+        "total": "Total",
+        "step": "Step",
+        "keepMoving": "Keep moving! Your steps contribute to the campaign.",
+        "goal": "Your goal is {{goal}} steps",
+        "deviceMismatch": "Device mismatch detected. Steps won’t count toward your campaign. Please update your device.",
+        "individual": "Individual",
+        "school": "School",
+        "achievement": "Achievement"
+    },
+    "report": {
+        "title": "Report",
+        "subtitle": "Report an issue or provide feedback",
+        "topic": "Topic",
+        "description": "Description",
+        "submit": "Submit Report",
+        "success": "Report submitted successfully!",
+        "error": "Failed to submit report. Please try again.",
+        "placeholder": {
+            "topic": "Enter the topic of your report",
+            "description": "Describe the issue or feedback in detail"
+        },
+        "reporting": "Reporting...",
+        "confirm": "Confirm",
+        "cancel": "Cancel",
+        "selectTopic": "Select a topic"
+    }  ,
+    "notification": {
+        "title": "Notifications",
+        "noNotifications": "No notifications yet",
+        "noNotificationsSubtext": "We'll notify you when something arrives",
+        "markAllAsRead": "Mark all as read",
+        "read": "Read",
+        "unread": "Unread"
     }
 }
