@@ -67,7 +67,11 @@ export default function usePrePostModal({ type, progress }: UsePrePostModalOptio
       }
 
       if (type === 'posttest') {
-        setModalVisible(false); // will be evaluated in separate useEffect
+        // สำหรับ posttest ต้องตรวจสอบว่ามี pretest questions หรือไม่
+        const pretestQuestions = allQuestions.filter(q => q.displayType === 'pretest');
+        const hasPretestQuestion = pretestQuestions.length > 0;
+        setHasPretestQuestions(hasPretestQuestion);
+        setModalVisible(false); 
       }
 
     } catch (err) {
@@ -106,13 +110,11 @@ export default function usePrePostModal({ type, progress }: UsePrePostModalOptio
     }
   }, [t, toast, type]);
 
-  // useEffect สำหรับ fetchStatus/fetchQuestions
   useEffect(() => {
     fetchStatus();
     fetchQuestions();
   }, [type]);
 
-  // ใน useEffect เงื่อนไข posttest
   useEffect(() => {
     if (
       type === 'posttest' &&
@@ -124,6 +126,19 @@ export default function usePrePostModal({ type, progress }: UsePrePostModalOptio
       setModalVisible(true);
     }
   }, [type, posttestDueDate, progress, isPosttestDone, hasPretestQuestions]);
+
+  useEffect(() => {
+    if (type === 'posttest' && progress !== undefined) {
+      if (
+        posttestDueDate &&
+        (progress ?? 0) >= 80 &&
+        isPosttestDone === false &&
+        hasPretestQuestions
+      ) {
+        setModalVisible(true);
+      }
+    }
+  }, [progress]);
 
   const openModal = useCallback(() => setModalVisible(true), []);
   const closeModal = useCallback(() => setModalVisible(false), []);

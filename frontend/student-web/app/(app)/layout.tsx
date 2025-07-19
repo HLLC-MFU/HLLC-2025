@@ -70,6 +70,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [hasPretestAnswers]);
 
   useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  useEffect(() => {
     // เงื่อนไขใหม่: posttestDueDate === true, progress >= 80, hasPosttestAnswers === false
     if (
       hasPretestAnswers &&

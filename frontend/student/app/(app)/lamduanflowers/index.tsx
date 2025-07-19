@@ -28,12 +28,15 @@ import SelectPhotoModal from './_components/SelectPhotoModal';
 import { useToastController } from '@tamagui/toast';
 import StatusModal from './_components/StatusModal';
 import { useIsFocused } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 const screenWidth = Dimensions.get('window').width;
 const horizontalPadding = 40;
 const maxImageWidth = screenWidth - horizontalPadding;
 
 export default function LamduanOrigamiPage() {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language as "th" | "en";
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
@@ -41,6 +44,7 @@ export default function LamduanOrigamiPage() {
   const [isPhotoModalVisible, setPhotoModalVisible] = useState(false);
   const { user } = useProfile();
   const { flowers, lamduanSetting, createLamduanFlowers, updateLamduanFlowers } = useLamduanFlowers();
+  const description = lamduanSetting[0]?.description?.[lang] ?? "";
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const originalRef = useRef<LamduanFlower | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -108,14 +112,14 @@ export default function LamduanOrigamiPage() {
           originalRef.current = res.data;
           setHasSubmitted(true);
         }
-        toast.show('Create Success', { message: 'Flower created successfully!', type: 'success' });
+        toast.show(t('lamduanflower.toast.createSuccess'), { message: t('lamduanflower.toast.submitSuccessfully'), type: 'success' });
       } else {
         await updateLamduanFlowers(original._id, formData);
-        toast.show('Update Success', { message: 'Flower updated successfully!', type: 'success' });
+        toast.show(t('lamduanflower.toast.updateSuccess'), { message: t('lamduanflower.toast.updatedSuccessfully'), type: 'success' });
       }
     } catch (err) {
       console.error('submit error:', err);
-      toast.show('Error', { message: 'Error submitting flower', type: 'danger' });
+      toast.show(t('lamduanflower.toast.error'), { message: t('lamduanflower.toast.errorSubmit'), type: 'danger' });
     }
   };
 
@@ -158,35 +162,33 @@ export default function LamduanOrigamiPage() {
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -60} // ลด offset Android
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : -60} // ลด offset Android
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
           ref={scrollViewRef}
-          contentContainerStyle={[styles.container, { paddingBottom: 120 }]}
+          contentContainerStyle={[styles.container, { paddingBottom: 100 }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.backButton}>
             <GlassButton onPress={() => router.back()}>
-              <Text style={styles.backButtonText}>Back</Text>
+              <Text style={styles.backButtonText}>{t('lamduanflower.back')}</Text>
             </GlassButton>
           </View>
 
           <BannerImage />
 
           <BlurView intensity={40} tint="light" style={styles.card}>
-            <Text style={styles.cardTitle}>Lamduan Origami</Text>
+            <Text style={styles.cardTitle}>{t('lamduanflower.title')}</Text>
             <Text style={styles.cardText}>
-              Enhance your knowledge of the university through the origami flower. Additionally,
-              immerse yourself in instructional origami videos that showcase the important
-              information about the university.
+              {description}
             </Text>
             <MediaCard />
           </BlurView>
 
           <BlurView intensity={40} tint="light" style={styles.formBox}>
-            <Text style={styles.uploadTitle}>Upload Lamduan</Text>
+            <Text style={styles.uploadTitle}>{t('lamduanflower.uploadLamduan')}</Text>
             <TouchableOpacity
               onPress={() => {
                 if (activityStatus !== 'active') {
@@ -211,14 +213,14 @@ export default function LamduanOrigamiPage() {
                 />
               ) : (
                 <View style={styles.uploadPlaceholder}>
-                  <Text style={styles.uploadText}>Upload Picture</Text>
+                  <Text style={styles.uploadText}>{t('lamduanflower.uploadPicture')}</Text>
                 </View>
               )}
             </TouchableOpacity>
 
             <TextInput
               ref={inputRef}
-              placeholder="Type message..."
+              placeholder={t('lamduanflower.message')}
               placeholderTextColor="#fff"
               style={styles.input}
               value={comment}
@@ -226,11 +228,14 @@ export default function LamduanOrigamiPage() {
               onChangeText={(text) => setComment(text.slice(0, 144))}
               onFocus={() => {
                 if (activityStatus !== 'active') return;
+                inputRef.current?.focus();
                 setTimeout(() => {
-                  inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
-                    scrollViewRef.current?.scrollTo({ y: pageY, animated: true });
-                  });
-                }, 0);
+                  scrollViewRef.current?.scrollResponderScrollNativeHandleToKeyboard(
+                    inputRef.current as any,
+                    100,
+                    true
+                  );
+                }, 100);
               }}
               multiline
               textAlignVertical="top"
@@ -252,7 +257,7 @@ export default function LamduanOrigamiPage() {
                 }}
               >
                 <Text style={{ color: '#fff', fontWeight: 'bold' }}>
-                  {hasSubmitted ? 'Save' : 'Submit'}
+                  {hasSubmitted ? t('lamduanflower.save') : t('lamduanflower.submit')}
                 </Text>
               </TouchableOpacity>
 

@@ -25,14 +25,20 @@ export function useUsers() {
 
     //Fetch user by username
     const fetchByUsername = async (username: string) => {
+        console.log('fetchByUsername called with:', username);
         setLoading(true);
         setError(null);
         try {
             const res = await apiRequest<{ data: User[] }>(`/users?username=${username}`, "GET");
 
-            setUsers(Array.isArray(res.data?.data) ? res.data.data : []);
-            return res.data?.data || [];
+            console.log('fetchByUsername response:', res);
+            const users = Array.isArray(res.data?.data) ? res.data.data : [];
+            console.log('Found users:', users.length, 'users:', users);
+            
+            setUsers(users);
+            return users;
         } catch (err: any) {
+            console.error('Error fetching users by username:', err);
             setError(err.message || "Failed to fetch users.");
             return [];
         } finally {

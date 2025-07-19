@@ -50,7 +50,7 @@ type KafkaConfig struct {
 }
 
 type UploadConfig struct {
-	BaseURL string
+	StaticPath string
 }
 
 // **NEW: Async-first Flow Configuration**
@@ -131,7 +131,7 @@ var defaults = map[string]string{
 	"MONGO_URI":              "mongodb://localhost:27017",
 	"MONGO_DATABASE":         "hllc-2025",
 	"KAFKA_BROKERS":          "localhost:9092",
-	"UPLOAD_PATH":            "uploads",
+	"UPLOAD_PATH":            "/uploads",
 }
 
 func getEnv(key string) string {
@@ -219,7 +219,7 @@ func LoadConfig() (*Config, error) {
 			},
 		},
 		Upload: UploadConfig{
-			BaseURL: fmt.Sprintf("%s/uploads", baseURL),
+			StaticPath: getEnv("UPLOAD_PATH"), // Use just the path "/uploads"
 		},
 	}
 

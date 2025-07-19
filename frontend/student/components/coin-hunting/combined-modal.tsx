@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState, useEffect } from 'react';
@@ -127,7 +127,7 @@ export default function CombinedModal({
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContentWrapper}>
-          <BlurView intensity={40} tint="dark" style={styles.modalContent}>
+          <BlurView intensity={Platform.OS === 'android' ? 120 : 40} tint="dark" style={styles.modalContent}>
             <TouchableOpacity style={styles.modalClose} onPress={onClose}>
               <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff' }}>×</Text>
             </TouchableOpacity>

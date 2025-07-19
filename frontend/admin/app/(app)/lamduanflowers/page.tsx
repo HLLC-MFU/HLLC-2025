@@ -8,6 +8,7 @@ import AccordionLamduan from "./_components/AccordionLamduan";
 import { PageHeader } from "@/components/ui/page-header";
 import { LamduanSetting } from "@/types/lamduan-flowers";
 import { useLamduanSetting } from "@/hooks/useLamduanSetting";
+import { Lang } from "@/types/lang";
 
 export default function LamduanflowersPage() {
     const originalRef = useRef<LamduanSetting | null>(null);
@@ -17,7 +18,8 @@ export default function LamduanflowersPage() {
         file: File | null,
         videoLink: string,
         startDate: string,
-        endDate: string
+        endDate: string,
+        description: Lang
     ) => {
         const original = originalRef.current;
         const formData = new FormData();
@@ -28,6 +30,8 @@ export default function LamduanflowersPage() {
         formData.append("tutorialVideo", videoLink);
         formData.append("startAt", startDate);
         formData.append("endAt", endDate);
+        formData.append("description[th]", description.th);
+        formData.append("description[en]", description.en);
 
         if (!original) {
             await createLamduanSetting(formData);
@@ -41,7 +45,7 @@ export default function LamduanflowersPage() {
         await fetchLamduanSetting();
         window.location.reload();
     };
-    
+
     return (
         <>
             <PageHeader description='This is Lamduan Flowers Page' icon={<Flower />} />

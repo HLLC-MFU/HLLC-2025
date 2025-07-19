@@ -20,7 +20,6 @@ export default function CoinHuntingScreen() {
     remainingCooldownMs,
     stampCount,           
     handleMarkerPress,
-    handleCheckIn,
     handleGoToStamp,
     closeModal,
     markers,
@@ -34,11 +33,21 @@ export default function CoinHuntingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 1, height: 1 });
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 1, height: 1 });
 
   const handleScannerSuccessWithRefresh = useCallback((data?: any) => {
     handleScannerSuccess(data);
     setRefreshKey((k) => k + 1);
   }, [handleScannerSuccess]);
+
+  // ปรับ handleCheckIn ให้ปิด modal แล้ว push ไปหน้า qrcode tab scan
+  const handleCheckIn = useCallback(() => {
+    closeModal();
+    setTimeout(() => {
+      router.push({ pathname: '/qrcode', params: { tab: 'scan', t: Date.now() } });
+    }, 200);
+  }, [closeModal, router]);
 
   useEffect(() => {
     if (params.modal === 'success') {
@@ -57,22 +66,20 @@ export default function CoinHuntingScreen() {
         onStamp={() => handleGoToStamp()}
         centerText="Bloom possible"
       />
-      <InteractiveMap>
+      <InteractiveMap
+        onImageLoad={size => setImageSize(size)}
+        onContainerSize={size => setContainerSize(size)}
+      >
         <MapMarkers
           markers={markers}
           collectedIds={collectedIds}
           loading={loadingMarkers}
           error={errorMarkers}
           onMarkerPress={handleMarkerPress}
+          imageSize={imageSize}
+          containerSize={containerSize}
         />
       </InteractiveMap>
-      <MarkerDetailModal
-        visible={modal === 'marker-detail'}
-        marker={selectedMarker}
-        collectedIds={collectedIds}
-        onClose={closeModal}
-        onCheckIn={handleCheckIn}
-      />
       <CombinedModal
         visible={modal === 'success'}
         type="success"

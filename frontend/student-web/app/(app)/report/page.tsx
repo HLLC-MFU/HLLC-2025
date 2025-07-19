@@ -34,6 +34,13 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
     submitReport,
   } = useReport();
 
+  const handleClose = () => {
+    setSelectedTopic('');
+    setDescription('');
+    onClose();
+  };
+
+
   const handleSubmit = () => {
     if (!selectedTopic || !description.trim()) return;
     setIsModalConfirmOpen(true);
@@ -61,8 +68,13 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose} className="flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 z-50">
-        <ModalContent className="w-[400px] max-w-xl py-6 px-6 bg-white/20 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl">
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        placement="center"
+        className="flex items-center justify-center bg-black/40 backdrop-blur-sm z-50"
+      >
+        <ModalContent className="w-[350px] py-6 bg-white/20 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl">
           <ModalBody className="space-y-6">
             <div className="flex flex-col items-center gap-2">
               <AlertTriangle className="w-12 h-12 text-red-500" />
@@ -100,13 +112,10 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
 
             <div className="grid grid-cols-2 gap-10 pt-2">
               <Button
-                onPress={() => {
-                  setSelectedTopic('');
-                  setDescription('');
-                }}
-                className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-full"
+                onPress={handleClose}
+                className="w-full py-2 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-full"
               >
-                CLEAR
+                CLOSE
               </Button>
               <Button
                 onPress={handleSubmit}

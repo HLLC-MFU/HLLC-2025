@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Animated,
+  Platform,
 } from 'react-native';
 import Svg, {
   Rect,
@@ -189,9 +190,10 @@ export default function StampModal({
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      statusBarTranslucent={true}
     >
       <TouchableOpacity
-        style={styles.overlay}
+        style={Platform.OS === 'android' ? styles.overlayAndroid : styles.overlayIOS}
         activeOpacity={1}
         onPress={showNewCoinEffect ? handleTapToPlace : undefined}
       >
@@ -486,7 +488,17 @@ export default function StampModal({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  overlayAndroid: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overlayIOS: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'center',

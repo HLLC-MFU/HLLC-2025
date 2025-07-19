@@ -35,7 +35,7 @@ export default function useDevice() {
 			brand: DeviceInfo.getBrand(),
 			language: language,
 			appVersion: DeviceInfo.getVersion(),
-  			buildNumber: DeviceInfo.getBuildNumber(),  
+			buildNumber: DeviceInfo.getBuildNumber(),
 		};
 	}, [getStoredDeviceId]);
 
@@ -79,6 +79,29 @@ export default function useDevice() {
 			setLoading(false);
 		}
 	};
+	const checkVersionUpdate = useCallback(async () => {
+		try {
+			const res = await apiRequest<{ buildNumber: number; appVersion: string }>(
+				"/version-setting",
+				"GET"
+			);
+			console.log("[Version Check] Response:", res);
+			if (res.statusCode === 200) {
+				const latest = res.data;
+				const currentBuild = Number(DeviceInfo.getBuildNumber());
+				console.log('[Version Check] Latest Build:', latest?.buildNumber);
+				console.log('[Version Check] Current Build:', currentBuild);
+				if (latest && latest.buildNumber > currentBuild) {
+					return { updateRequired: true, latest };
+				}
+			}
+		} catch (err) {
+			// silent fail, allow app to continue without update
+			console.log("[Version Check] Skipped due to error:", err);
+		}
+		return { updateRequired: false };
+	}, []);
+
 
 	return {
 		loading,
@@ -86,6 +109,7 @@ export default function useDevice() {
 		registerDevice,
 		revokeDevice,
 		getDeviceInfo,
-		getStoredDeviceId
+		getStoredDeviceId,
+		checkVersionUpdate,
 	};
 };

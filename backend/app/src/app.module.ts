@@ -39,6 +39,7 @@ import { EvouchersModule } from './module/evouchers/evouchers.module';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { DevicesModule } from './module/devices/devices.module';
 import { TimeSettingModule } from './module/time-setting/time-setting.module';
+import { VersionSettingModule } from './module/version-setting/version-setting.module';
 
 @Module({
   imports: [
@@ -98,6 +99,7 @@ import { TimeSettingModule } from './module/time-setting/time-setting.module';
     SponsorsModule,
     DevicesModule,
     TimeSettingModule,
+    VersionSettingModule
   ],
   providers: [
     {

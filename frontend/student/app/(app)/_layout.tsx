@@ -20,8 +20,9 @@ import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/
 import PretestModal from '@/components/prepost-modal/PretestModal';
 import PosttestModal from '@/components/prepost-modal/PosttestModal';
 import usePrePostModal from '@/hooks/usePrePostModal';
+import { useProgressStore } from '@/stores/useProgressStore';
+import { useProgress } from '@/hooks/useProgress';
 
-const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 export default function AppLayout() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
@@ -32,9 +33,10 @@ export default function AppLayout() {
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   const [showPretestModal, setShowPretestModal] = useState(false);
   const [showPosttestModal, setShowPosttestModal] = useState(false);
+  const { fetchProgress } = useProgress();
+  const progress = useProgressStore((s) => s.progress);
 
 
-  // Pretest modal hook
   const {
     modalVisible: pretestVisible,
     questions: pretestQuestions,
@@ -44,14 +46,13 @@ export default function AppLayout() {
     closeModal: closePretestModal,
   } = usePrePostModal({ type: 'pretest' });
 
-  // Posttest modal hook
   const {
     modalVisible: posttestVisible,
     questions: posttestQuestions,
     loading: posttestLoading,
     error: posttestError,
     submit: submitPosttest,
-  } = usePrePostModal({ type: 'posttest' });
+  } = usePrePostModal({ type: 'posttest', progress: progress?.progressPercentage });
 
   useEffect(() => {
     async function setupBackgroundTask() {
@@ -70,28 +71,29 @@ export default function AppLayout() {
   }, [pretestVisible, pretestQuestions]);
 
   useEffect(() => {
-    if (posttestVisible && pretestQuestions.length > 0) { // ensure pretest is available before posttest
+    if (posttestVisible && posttestQuestions.length > 0) { 
       setShowPosttestModal(true);
     }
-  }, [posttestVisible, pretestQuestions]);
+  }, [posttestVisible, posttestQuestions]);
 
-
-  const assetsImage = {
-    background: assets?.background ?? null,
-    profile: assets?.profile ?? null,
-    notification: assets?.notification ?? null,
-    progress: assets?.progress ?? null,
-    signOut: assets?.signOut ?? null,
-    lamduan: assets?.lamduan ?? null,
-  };
   const isIndexPage = pathname === '/' || pathname === '/index';
   const opacity = useRef(new Animated.Value(!isIndexPage ? 1 : 0)).current;
 
   useEffect(() => {
-    getProfile().finally(() => {
-      setLoading(false);
-      SplashScreen.hideAsync();
-    });
+    async function startup() {
+      try {
+        await getProfile();
+        await fetchProgress();
+      } catch (e) {
+        console.error('Startup error:', e);
+      } finally {
+        setLoading(false);
+        SplashScreen.hideAsync();
+      }
+    }
+
+    startup();
+
     initializePushNotification().then((granted) => {
       if (granted) registerDevice();
     });
@@ -110,8 +112,8 @@ export default function AppLayout() {
   if (!user) return <Redirect href="/(auth)/login" />;
 
   const isCommunityRoute =
-  (/^\/community(\/.*)?$/.test(pathname) && pathname !== '/community/chat') ||
-  /^\/activities\/[^/]+$/.test(pathname);
+    (/^\/community(\/.*)?$/.test(pathname) && pathname !== '/community/chat') ||
+    /^\/activities\/[^/]+$/.test(pathname);
 
 
   LogBox.ignoreLogs([
@@ -120,7 +122,7 @@ export default function AppLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <BackgroundScreen background={assetsImage?.background ?? null}>
+      <BackgroundScreen background={assets?.background ?? null}>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity }]}>
           <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
         </Animated.View>
@@ -157,13 +159,14 @@ export default function AppLayout() {
         }}
       >
         <ProgressBar
-          avatarUrl={assetsImage.profile ?? undefined}
+          avatarUrl={user?.data[0].metadata.major.school.photos?.avatar ?? assets.profile}
+          progress={progress?.progressPercentage ?? 0}
           onClickAvatar={() => router.push('/profile')}
         />
         <GlassButton iconOnly onPress={() => setNotificationModalVisible(true)}>
-          {assetsImage.notification ? (
+          {assets.notification ? (
             <AssetImage
-              uri={`${baseImageUrl}/uploads/${assetsImage.notification}`}
+              uri={`${process.env.EXPO_PUBLIC_API_URL}/uploads/${assets.notification}`}
               style={{ width: 20, height: 20 }}
             />
           ) : (

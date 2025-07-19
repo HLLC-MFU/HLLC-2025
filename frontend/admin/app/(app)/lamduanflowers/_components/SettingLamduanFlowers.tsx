@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, ChangeEvent, useMemo, RefObject } from "react";
 import { Button } from "@heroui/button";
-import { Input } from "@heroui/react";
+import { Input, Textarea } from "@heroui/react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 
 import { useLamduanSetting } from "@/hooks/useLamduanSetting";
@@ -12,7 +12,8 @@ type SettingLamduanFlowersProps = {
     file: File | null,
     videoLink: string,
     startDate: string,
-    endDate: string
+    endDate: string,
+    description: { th: string; en: string }
   ) => Promise<void>;
   originalRef: RefObject<LamduanSetting | null>;
 };
@@ -28,11 +29,15 @@ export function SettingLamduanFlowers({
   const [videoLink, setVideoLink] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [descriptionTh, setDescriptionTh] = useState<string>("");
+  const [descriptionEn, setDescriptionEn] = useState<string>("");
+
   const [errors, setErrors] = useState({
     file: "",
     videoLink: "",
     startDate: "",
     endDate: "",
+    description: "",
   });
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -41,7 +46,6 @@ export function SettingLamduanFlowers({
     if (!iso) return "";
     const date = new Date(iso);
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-
     return local.toISOString().slice(0, 16);
   };
 
@@ -52,8 +56,9 @@ export function SettingLamduanFlowers({
       setVideoLink("");
       setStartDate("");
       setEndDate("");
+      setDescriptionTh("");
+      setDescriptionEn("");
       originalRef.current = null;
-
       return;
     }
 
@@ -62,6 +67,8 @@ export function SettingLamduanFlowers({
     setVideoLink(data.tutorialVideo);
     setStartDate(toLocalDatetime(data.startAt));
     setEndDate(toLocalDatetime(data.endAt));
+    setDescriptionTh(data.description?.th ?? "");
+    setDescriptionEn(data.description?.en ?? "");
     originalRef.current = data;
   };
 
@@ -71,7 +78,6 @@ export function SettingLamduanFlowers({
 
   useEffect(() => {
     const latestData = lamduanSetting.at(-1) ?? null;
-
     populateForm(latestData);
   }, [lamduanSetting]);
 
@@ -83,7 +89,6 @@ export function SettingLamduanFlowers({
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-
     if (selectedFile) {
       setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
@@ -98,19 +103,18 @@ export function SettingLamduanFlowers({
 
   const handleDiscard = () => {
     const latestData = lamduanSetting.at(-1) ?? null;
-
     populateForm(latestData);
     setErrors({
       file: "",
       videoLink: "",
       startDate: "",
       endDate: "",
+      description: "",
     });
   };
 
   const isChanged = useMemo(() => {
     const original = originalRef.current;
-
     if (!original) return true;
 
     const originalStart = toLocalDatetime(original.startAt);
@@ -120,24 +124,23 @@ export function SettingLamduanFlowers({
       videoLink !== original.tutorialVideo ||
       startDate !== originalStart ||
       endDate !== originalEnd ||
+      descriptionTh !== (original.description?.th ?? "") ||
+      descriptionEn !== (original.description?.en ?? "") ||
       file instanceof File
     );
-  }, [videoLink, startDate, endDate, file]);
+  }, [videoLink, startDate, endDate, descriptionTh, descriptionEn, file]);
 
   const isYoutubeLink = (urlString: string) => {
     try {
       const url = new URL(urlString.trim());
       const hostname = url.hostname.toLowerCase();
-
       if (hostname === "www.youtube.com" || hostname === "youtube.com") {
         return url.searchParams.has("v") && url.searchParams.get("v")!.length === 11;
       }
-
       if (hostname === "youtu.be") {
         const videoId = url.pathname.slice(1);
         return videoId.length === 11;
       }
-
       return false;
     } catch {
       return false;
@@ -151,19 +154,25 @@ export function SettingLamduanFlowers({
         videoLink.trim() === ""
           ? "Video link is required"
           : !isYoutubeLink(videoLink)
-          ? "Video link must be a valid YouTube URL"
-          : "",
+            ? "Video link must be a valid YouTube URL"
+            : "",
       startDate: startDate.trim() === "" ? "Start date is required" : "",
       endDate: endDate.trim() === "" ? "End date is required" : "",
+      description:
+        !descriptionTh.trim() && !descriptionEn.trim()
+          ? "At least one language must be filled"
+          : "",
     };
 
     setErrors(newErrors);
 
     const hasError = Object.values(newErrors).some((v) => v !== "");
-
     if (hasError) return;
 
-    handleSave(isChanged, file, videoLink, startDate, endDate);
+    handleSave(isChanged, file, videoLink, startDate, endDate, {
+      th: descriptionTh,
+      en: descriptionEn,
+    });
   };
 
   return (
@@ -205,7 +214,41 @@ export function SettingLamduanFlowers({
           className="hidden"
         />
       </div>
-      {errors.file && <p className="text-sm text-danger  mt-1">{errors.file}</p>}
+      {errors.file && <p className="text-sm text-danger mt-1">{errors.file}</p>}
+
+      <div className="flex flex-col md:flex-row gap-4">
+        <Textarea
+          isRequired
+          label="คำอธิบาย (TH)"
+          labelPlacement="outside"
+          placeholder="อธิบายกิจกรรมเป็นภาษาไทย"
+          value={descriptionTh}
+          onChange={(e) => {
+            setDescriptionTh(e.target.value);
+            clearError("description");
+          }}
+          isInvalid={!!errors.description}
+          className="w-full h-50 resize-none"
+        />
+        <Textarea
+          isRequired
+          label="Description (EN)"
+          labelPlacement="outside"
+          placeholder="Describe activity in English"
+          value={descriptionEn}
+          onChange={(e) => {
+            setDescriptionEn(e.target.value);
+            clearError("description");
+          }}
+          isInvalid={!!errors.description}
+          className="w-full h-50 resize-none"
+        />
+      </div>
+
+      {errors.description && (
+        <p className="text-sm text-danger mt-1">{errors.description}</p>
+      )}
+
 
       <div className="flex w-full flex-wrap md:flex-nowrap mb-2 gap-4 py-2">
         <Input
@@ -216,11 +259,10 @@ export function SettingLamduanFlowers({
           labelPlacement="outside"
           placeholder="https://youtube.com/watch?v=..."
           type="url"
-
           value={videoLink}
           onChange={(e) => {
             setVideoLink(e.target.value);
-            clearError('videoLink');
+            clearError("videoLink");
           }}
         />
       </div>
@@ -238,7 +280,7 @@ export function SettingLamduanFlowers({
           value={startDate}
           onChange={(e) => {
             setStartDate(e.target.value);
-            clearError('startDate');
+            clearError("startDate");
           }}
         />
         <Input
@@ -253,7 +295,7 @@ export function SettingLamduanFlowers({
           value={endDate}
           onChange={(e) => {
             setEndDate(e.target.value);
-            clearError('endDate');
+            clearError("endDate");
           }}
         />
       </div>

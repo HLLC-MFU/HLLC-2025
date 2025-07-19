@@ -44,7 +44,7 @@ export default function QRCodeScreen() {
       setSelectedTab('scan');
       setShowScanner(true);
     }
-  }, [params.tab]);
+  }, [params.tab, params.t]);
 
   // ปิดกล้องเมื่อออกจากหน้า qrcode (เช็ค pathname)
   useEffect(() => {

@@ -47,7 +47,6 @@ export default function LeaderBoard({ data, loading }: Props) {
       <ChevronLeft color="#fff" size={24} />
     </TouchableOpacity>
     <SafeAreaView style={styles.container}>
-
       <SegmentedToggle value={selectedTab} onChange={setSelectedTab} />
       <View style={styles.contentContainer}>
         {selectedTab === 0 && (
@@ -71,8 +70,10 @@ export default function LeaderBoard({ data, loading }: Props) {
                 data.myRank ? {
                   rank: data.myRank.schoolRank,
                   totalStep: data.myRank.totalStep,
+                  avatar: data.myRank.avatar,
                 } : {}
               }
+              displaySchoolName={true}
             />
           </View>
         )}

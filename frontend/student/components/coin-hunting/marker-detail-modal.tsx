@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, Image, Linking, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, Image, Linking, StyleSheet, ScrollView, Dimensions, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
@@ -46,7 +46,7 @@ export default function MarkerDetailModal({
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContentWrapper}>
-          <BlurView intensity={40} tint="dark" style={styles.modalContent}>
+          <BlurView intensity={Platform.OS === 'android' ? 120 : 40} tint="dark" style={styles.modalContent}>
             <TouchableOpacity
               style={styles.modalClose}
               onPress={onClose}
@@ -86,14 +86,7 @@ export default function MarkerDetailModal({
                       styles.modalButton,
                       isCollected && styles.modalButtonDisabled
                     ]}
-                    onPress={() => {
-                      if (!isCollected) {
-                        onClose();
-                        setTimeout(() => {
-                          router.push({ pathname: '/qrcode', params: { tab: 'scan' } });
-                        }, 200);
-                      }
-                    }}
+                    onPress={onCheckIn}
                     disabled={isCollected}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>

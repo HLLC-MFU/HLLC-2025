@@ -1,6 +1,6 @@
 'use client';
 import { useAnimations, useGLTF } from '@react-three/drei';
-import { useRef, useEffect } from 'react';
+import { useEffect } from 'react';
 import * as THREE from 'three';
 
 type SceneProps = {

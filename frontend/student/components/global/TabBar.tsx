@@ -15,7 +15,6 @@ import Animated, {
     useSharedValue,
     useAnimatedStyle,
     withSpring,
-
 } from 'react-native-reanimated';
 import { Home, Book, QrCode, Gift, Globe } from 'lucide-react-native';
 import { useAppearance } from '@/hooks/useAppearance';
@@ -33,21 +32,14 @@ export default function GlassTabBar() {
     const { width } = useWindowDimensions();
     const { t } = useTranslation();
 
-    const tabs: { label: string; assets?: string  ;icon: React.ComponentType<{ size?: number; color?: string }>; route: AllowedRoutes }[] = [
-        { label: t("nav.home"), assets: 'home', icon: Home, route: '/' },
-        { label: t("nav.activity"), assets: 'activities', icon: Book, route: '/activities' },
-        { label: t("nav.qrCode"), assets: 'qrcode', icon: QrCode, route: '/qrcode' },
-        { label: t("nav.evoucher"), assets: 'evoucher', icon: Gift, route: '/evoucher' },
-        { label: t("nav.community"), assets: 'community', icon: Globe, route: '/community/chat' },
+    const tabs: { key?: string; label: string; icon: React.ComponentType<{ size?: number; color?: string }>; route: AllowedRoutes }[] = [
+        { key: 'home', label: t("nav.home"), icon: Home, route: '/' },
+        { key: 'activities', label: t("nav.activity"), icon: Book, route: '/activities' },
+        { key: 'qrcode', label: t("nav.qrCode"), icon: QrCode, route: '/qrcode' },
+        { key: 'evoucher', label: t("nav.evoucher"), icon: Gift, route: '/evoucher' },
+        { key: 'community', label: t("nav.community"), icon: Globe, route: '/community/chat' },
     ];
     const { assets } = useAppearance();
-    const icons = {
-        home: assets?.home ?? null,
-        activities: assets?.activities ?? null,
-        qrcode: assets?.qrcode ?? null,
-        evoucher: assets?.evoucher ?? null,
-        community: assets?.community ?? null,
-    };
 
     const tabWidth = (width - 48) / tabs.length;
     const offsetX = useSharedValue(0);
@@ -91,8 +83,8 @@ export default function GlassTabBar() {
                 </Animated.View>
 
                 {tabs.map((tab) => {
-                    const labelKey = tab.assets ? tab.assets.toLowerCase() : '';
-                    const assetIcon = icons[labelKey as keyof typeof icons];
+                    const key = tab.key ? tab.key.toLowerCase() : '';
+                    const asset = assets[key];
                     const isActive = pathname === tab.route;
                     const Icon = tab.icon;
 
@@ -107,8 +99,8 @@ export default function GlassTabBar() {
                             style={styles.tabItem}
                             activeOpacity={1}
                         >
-                            {assetIcon ? (
-                                <AssetImage uri={`${baseImageUrl}/uploads/${assetIcon}`} style={{ width: 32, height: 32 }} />
+                            {asset ? (
+                                <AssetImage uri={`${baseImageUrl}/uploads/${asset}`} style={{ width: 32, height: 32 }} />
                             ) : (
                                 <Icon size={32} color={isActive ? '#fff' : '#ffffff70'} />
                             )}
