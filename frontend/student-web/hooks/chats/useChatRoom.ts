@@ -502,6 +502,14 @@ const handleUnsendMessage = useCallback(async (message: Message) => {
   const handleJoin = async () => {
     try {
       if (!chatState.room || isMember || chatState.joining) return;
+      
+      // Check if room is inactive
+      if (chatState.room.status === 'inactive') {
+        console.error('[ChatRoom] Cannot join - room is inactive');
+        updateChatState({ error: 'ไม่สามารถเข้าร่วมห้องที่ปิดใช้งานได้' });
+        return;
+      }
+      
       updateChatState({ joining: true });
       const result = await chatService.joinRoom(roomId);
       if (result.success && result.room) {

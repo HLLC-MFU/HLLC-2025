@@ -130,15 +130,6 @@ export default function ChatPage() {
     setActiveTab(tab);
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await loadRooms();
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
   const renderRoomItem = (item: ChatRoomWithId, index: number) => {
     const roomId = item.id || item._id;
     const chatRoom: any = {

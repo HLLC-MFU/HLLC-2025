@@ -82,7 +82,11 @@ export default function StickerPicker({ onSelectSticker, onClose }: StickerPicke
           {stickers.map((item, index) => (
             <button
               key={item.id}
-              className={`flex flex-col items-center p-2 rounded-xl border ${pressedIndex === index ? 'bg-blue-100 border-blue-400' : 'bg-gray-100 border-transparent'}`}
+              className={`flex flex-col items-center p-2 rounded-xl border transition-all duration-200 ${
+                pressedIndex === index 
+                  ? 'bg-blue-100 border-blue-400 shadow-md' 
+                  : 'bg-gray-100 border-transparent hover:bg-gray-200 hover:border-gray-300'
+              }`}
               onClick={() => onSelectSticker(item.id)}
               onMouseDown={() => setPressedIndex(index)}
               onMouseUp={() => setPressedIndex(null)}
@@ -92,7 +96,7 @@ export default function StickerPicker({ onSelectSticker, onClose }: StickerPicke
               <img
                 src={getStickerImageUrl(item.image)}
                 alt={item.name.th}
-                className="w-14 h-14 rounded mb-1 bg-gray-200"
+                className="w-14 h-14 rounded mb-1 bg-gray-200 transition-transform duration-200"
                 style={{ objectFit: 'contain' }}
               />
               <span className="text-xs text-gray-700 truncate w-full text-center">{item.name.th}</span>

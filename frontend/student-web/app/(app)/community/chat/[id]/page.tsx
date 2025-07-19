@@ -181,12 +181,31 @@ export default function ChatRoomPage() {
             className="flex-1 cursor-pointer"
             onClick={() => setIsRoomInfoVisible(true)}
           >
-            <span className="text-lg font-semibold text-gray-900 truncate block drop-shadow">
-              {room ? getRoomName(room) : t('chat.chatRoom')}
-            </span>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg font-semibold text-gray-900 truncate block drop-shadow">
+                {room ? getRoomName(room) : t('chat.chatRoom')}
+              </span>
+              {/* Room Status Badge */}
+              {room?.status && (
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                  room.status === 'inactive' 
+                    ? 'bg-red-100 text-red-700 border border-red-200' 
+                    : room.status === 'active'
+                    ? 'bg-green-100 text-green-700 border border-green-200'
+                    : 'bg-gray-100 text-gray-700 border border-gray-200'
+                }`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    room.status === 'inactive' ? 'bg-red-500' : 
+                    room.status === 'active' ? 'bg-green-500' : 'bg-gray-500'
+                  }`}></div>
+                  {room.status === 'inactive' ? 'inactive' : 
+                   room.status === 'active' ? 'active' : room.status}
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-2 mt-1">
               <Users size={14} color="#0A84FF" />
-              <span className="text-xs text-blue-500">{room?.members_count || 0} {t('chat.members')}</span>
+              <span className="text-xs text-blue-500">{room?.members_count || 0} {t('members')}</span>
             </div>
           </div>
           <button
@@ -212,6 +231,8 @@ export default function ChatRoomPage() {
               joining={joining}
               roomCapacity={room?.capacity || 0}
               connectedCount={Array.isArray(room?.members_count) ? room.members_count : 0}
+              roomStatus={room?.status}
+              roomType={room?.type}
             />
           </div>
         )}
@@ -294,6 +315,8 @@ export default function ChatRoomPage() {
                 mentionSuggestions={mentionSuggestions}
                 isMentioning={isMentioning}
                 handleMentionSelect={handleMentionSelect}
+                // Pass room prop for validation
+                room={room}
               />
             </div>
           </div>

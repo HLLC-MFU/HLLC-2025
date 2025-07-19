@@ -183,7 +183,7 @@ export default function ChatRoomPage() {
                   <Users size={14} color="#0A84FF" />
                   <Text style={chatStyles.memberCount}>
                     {room?.members_count}{' '}
-                    {t('chat.members')}
+                    {t('member')}
                   </Text>
                 </View>
               </TouchableOpacity>

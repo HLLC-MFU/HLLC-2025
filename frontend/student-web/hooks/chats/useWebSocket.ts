@@ -411,7 +411,13 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         });
       };
       socket.onerror = (error: Event) => {
-        errorLog('WebSocket onerror:', error);
+        // Don't log the error object directly as it may contain circular references
+        errorLog('WebSocket connection error occurred');
+        console.warn('[WebSocket] Connection error details:', {
+          type: error.type,
+          target: error.target ? 'WebSocket instance' : 'unknown',
+          timestamp: new Date().toISOString()
+        });
         updateState({ error: 'WebSocket connection error' });
       };
     } catch (error) {

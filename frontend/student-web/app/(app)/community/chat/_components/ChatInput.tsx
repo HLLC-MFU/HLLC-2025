@@ -18,6 +18,8 @@ interface ChatInputProps {
   mentionSuggestions?: any[];
   isMentioning?: boolean;
   handleMentionSelect?: (user: any) => void;
+  // Add room prop for status and type validation
+  room?: any;
 }
 
 const ChatInput = ({
@@ -34,11 +36,25 @@ const ChatInput = ({
   mentionSuggestions = [],
   isMentioning = false,
   handleMentionSelect,
+  room,
 }: ChatInputProps) => {
   const { user } = useProfile();
   const [isFocused, setIsFocused] = useState(false);
   const hasText = messageText.trim().length > 0;
-  const isDisabled = !isMember || !isConnected;
+  
+  // Check if user has Administrator role
+  const isAdministrator = user?.role?.name === 'Administrator';
+  
+  // Check if room is read-only
+  const isReadOnlyRoom = room?.type === 'readonly';
+  
+  // Check if room is inactive
+  const isInactiveRoom = room?.status === 'inactive';
+  
+  // Determine if input should be disabled
+  const isDisabled = !isMember || !isConnected || isInactiveRoom || (isReadOnlyRoom && !isAdministrator);
+  
+  // Determine if user can send messages
   const canSend = hasText && !isDisabled;
 
   // Debug log for mention suggestion
@@ -57,6 +73,23 @@ const ChatInput = ({
     if (canSend) {
       handleSendMessage();
     }
+  };
+
+  // Get placeholder text based on room status and user role
+  const getPlaceholderText = () => {
+    if (isInactiveRoom) {
+      return 'This room is inactive';
+    }
+    if (isReadOnlyRoom && !isAdministrator) {
+      return 'This room is read-only';
+    }
+    if (!isMember) {
+      return 'Join the room to send messages';
+    }
+    if (!isConnected) {
+      return 'Connecting...';
+    }
+    return 'Type a message...';
   };
 
   // const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -169,7 +202,7 @@ const ChatInput = ({
               onChange={(e) => handleTextInput(e.target.value)}
               onFocus={handleFocus}
               onBlur={handleBlur}
-              placeholder={isDisabled ? 'กำลังเชื่อมต่อ...' : 'พิมพ์ข้อความ...'}
+              placeholder={getPlaceholderText()}
               className={`w-full bg-transparent text-gray-900 dark:text-gray-100 text-[15px] py-2.5 min-h-[40px] outline-none font-medium placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed ${
                 isDisabled ? 'cursor-not-allowed' : ''
               }`}
@@ -225,7 +258,11 @@ const ChatInput = ({
 
         {isDisabled && (
           <div className="text-xs text-red-500 dark:text-red-400 font-medium bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded-full shadow-sm">
-            {!isConnected ? 'การเชื่อมต่อมีปัญหา' : 'กรุณาเข้าร่วมกลุ่มก่อน'}
+            {!isConnected ? 'การเชื่อมต่อมีปัญหา' : 
+             !isMember ? 'กรุณาเข้าร่วมกลุ่มก่อน' : 
+             isInactiveRoom ? 'ห้องไม่เปิดใช้งาน' : 
+             isReadOnlyRoom && !isAdministrator ? 'ห้องอ่านอย่างเดียว' : 
+             'ไม่สามารถส่งข้อความได้'}
           </div>
         )}
       </div>

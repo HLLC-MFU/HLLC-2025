@@ -81,6 +81,26 @@ const RoomCard = ({ room, width, language, onPress, onJoin, onShowDetail }: Room
 
         {/* Info container with enhanced glass effect */}
         <div className="p-4 space-y-3 relative z-30 bg-white/5 backdrop-blur-sm">
+          {/* Status Badge */}
+          {room.status && (
+            <div className="flex justify-end mb-2">
+              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                room.status === 'inactive' 
+                  ? 'bg-red-500/20 text-red-200 border border-red-400/30' 
+                  : room.status === 'active'
+                  ? 'bg-green-500/20 text-green-200 border border-green-400/30'
+                  : 'bg-gray-500/20 text-gray-200 border border-gray-400/30'
+              }`}>
+                <div className={`w-1.5 h-1.5 rounded-full ${
+                  room.status === 'inactive' ? 'bg-red-400' : 
+                  room.status === 'active' ? 'bg-green-400' : 'bg-gray-400'
+                }`}></div>
+                {room.status === 'inactive' ? 'inactive' : 
+                 room.status === 'active' ? 'active' : room.status}
+              </div>
+            </div>
+          )}
+
           <h3 className="font-bold text-white text-lg truncate leading-tight drop-shadow-lg">
             {language === 'th' ? room.name?.th || 'Unnamed' : room.name?.en || 'Unnamed'}
           </h3>
