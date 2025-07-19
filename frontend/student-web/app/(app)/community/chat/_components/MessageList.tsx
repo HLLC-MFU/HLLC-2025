@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect } from 'react';
 import SwipeableMessageBubble from './SwipeableMessageBubble';
 import SystemMessage from './SystemMessage';
+import MessageSkeleton from './MessageSkeleton';
 import { Message } from '@/types/chat';
 import { useProfile } from '@/hooks/useProfile';
 
@@ -15,6 +16,7 @@ interface MessageListProps {
   scrollEventThrottle?: number;
   onUnsend?: (message: Message) => void;
   stickers: any[];
+  loading?: boolean;
 }
 
 const MessageList = ({
@@ -26,6 +28,7 @@ const MessageList = ({
   onScroll,
   onUnsend,
   stickers,
+  loading = false,
 }: MessageListProps) => {
   // flatten all messages for replyTo enrichment (sort from oldest to newest)
   const allMessages = useMemo(() => {
@@ -69,6 +72,22 @@ const MessageList = ({
       flatListRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
+
+  // Show skeleton loading if loading or no messages
+  if (loading || allMessages.length === 0) {
+    return (
+      <div
+        ref={flatListRef as React.RefObject<HTMLDivElement> as any}
+        className="flex flex-col gap-2 pb-24 pt-4 overflow-y-auto h-full min-h-[60vh] scrollbar-none bg-transparent"
+        onScroll={onScroll}
+        style={{ minHeight: 200 }}
+      >
+        <MessageSkeleton count={5} isMyMessage={false} />
+        <MessageSkeleton count={3} isMyMessage={true} />
+        <MessageSkeleton count={4} isMyMessage={false} />
+      </div>
+    );
+  }
 
   return (
     <div

@@ -83,6 +83,7 @@ interface UseChatRoomReturn {
   loadMoreMembers: () => void;
   handleUnsendMessage: (message: Message) => void;
   stickers: any[];
+  messagesLoading: boolean;
 }
 
 interface UseChatRoomProps {
@@ -139,6 +140,9 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
 
   // Add stickers state (if not already present)
   const [stickers, setStickers] = useState<any[]>([]); // [{id, image, ...}]
+
+  // Add messages loading state
+  const [messagesLoading, setMessagesLoading] = useState(true);
 
   // Fetch sticker list on mount
   useEffect(() => {
@@ -327,17 +331,36 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
     // No cleanup needed here; handled by wsDisconnect elsewhere
   }, [roomId, userId, isConnected, wsConnect, isMember]);
 
+  // Manage messages loading state
+  useEffect(() => {
+    if (isConnected && wsMessages.length > 0) {
+      setMessagesLoading(false);
+    } else if (isConnected && wsMessages.length === 0) {
+      // Still loading if connected but no messages yet
+      setMessagesLoading(true);
+    } else if (!isConnected) {
+      // Not connected, show loading
+      setMessagesLoading(true);
+    }
+  }, [isConnected, wsMessages.length]);
+
   // Debug: log isMember and roomId whenever they change
   useEffect(() => {
-    console.log('[DEBUG] isMember:', isMember, 'roomId:', roomId);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DEBUG] isMember:', isMember, 'roomId:', roomId);
+    }
   }, [isMember, roomId]);
 
   // Debug: log wsMessages and groupMessages whenever they change
   useEffect(() => {
-    console.log('[DEBUG] wsMessages:', wsMessages);
-    console.log('[DEBUG] groupMessages:', groupMessages());
-    console.log('[DEBUG] isConnected:', isConnected, 'ws:', ws);
-  }, [wsMessages, groupMessages, isConnected, ws]);
+    // Only log in development and limit frequency
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DEBUG] wsMessages count:', wsMessages.length);
+      console.log('[DEBUG] groupMessages count:', groupMessages().length);
+      console.log('[DEBUG] isConnected:', isConnected);
+    }
+  }, [wsMessages.length, groupMessages, isConnected]);
 
   const handleSendMessage = useCallback(async () => {
   const trimmedMessage = chatState.messageText.trim();
@@ -558,5 +581,6 @@ const handleUnsendMessage = useCallback(async (message: Message) => {
     loadMoreMembers,
     handleUnsendMessage,
     stickers,
+    messagesLoading,
   };
 };

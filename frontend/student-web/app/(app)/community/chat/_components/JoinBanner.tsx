@@ -14,7 +14,7 @@ const JoinBanner = ({ onJoin, joining, roomCapacity, connectedCount, roomStatus,
   const isReadOnly = roomType === 'readonly';
   
   return (
-    <div className="backdrop-blur-md bg-black/70 p-6 flex flex-col items-center border-b border-gray-800 rounded-b-xl">
+  <div className="backdrop-blur-md bg-black/70 p-6 flex flex-col items-center border-b border-gray-800 rounded-b-xl">
       {/* Status Badge */}
       <div className="mb-4 flex items-center gap-2">
         {isInactive ? (
@@ -42,18 +42,18 @@ const JoinBanner = ({ onJoin, joining, roomCapacity, connectedCount, roomStatus,
         }
       </span>
       
-      <span className="text-gray-400 mb-4 text-sm">{connectedCount}/{roomCapacity} คนเข้าร่วม</span>
+    <span className="text-gray-400 mb-4 text-sm">{connectedCount}/{roomCapacity} คนเข้าร่วม</span>
       
       {!isInactive && (
-        <button
-          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-full min-w-[150px] flex items-center justify-center transition-colors duration-150 disabled:opacity-60"
-          onClick={onJoin}
-          disabled={joining}
-          type="button"
-        >
-          {joining ? <span className="animate-spin mr-2">🔄</span> : null}
-          {joining ? 'กำลังเข้าร่วม...' : 'เข้าร่วมห้องแชท'}
-        </button>
+    <button
+      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-full min-w-[150px] flex items-center justify-center transition-colors duration-150 disabled:opacity-60"
+      onClick={onJoin}
+      disabled={joining}
+      type="button"
+    >
+      {joining ? <span className="animate-spin mr-2">🔄</span> : null}
+      {joining ? 'กำลังเข้าร่วม...' : 'เข้าร่วมห้องแชท'}
+    </button>
       )}
       
       {isInactive && (
@@ -61,8 +61,8 @@ const JoinBanner = ({ onJoin, joining, roomCapacity, connectedCount, roomStatus,
           <span className="text-red-300 text-sm">ไม่สามารถเข้าร่วมห้องที่ปิดใช้งานได้</span>
         </div>
       )}
-    </div>
-  );
+  </div>
+);
 };
 
 export default JoinBanner; 

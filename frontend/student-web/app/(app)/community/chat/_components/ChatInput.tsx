@@ -206,6 +206,12 @@ const ChatInput = ({
               className={`w-full bg-transparent text-gray-900 dark:text-gray-100 text-[15px] py-2.5 min-h-[40px] outline-none font-medium placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed ${
                 isDisabled ? 'cursor-not-allowed' : ''
               }`}
+              style={{
+                wordBreak: 'keep-all',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
               disabled={isDisabled}
               maxLength={1000}
             />

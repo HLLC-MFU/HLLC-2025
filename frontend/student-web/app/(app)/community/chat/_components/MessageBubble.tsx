@@ -31,6 +31,7 @@ const MessageBubble = memo(({
   const [showClaimDialog, setShowClaimDialog] = useState(false);
   const [claimDialogMessage, setClaimDialogMessage] = useState('');
   const [claimDialogType, setClaimDialogType] = useState<'success' | 'error' | 'info'>('info');
+  const [showMysteryValues, setShowMysteryValues] = useState(false);
   
   const handleCloseImagePreview = useCallback(() => {
     setShowImagePreview(false);
@@ -194,10 +195,10 @@ const MessageBubble = memo(({
             } else {
               const errorData = await response.json().catch(() => ({}));
               const errorMessage = errorData.message || 'ไม่สามารถรับ E-Voucher ได้';
-              showDialog(`❌ ${errorMessage}`, 'error');
+              showDialog(`${errorMessage}`, 'error');
             }
           } catch (error) {
-            console.error('❌ Error claiming E-Voucher:', error);
+            console.error('Error claiming E-Voucher:', error);
             showDialog('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', 'error');
           } finally {
             setClaiming(prev => ({ ...prev, [message.id ?? '']: false }));
@@ -206,11 +207,11 @@ const MessageBubble = memo(({
         
                 return (
           <div className="bg-white/15 backdrop-blur-sm rounded-2xl border-2 border-amber-300/50 shadow-lg w-full max-w-sm sm:max-w-md">
-            <div className="p-4 sm:p-6">
+            <div className="p-5">
               {/* Sponsor Image - Similar to Expo */}
               {(evoucherInfo as any).sponsorImage && (
                 <div className="mb-4 flex justify-center">
-                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-md">
                     <img
                       src={(evoucherInfo as any).sponsorImage.startsWith('http') 
                         ? (evoucherInfo as any).sponsorImage 
@@ -228,15 +229,46 @@ const MessageBubble = memo(({
               )}
               
               {/* Header - Similar to Expo */}
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl">{isClaimed ? '🎉' : '🎟️'}</span>
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg text-amber-800 dark:text-amber-200">
-                    {(evoucherInfo as any).message?.[displayLang] || 'E-Voucher'}
-                  </h3>
-                  <p className="text-sm text-amber-600 dark:text-amber-300">
-                    จากผู้สนับสนุน
-                  </p>
+              <div className="text-center mb-4">
+                <h3 className="font-bold text-xl text-amber-800 dark:text-amber-200 leading-tight break-words mb-1">
+                  {(evoucherInfo as any).message?.[displayLang] || 'E-Voucher'}
+                </h3>
+                <p className="text-sm text-amber-600 dark:text-amber-300">
+                  จากผู้สนับสนุน
+                </p>
+              </div>
+
+              {/* E-Voucher Details */}
+              <div className="mb-4 p-3 bg-amber-50/50 dark:bg-amber-900/20 rounded-lg border border-amber-200/50 dark:border-amber-700/30">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">E-Voucher Code</span>
+                                     <div 
+                     className="text-xs text-amber-600 dark:text-amber-400 font-mono tracking-wider cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-800/30 px-2 py-1 rounded transition-all duration-300"
+                   >
+                     {showMysteryValues ? (
+                       <span className="animate-pulse">#{Math.random().toString(36).substr(2, 8).toUpperCase()}</span>
+                     ) : (
+                       <span className="animate-pulse tracking-tight whitespace-nowrap">❓❓❓</span>
+                     )}
+                   </div>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Valid Until</span>
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
+                    {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('th-TH')}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Value</span>
+                                     <div 
+                     className="text-xs font-bold text-amber-800 dark:text-amber-200 cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-800/30 px-2 py-1 rounded transition-all duration-300"
+                   >
+                     {showMysteryValues ? (
+                       <span className="animate-pulse">฿{Math.floor(Math.random() * 500) + 50}</span>
+                     ) : (
+                       <span className="animate-pulse tracking-tight whitespace-nowrap">❓❓❓</span>
+                     )}
+                   </div>
                 </div>
               </div>
               
@@ -245,7 +277,7 @@ const MessageBubble = memo(({
                 <button
                   onClick={handleClaim}
                   disabled={isClaiming || !(evoucherInfo as any).claimUrl}
-                  className={`w-full py-3 rounded-xl font-bold transition-all duration-300 ${
+                  className={`w-full py-2.5 rounded-lg font-bold transition-all duration-300 ${
                     isClaiming
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-amber-400 text-amber-900 hover:bg-amber-500 shadow-lg hover:shadow-xl'
@@ -254,10 +286,10 @@ const MessageBubble = memo(({
                   {isClaiming ? (
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-amber-900 border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-sm sm:text-base">กำลังเคลม...</span>
+                      <span className="text-sm">Claiming...</span>
                     </div>
                   ) : (
-                    <span className="text-sm sm:text-base">กดเพื่อรับ E-Voucher</span>
+                    <span className="text-sm">Claim</span>
                   )}
                 </button>
               )}
@@ -574,7 +606,7 @@ const MessageBubble = memo(({
                     : 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl'
                 }`}
               >
-                ตกลง
+                Confirm
               </button>
             </div>
           </div>

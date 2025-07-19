@@ -284,6 +284,11 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       });
 
       if (isDuplicate) {
+        debugLog('[addMessage] Duplicate message detected, skipping:', messageId);
+        return prev;
+      }
+
+      if (isDuplicate) {
         debugLog('[addMessage] duplicate message detected:', {
           messageId,
           text: message.text,

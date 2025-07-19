@@ -76,6 +76,7 @@ export default function ChatRoomPage() {
     loadMembers,
     handleUnsendMessage,
     stickers,
+    messagesLoading,
   } = chatRoom;
 
   const canSendEvoucher = () => {
@@ -277,6 +278,7 @@ export default function ChatRoomPage() {
                 scrollEventThrottle={16}
                 onUnsend={handleUnsendMessage}
                 stickers={stickers}
+                loading={messagesLoading}
               />
              {showScrollToBottom && (
               <button

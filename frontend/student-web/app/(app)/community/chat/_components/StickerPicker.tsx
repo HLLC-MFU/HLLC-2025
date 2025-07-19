@@ -79,29 +79,37 @@ export default function StickerPicker({ onSelectSticker, onClose }: StickerPicke
           <button onClick={onClose} className="bg-gray-200 px-4 py-2 rounded-full text-blue-600 font-semibold">Close</button>
         </div>
         <div className="grid grid-cols-4 gap-4 pb-4">
-          {stickers.map((item, index) => (
-            <button
-              key={item.id}
-              className={`flex flex-col items-center p-2 rounded-xl border transition-all duration-200 ${
-                pressedIndex === index 
-                  ? 'bg-blue-100 border-blue-400 shadow-md' 
-                  : 'bg-gray-100 border-transparent hover:bg-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => onSelectSticker(item.id)}
-              onMouseDown={() => setPressedIndex(index)}
-              onMouseUp={() => setPressedIndex(null)}
-              onMouseLeave={() => setPressedIndex(null)}
-              type="button"
-            >
-              <img
-                src={getStickerImageUrl(item.image)}
-                alt={item.name.th}
-                className="w-14 h-14 rounded mb-1 bg-gray-200 transition-transform duration-200"
-                style={{ objectFit: 'contain' }}
-              />
-              <span className="text-xs text-gray-700 truncate w-full text-center">{item.name.th}</span>
-            </button>
-          ))}
+          {stickers && stickers.length > 0 ? (
+            stickers.map((item, index) => (
+              <button
+                key={item.id}
+                className={`flex flex-col items-center p-2 rounded-xl border transition-all duration-200 ${
+                  pressedIndex === index 
+                    ? 'bg-blue-100 border-blue-400 shadow-md' 
+                    : 'bg-gray-100 border-transparent hover:bg-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => onSelectSticker(item.id)}
+                onMouseDown={() => setPressedIndex(index)}
+                onMouseUp={() => setPressedIndex(null)}
+                onMouseLeave={() => setPressedIndex(null)}
+                type="button"
+              >
+                <img
+                  src={getStickerImageUrl(item.image)}
+                  alt={item.name.th}
+                  className="w-14 h-14 rounded mb-1 bg-gray-200 transition-transform duration-200"
+                  style={{ objectFit: 'contain' }}
+                />
+                <span className="text-xs text-gray-700 truncate w-full text-center">{item.name.th}</span>
+              </button>
+            ))
+          ) : (
+            // Empty state when no stickers available
+            <div className="col-span-4 flex flex-col items-center justify-center py-8 text-gray-500">
+              <div className="text-4xl mb-2">😊</div>
+              <div className="text-sm text-center">No stickers available</div>
+            </div>
+          )}
         </div>
       </div>
     </div>
