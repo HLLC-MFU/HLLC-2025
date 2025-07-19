@@ -132,7 +132,12 @@ export class PretestAnswersService {
   }
 
   async averageAllPretests(query: Record<string, string>): Promise<
-    { pretest: PrepostQuestion; average: number; count: number }[]
+    {
+      data: { pretest: PrepostQuestion; average: number; count: number }[];
+      total: number;
+      page: number;
+      limit: number;
+    }
   > {
 
     const fullQuery = { ...query, limit: '0', page: '1' };
@@ -171,16 +176,21 @@ export class PretestAnswersService {
     const limit = Number(query.limit);
     const page = Number(query.page ?? 1);
     const offset = limit > 0 ? (page - 1) * limit : 0;
-
     const allEntries = Array.from(scoreMap.entries());
-
-    return allEntries
+    const paginated = allEntries
       .slice(offset, limit > 0 ? offset + limit : undefined)
       .map(([pretest, { sum, count }]) => ({
         pretest,
         average: sum / count,
         count,
       }));
+
+    return {
+      data: paginated,
+      total: allEntries.length,
+      page,
+      limit,
+    };
   }
 
   async findByUserId(userId: string) {

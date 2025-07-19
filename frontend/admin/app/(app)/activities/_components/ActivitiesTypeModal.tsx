@@ -1,9 +1,9 @@
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Divider } from "@heroui/react";
-import { useState } from "react";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Divider, Form } from "@heroui/react";
+import { useEffect, useState } from "react";
 
 import { ActivityType } from "@/types/activities";
 
-interface ActivityTypeModalProps {
+type ActivitiesTypeModalProps = {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (activityType: Partial<ActivityType>) => void;
@@ -12,8 +12,16 @@ interface ActivityTypeModalProps {
     loading?: boolean;
 }
 
-export function ActivityTypeModal({ isOpen, onClose, onSubmit, mode, activityType, loading }: ActivityTypeModalProps) {
+export function ActivitiesTypeModal({ isOpen, onClose, onSubmit, mode, activityType, loading }: ActivitiesTypeModalProps) {
     const [name, setName] = useState(activityType?.name || '');
+
+    useEffect(() => {
+        if (mode === 'edit' && activityType) {
+            setName(activityType.name || '');
+        } else if (mode === 'add') {
+            setName('');
+        }
+    }, [mode, activityType, isOpen]);
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -27,13 +35,13 @@ export function ActivityTypeModal({ isOpen, onClose, onSubmit, mode, activityTyp
     };
 
     return (
-        <Modal 
-            isOpen={isOpen} 
+        <Modal
+            isOpen={isOpen}
             size="md"
             onClose={onClose}
         >
             <ModalContent>
-                <form onSubmit={handleSubmit}>
+                <Form onSubmit={handleSubmit}>
                     <ModalHeader className="flex flex-col gap-1">
                         {mode === 'add' ? 'Add New Activity Type' : 'Edit Activity Type'}
                     </ModalHeader>
@@ -47,18 +55,19 @@ export function ActivityTypeModal({ isOpen, onClose, onSubmit, mode, activityTyp
                             placeholder="Enter activity type name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
+                            variant="bordered"
                         />
                     </ModalBody>
                     <Divider />
                     <ModalFooter>
-                        <Button 
-                            isDisabled={loading} 
+                        <Button
+                            isDisabled={loading}
                             variant="light"
                             onPress={onClose}
                         >
                             Cancel
                         </Button>
-                        <Button 
+                        <Button
                             color="primary"
                             isDisabled={loading || !name.trim()}
                             isLoading={loading}
@@ -67,7 +76,7 @@ export function ActivityTypeModal({ isOpen, onClose, onSubmit, mode, activityTyp
                             {mode === 'add' ? 'Create Type' : 'Save Changes'}
                         </Button>
                     </ModalFooter>
-                </form>
+                </Form>
             </ModalContent>
         </Modal>
     );
