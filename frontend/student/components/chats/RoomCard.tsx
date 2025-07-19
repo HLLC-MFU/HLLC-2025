@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
 
   cardBlur: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.18)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 22,
     overflow: 'hidden',
     position: 'relative',

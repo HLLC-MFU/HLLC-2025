@@ -6,6 +6,8 @@ import { Ranking } from '@/hooks/useStepLeaderboard';
 import LeaderboardList from './LeaderboardList';
 import { BlurView } from 'expo-blur';
 import useProfile from '@/hooks/useProfile';
+import { Image } from 'expo-image';
+import { useLanguage } from '@/context/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 type Props = {
@@ -13,12 +15,15 @@ type Props = {
   currentUserData: {
     rank?: number;
     totalStep?: number;
+    avatar?: string;
   }
   valueLabel?: string,
+  displaySchoolName?: boolean;
 }
-export default function DynamicLeaderboard({ data, currentUserData }: Props) {
+export default function DynamicLeaderboard({ data, currentUserData, displaySchoolName }: Props) {
   const valueLabel = 'steps'; // or any other label you want to use
   const { user } = useProfile();
+  const { language } = useLanguage();
   const getShortName = (name: Name) => {
     const first = name?.first || '';
     const lastInitial = name?.last ? name.last.charAt(0) + '.' : '';
@@ -50,8 +55,13 @@ export default function DynamicLeaderboard({ data, currentUserData }: Props) {
           );
         })}
       </View>
+      <View>
+        <Text style={{ color: '#fff', fontSize: 16, textAlign: 'center', fontWeight: 'bold' }}>
+          {user && displaySchoolName ? user?.data[0].metadata?.major?.school?.name[language] : ' '}
+        </Text>
+      </View>
       <View style={{ flex: 1 }}>
-        <View style={{ marginVertical: height * 0.02 }}>
+        <View style={{ marginVertical: height * 0.02, paddingBottom: height * 0.08 }}>
           <LeaderboardList data={data} valueLabel={valueLabel} />
         </View>
         <View
@@ -96,6 +106,19 @@ export default function DynamicLeaderboard({ data, currentUserData }: Props) {
                 </Text>
               </View>
               <View style={styles.cardMyAvatar}>
+                {currentUserData.avatar ? (
+                  <Image
+                    source={{ uri: currentUserData.avatar }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <View style={styles.avatarFallback}>
+                    <Text style={styles.avatarInitials}>
+                      {user?.data[0]?.name.first.charAt(0) || ''}
+                      {user?.data[0]?.name.last?.charAt(0) || ''}
+                    </Text>
+                  </View>
+                )}
                 <Text style={{
                   position: 'absolute',
                   top: -10,
@@ -169,4 +192,21 @@ const styles = StyleSheet.create({
   },
   cardMyName: { color: '#fff', fontWeight: 'bold', flex: 1, fontSize: width * 0.04 },
   cardSteps: { color: '#b6c3d1', fontWeight: 'bold', fontSize: width * 0.0375 },
+  avatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+  },
 });

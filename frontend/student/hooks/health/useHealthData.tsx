@@ -33,6 +33,7 @@ const useHealthData = (
   const { version } = useDeviceStore();
 
   useEffect(() => {
+    if (!uniqueId) return; 
     const fetchAndValidateDevice = async () => {
       const response = await apiRequest<StepCounter[]>('/step-counters', 'GET');
       if (
@@ -47,6 +48,7 @@ const useHealthData = (
         const matchFound = response.data.some(
           (record) => record.deviceId === uniqueId
         );
+        console.log(`Device match found: ${matchFound}`);
         setDeviceMismatch(!matchFound);
       }
     };
