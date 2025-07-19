@@ -58,7 +58,7 @@ export default function ActivityDetailPage() {
   if (!activity) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text style={{ fontSize: 16, color: "#999" }}>No activity data found.</Text>
+        <Text style={{ fontSize: 16, color: "#999" }}>{t("activity.noActivityData")}</Text>
       </View>
     )
   }
@@ -216,7 +216,7 @@ export default function ActivityDetailPage() {
               paddingHorizontal: 20,
             }}
           >
-            Get Direction
+            {t("activity.getDirection")}
           </Button>
         </View>
       )}
@@ -293,7 +293,7 @@ export default function ActivityDetailPage() {
                   completed={activity.checkinStatus >= 2}
                   error={activity.checkinStatus < 0}
                   disabled={activity.checkinStatus === 0}
-                  description={activity.checkinStatus === 1 ? "Scan the QR code at the event location or visit the designated check-in point to confirm your attendance." : undefined}
+                  description={activity.checkinStatus === 1 ? t('activity.timeline.assessmentCheckinDescription') : undefined}
                 >
                   {activity.checkinStatus === 1 && (
                     <Button
@@ -305,7 +305,7 @@ export default function ActivityDetailPage() {
                       onPress={() => router.replace(`/qrcode`)}
                       icon={QrCode}
                     >
-                      Open QR Scanner
+                      {t("activity.openQrScanner")}
                     </Button>
                   )}
                 </StepperItem>
@@ -328,7 +328,7 @@ export default function ActivityDetailPage() {
                     hour12: false,
                   })
                 }            
-              )}` : "Successfully Checked In"}
+              )}` : t("activity.successfullyCheckedIn")}
                   active={activity.checkinStatus === 2}
                   completed={activity.checkinStatus === 3}
                   error={activity.checkinStatus < 0}
@@ -336,7 +336,7 @@ export default function ActivityDetailPage() {
                   description={
                     activity.checkinStatus < 0 ? undefined :
                       activity.checkinStatus === 3 && !activity.hasAnsweredAssessment
-                        ? "Congratulations! You've completed the activity. Please take a moment to share your feedback through the assessment."
+                        ? t('activity.timeline.assessmentCompletedDescription')
                         : undefined
                   }
                 />
@@ -353,7 +353,7 @@ export default function ActivityDetailPage() {
               error={!activity.hasAnsweredAssessment && activity.checkinStatus === 3}
               disabled={activity.checkinStatus < 3}
               isLast
-              description={!activity.hasAnsweredAssessment ? "Help us improve by sharing your experience and feedback about this activity." : undefined}
+              description={!activity.hasAnsweredAssessment ? t('activity.timeline.assessmentPrompt') : undefined}
             >
               <View
                 style={{
@@ -365,7 +365,7 @@ export default function ActivityDetailPage() {
                 }}
               >
                 <Text style={{ color: "#1e40af", fontSize: 14, lineHeight: 20, marginBottom: 8 }}>
-                  💭 Your feedback is valuable and helps us create better experiences for everyone.
+                  {t('activity.timeline.assessmentEncouragement')}
                 </Text>
                 {!activity.hasAnsweredAssessment && activity.checkinStatus === 3 && (
                   <Button
@@ -376,7 +376,7 @@ export default function ActivityDetailPage() {
                     onPress={() => setShowAssessmentModal(true)}
                     icon={FileText}
                   >
-                    Complete Assessment
+                    {t('activity.timeline.assessmentButton')}
                   </Button>
                 )}
               </View>

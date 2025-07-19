@@ -135,8 +135,17 @@
             "activityBeganAt": "Activity began at {{startAt}}",
             "checkedIn": "You have checked in this activity",
             "activityEndedAt": "Activity ended",
-            "evaluated": "You have completed the evaluation for this activity"
-        }
+            "evaluated": "You have completed the evaluation for this activity",
+            "assessmentCheckinDescription": "Scan the QR code at the event location or visit the designated check-in point to confirm your attendance.",
+            "assessmentCompletedDescription": "Congratulations! You've completed the activity. Please take a moment to share your feedback through the assessment.",
+            "assessmentPrompt": "Help us improve by sharing your experience and feedback about this activity.",
+            "assessmentEncouragement": "💭 Your feedback is valuable and helps us create better experiences for everyone.",
+            "assessmentButton": "Complete Assessment"
+        },
+        "noActivityData": "No activity data found.",
+        "getDirection": "Get Direction",
+        "openQrScanner": "Open QR Scanner",
+        "successfullyCheckedIn": "Successfully Checked In"
     },
     "evoucher": {
         "title": "E-Voucher",
