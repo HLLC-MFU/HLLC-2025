@@ -2,7 +2,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ChatRoom } from '@/types/chat';
 import chatService from '@/services/chats/chatService';
-import { getToken } from '@/utils/storage';
 import { useProfile } from '@/hooks/useProfile';
 
 export const useChatRooms = () => {

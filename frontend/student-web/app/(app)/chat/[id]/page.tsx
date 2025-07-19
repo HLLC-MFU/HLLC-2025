@@ -26,7 +26,7 @@ export default function ChatRoomPage() {
   const { user } = useProfile();
 
   const getRoomName = (room: any) => {
-    if (!room?.name.end) return t('chat.chatRoom');
+    if (!room?.name) return t('chat.chatRoom');
     const currentLang = i18n.language;
     if (currentLang === 'th' && room.name.th) {
       return room.name.th;
@@ -182,11 +182,11 @@ export default function ChatRoomPage() {
             onClick={() => setIsRoomInfoVisible(true)}
           >
             <span className="text-lg font-semibold text-gray-900 truncate block drop-shadow">
-              {getRoomName(room)}
+              {room ? getRoomName(room) : t('chat.chatRoom')}
             </span>
             <div className="flex items-center gap-2 mt-1">
               <Users size={14} color="#0A84FF" />
-              <span className="text-xs text-blue-500">{room?.members_count} {t('chat.members')}</span>
+              <span className="text-xs text-blue-500">{room?.members_count || 0} {t('chat.members')}</span>
             </div>
           </div>
           <button

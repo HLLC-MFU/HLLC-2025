@@ -5,24 +5,36 @@ interface CategoryFilterProps {
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
 }
+
 export default function CategoryFilter({
   selectedCategory,
   onCategoryChange,
 }: CategoryFilterProps) {
   return (
-    <div className="mb-5 overflow-x-auto px-0">
-      <div className="flex flex-row gap-2 px-0 py-2 bg-white/30 backdrop-blur-lg backdrop-saturate-150 ring-1 ring-white/40 border border-white/30 shadow-xl rounded-2xl transition-all">
+    <div className="mb-6 overflow-x-auto px-4">
+      <div className="flex flex-row gap-3 py-4 bg-white/8 backdrop-blur-xl border border-white/40 shadow-2xl rounded-2xl transition-all duration-500 hover:bg-white/12 group">
         {Categories.map(({ name, color }) => (
           <button
             key={name}
-            className={`rounded-full px-4 py-2 transition-colors duration-200 border border-white/30 shadow-sm text-white/90 font-semibold ${selectedCategory === name ? '' : 'bg-white/10'} `}
-            style={selectedCategory === name ? { background: `linear-gradient(90deg, ${color}, ${color}dd)` } : {}}
+            className={`rounded-full px-6 py-3 transition-all duration-500 border-2 font-bold text-sm whitespace-nowrap hover:scale-110 active:scale-95 relative overflow-hidden ${
+              selectedCategory === name 
+                ? 'text-white shadow-lg shadow-white/20 border-white/40 bg-white/15' 
+                : 'text-white/70 border-white/20 hover:text-white/95 hover:border-white/40 hover:bg-white/5'
+            }`}
             onClick={() => onCategoryChange(name)}
             type="button"
           >
-            <span className={`text-sm font-semibold`}>{name}</span>
+            <span className="font-bold tracking-wide relative z-10">{name}</span>
+            
+            {/* Subtle shimmer effect for selected items */}
+            {selectedCategory === name && (
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-pulse" />
+            )}
           </button>
         ))}
+        
+        {/* Subtle shimmer effect for the entire container */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/3 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-2000 pointer-events-none rounded-2xl" />
       </div>
     </div>
   );

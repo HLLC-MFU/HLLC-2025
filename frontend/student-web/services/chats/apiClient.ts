@@ -78,6 +78,23 @@ export class ApiClient {
     return response.json();
   }
 
+  // Get current user ID from session/cookie
+  static async getUserId(): Promise<string> {
+    try {
+      // Try to get user info from the API
+      const response = await this.get<any>(`${API_BASE_URL}/auth/me`);
+      return response.user?._id || response.user?.id || response._id || response.id;
+    } catch (error) {
+      console.error('Error getting user ID:', error);
+      // Fallback: try to get from localStorage or sessionStorage
+      const storedUserId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+      if (storedUserId) {
+        return storedUserId;
+      }
+      throw new Error('User ID not found');
+    }
+  }
+
   // Room-specific endpoints
   static getRoomsEndpoint(): string {
     return `${API_BASE_URL}/rooms`;

@@ -100,6 +100,12 @@ function onMessage(event: MessageEvent, args: any) {
             msg = data.payload.message;
             extra.filename = data.payload.filename;
             break;
+          case 'evoucher':
+            // Handle evoucher messages - pass the entire payload structure
+            msg = data.payload;
+            extra.type = 'evoucher';
+            extra.payload = data.payload; // Include the full payload
+            break;
           default:
             msg = data.payload.message;
         }
@@ -122,13 +128,26 @@ function onMessage(event: MessageEvent, args: any) {
           if (extra.stickerId) msg.stickerId = extra.stickerId;
           if (extra.image) msg.image = extra.image;
         }
-        const newMessage = require('@/hooks/chats/messageUtils').createMessage({
+        const messageData = {
           ...msg,
           user,
           user_id: user._id,
           username: user.username,
           ...extra,
-        }, true);
+        };
+        
+        // Debug logging for evoucher messages
+        if (data.type === 'evoucher') {
+          debugLog(`[onMessage] 🎟️ Processing evoucher message data:`, {
+            type: data.type,
+            hasPayload: !!data.payload,
+            hasEvoucherInfo: !!data.payload?.evoucherInfo,
+            messageDataKeys: Object.keys(messageData),
+            payloadKeys: data.payload ? Object.keys(data.payload) : []
+          });
+        }
+        
+        const newMessage = require('@/hooks/chats/messageUtils').createMessage(messageData, true);
         debugLog(`[onMessage] Adding ${data.type} message:`, newMessage);
         if (newMessage) addMessage(newMessage);
       }
@@ -198,6 +217,18 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     }
     
     debugLog('[addMessage] called with:', message);
+    
+    // Debug logging for evoucher messages
+    if (message.type === 'evoucher') {
+      debugLog('[addMessage] 🎟️ Adding evoucher message:', {
+        messageId: message.id,
+        hasEvoucherInfo: !!message.evoucherInfo,
+        hasPayload: !!message.payload,
+        hasPayloadEvoucherInfo: !!(message.payload && message.payload.evoucherInfo),
+        evoucherInfoKeys: message.evoucherInfo ? Object.keys(message.evoucherInfo) : [],
+        payloadKeys: message.payload ? Object.keys(message.payload) : []
+      });
+    }
     
     setState(prev => {
       const messageId = message.id || '';

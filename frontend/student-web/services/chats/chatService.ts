@@ -66,9 +66,15 @@ class ChatService {
         return cached;
       }
 
-      const response = await ApiClient.get<any>(ApiClient.getRoomEndpoint(roomId));
+      // Use the correct chat API endpoint that returns full room data
+      const response = await ApiClient.get<any>(ApiClient.getChatRoomEndpoint(roomId));
+      console.log('[DEBUG] getRoom API response:', response);
+      
       const room = response.data ? response.data : response;
+      console.log('[DEBUG] getRoom mapped room data:', room);
+      
       const mappedRoom = RoomMapper.mapRoomData(room);
+      console.log('[DEBUG] getRoom final mapped room:', mappedRoom);
 
       // Update cache
       CacheManager.setRoom(roomId, mappedRoom);

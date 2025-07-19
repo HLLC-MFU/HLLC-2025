@@ -16,9 +16,6 @@ const MessageBubble = memo(({
   message, 
   isMyMessage, 
   isRead,
-  showAvatar = true,
-  isLastInGroup = true,
-  isFirstInGroup = true,
   onReply,
   allMessages = [],
   onReplyPreviewClick,
@@ -30,9 +27,11 @@ const MessageBubble = memo(({
   const [previewImageUrl, setPreviewImageUrl] = useState('');
   const [claimed, setClaimed] = useState<{ [id: string]: boolean }>({});
   const [claiming, setClaiming] = useState<{ [id: string]: boolean }>({});
-  const [isHovered, setIsHovered] = useState(false);
   const [showUnsendButton, setShowUnsendButton] = useState(false);
-
+  const [showClaimDialog, setShowClaimDialog] = useState(false);
+  const [claimDialogMessage, setClaimDialogMessage] = useState('');
+  const [claimDialogType, setClaimDialogType] = useState<'success' | 'error' | 'info'>('info');
+  
   const handleCloseImagePreview = useCallback(() => {
     setShowImagePreview(false);
     setTimeout(() => setPreviewImageUrl(''), 100);
@@ -41,6 +40,14 @@ const MessageBubble = memo(({
   const handleOpenImagePreview = useCallback((imageUrl: string) => {
     setPreviewImageUrl(imageUrl);
     setShowImagePreview(true);
+  }, []);
+
+  const showDialog = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setClaimDialogMessage(message);
+    setClaimDialogType(type);
+    setShowClaimDialog(true);
+    // Auto hide after 3 seconds
+    setTimeout(() => setShowClaimDialog(false), 3000);
   }, []);
 
   useEffect(() => {
@@ -71,28 +78,6 @@ const MessageBubble = memo(({
   const handleMouseLeave = useCallback(() => {
     setShowUnsendButton(false);
   }, []);
-
-  const statusElement = useMemo(() => isMyMessage && (
-    <div className="flex items-center ml-2 text-xs text-gray-500 dark:text-gray-400">
-      {isRead ? (
-        <>
-          <svg className="w-3 h-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
-          อ่านแล้ว
-        </>
-      ) : (
-        <>
-          <svg className="w-3 h-3 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
-          ส่งแล้ว
-        </>
-      )}
-    </div>
-  ), [isMyMessage, isRead]);
-
-  const lang = 'th';
 
   const getStickerImageUrl = useCallback((imagePath: string) => {
     if (imagePath.startsWith('http')) return imagePath;
@@ -139,52 +124,142 @@ const MessageBubble = memo(({
 
   // In renderContent, always show sticker image for sticker messages
   const renderContent = useCallback(() => {
-    if (message.type === 'evoucher' && message.evoucherInfo) {
-      const isClaimed = claimed[message.id ?? ''] || false;
-      const isClaiming = claiming[message.id ?? ''] || false;
-      const displayLang = 'th';
-      return (
-        <div className={`rounded-xl border-2 p-4 my-2 min-w-[240px] max-w-[300px] transition-all duration-300 ${
-          isClaimed 
-            ? 'border-green-400/80 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30' 
-            : 'border-yellow-400/80 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20'
-        } shadow-md hover:shadow-lg hover:-translate-y-0.5`}>
-          <div className="flex items-center mb-3">
-            <span className="text-2xl mr-3 transform hover:scale-110 transition-transform duration-200">
-              {isClaimed ? '🎉' : '🎟️'}
-            </span>
-            <span className={`font-bold text-sm ${
-              isClaimed 
-                ? 'text-green-600 dark:text-green-400' 
-                : 'text-yellow-700 dark:text-yellow-400'
-            }`}>
-              {message.evoucherInfo.message?.[displayLang] || ''}
-            </span>
-          </div>
-          {isClaimed ? (
-            <div className="mt-3 p-3 bg-green-100/70 dark:bg-green-900/40 rounded-lg text-green-700 dark:text-green-300 font-semibold text-center text-sm border border-green-200/50 dark:border-green-800/50">
-              คุณได้รับ E-Voucher แล้ว!
+    if (message.type === 'evoucher') {
+      // Debug logging for evoucher message processing
+      console.log('[DEBUG][MessageBubble] 🔄 Processing evoucher message:', {
+        messageId: message.id,
+        messageType: message.type,
+        hasPayload: !!message.payload,
+        hasEvoucherInfo: !!message.evoucherInfo,
+        messageKeys: Object.keys(message),
+        payloadKeys: message.payload ? Object.keys(message.payload) : []
+      });
+
+      // Get evoucherInfo from multiple possible sources
+      const evoucherInfo = message.evoucherInfo || (message.payload && message.payload.evoucherInfo) || {};
+      
+      console.log('[DEBUG][MessageBubble] ✅ Selected evoucher info:', {
+        source: message.evoucherInfo ? 'direct' : (message.payload && message.payload.evoucherInfo ? 'payload' : 'none'),
+        hasClaimUrl: !!(evoucherInfo as any).claimUrl,
+        hasMessage: !!(evoucherInfo as any).message,
+        hasSponsorImage: !!(evoucherInfo as any).sponsorImage,
+        keys: Object.keys(evoucherInfo)
+      });
+
+            if (evoucherInfo && Object.keys(evoucherInfo).length > 0) {
+        const isClaimed = claimed[message.id ?? ''] || false;
+        const isClaiming = claiming[message.id ?? ''] || false;
+        const displayLang = 'th';
+        
+        const handleClaim = async () => {
+          if (isClaimed || isClaiming) {
+            return;
+          }
+          
+          setClaiming(prev => ({ ...prev, [message.id ?? '']: true }));
+          
+          try {
+            const response = await fetch((evoucherInfo as any).claimUrl, {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                messageId: message.id,
+                evoucherId: (evoucherInfo as any).evoucherId || null,
+                timestamp: new Date().toISOString()
+              })
+            });
+            
+            if (response.ok) {
+              setClaimed(prev => ({ ...prev, [message.id ?? '']: true }));
+              showDialog('🎉 คุณได้รับ E-Voucher แล้ว!', 'success');
+            } else {
+              const errorData = await response.json().catch(() => ({}));
+              const errorMessage = errorData.message || 'ไม่สามารถรับ E-Voucher ได้';
+              showDialog(`❌ ${errorMessage}`, 'error');
+            }
+          } catch (error) {
+            console.error('❌ Error claiming E-Voucher:', error);
+            showDialog('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', 'error');
+          } finally {
+            setClaiming(prev => ({ ...prev, [message.id ?? '']: false }));
+          }
+        };
+        
+                return (
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl border-2 border-amber-300/50 shadow-lg w-full max-w-sm sm:max-w-md">
+            <div className="p-4 sm:p-6">
+              {/* Sponsor Image - Similar to Expo */}
+              {(evoucherInfo as any).sponsorImage && (
+                <div className="mb-4 flex justify-center">
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                    <img
+                      src={(evoucherInfo as any).sponsorImage.startsWith('http') 
+                        ? (evoucherInfo as any).sponsorImage 
+                        : `${IMAGE_BASE_URL}/uploads/${(evoucherInfo as any).sponsorImage}`
+                      }
+                      alt="Sponsor"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Header - Similar to Expo */}
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl">{isClaimed ? '🎉' : '🎟️'}</span>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-amber-800 dark:text-amber-200">
+                    {(evoucherInfo as any).message?.[displayLang] || 'E-Voucher'}
+                  </h3>
+                  <p className="text-sm text-amber-600 dark:text-amber-300">
+                    จากผู้สนับสนุน
+                  </p>
+                </div>
+              </div>
+              
+              {/* Action Button - Similar to Expo */}
+              {!isClaimed && (
+                <button
+                  onClick={handleClaim}
+                  disabled={isClaiming || !(evoucherInfo as any).claimUrl}
+                  className={`w-full py-3 rounded-xl font-bold transition-all duration-300 ${
+                    isClaiming
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-amber-400 text-amber-900 hover:bg-amber-500 shadow-lg hover:shadow-xl'
+                  }`}
+                >
+                  {isClaiming ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-amber-900 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-sm sm:text-base">กำลังเคลม...</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm sm:text-base">กดเพื่อรับ E-Voucher</span>
+                  )}
+                </button>
+              )}
+              
+              {/* Success Message - Similar to Expo */}
+              {isClaimed && (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
+                  <p className="text-green-600 dark:text-green-400 font-bold text-base">
+                    คุณได้รับ E-Voucher แล้ว!
+                  </p>
+                </div>
+              )}
             </div>
-          ) : (
-            <button
-              className="mt-3 w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 font-semibold rounded-lg px-4 py-2.5 hover:from-yellow-300 hover:to-yellow-400 transition-all duration-200 shadow-sm hover:shadow-md text-sm transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed"
-              disabled={isClaimed || isClaiming}
-              onClick={() => setClaimed(prev => ({ ...prev, [message.id ?? '']: true }))}
-            >
-              {isClaiming ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-yellow-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  กำลังดำเนินการ...
-                </span>
-              ) : 'กดเพื่อรับ E-Voucher'}
-            </button>
-          )}
-        </div>
-      );
+          </div>
+        );
+      }
     }
+        
     
     // Sticker message: always show sticker image
     if (message.type === 'sticker' || message.stickerId) {
@@ -240,7 +315,7 @@ const MessageBubble = memo(({
         {renderWithMentions(message.text || '', currentUsername)}
       </div>
     );
-  }, [message, claimed, claiming, handleOpenImagePreview, handleUnsend, stickerImageUrl, getMessageTextStyle, renderWithMentions, currentUsername, stickers, getStickerImageUrl]);
+  }, [message, claimed, claiming, handleOpenImagePreview, handleUnsend, stickerImageUrl, getMessageTextStyle, renderWithMentions, currentUsername, stickers, getStickerImageUrl, showDialog]);
 
   const enrichedReplyTo = useMemo(() => {
     const replyTo = message.replyTo || undefined;
@@ -432,12 +507,63 @@ const MessageBubble = memo(({
           <span className="text-xs font-medium text-gray-600 mt-1 ml-2">{formatTime(message.timestamp)}</span>
         </div>
       </div>
+      
+      
       <ImagePreviewModal
         key={previewImageUrl}
         visible={showImagePreview}
         imageUrl={previewImageUrl}
         onClose={handleCloseImagePreview}
       />
+
+      {/* Claim Dialog */}
+      {showClaimDialog && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
+          <div className={`max-w-sm w-full mx-4 p-6 rounded-2xl shadow-2xl transform transition-all duration-300 ${
+            claimDialogType === 'success' 
+              ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200' 
+              : claimDialogType === 'error'
+              ? 'bg-gradient-to-br from-red-50 to-pink-50 border-2 border-red-200'
+              : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200'
+          }`}>
+            <div className="text-center">
+              <div className={`text-4xl mb-4 ${
+                claimDialogType === 'success' ? 'animate-bounce' : ''
+              }`}>
+                {claimDialogType === 'success' ? '🎉' : claimDialogType === 'error' ? '❌' : 'ℹ️'}
+              </div>
+              <h3 className={`text-lg font-bold mb-2 ${
+                claimDialogType === 'success' ? 'text-green-800' 
+                : claimDialogType === 'error' ? 'text-red-800' 
+                : 'text-blue-800'
+              }`}>
+                {claimDialogType === 'success' ? 'สำเร็จ!' 
+                 : claimDialogType === 'error' ? 'เกิดข้อผิดพลาด' 
+                 : 'แจ้งเตือน'}
+              </h3>
+              <p className={`text-sm leading-relaxed ${
+                claimDialogType === 'success' ? 'text-green-700' 
+                : claimDialogType === 'error' ? 'text-red-700' 
+                : 'text-blue-700'
+              }`}>
+                {claimDialogMessage}
+              </p>
+              <button
+                onClick={() => setShowClaimDialog(false)}
+                className={`mt-4 px-6 py-2 rounded-xl font-medium transition-all duration-200 ${
+                  claimDialogType === 'success'
+                    ? 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-xl'
+                    : claimDialogType === 'error'
+                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl'
+                }`}
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

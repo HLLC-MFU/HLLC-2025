@@ -17,33 +17,51 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
   if (imageUrl && typeof imageUrl === 'string' && !imageUrl.startsWith('http')) {
     imageUrl = `${CHAT_BASE_URL}/uploads/${imageUrl}`;
   }
+  
   return (
     <div
-      className="flex flex-row items-center bg-white/40 backdrop-blur-lg backdrop-saturate-150 ring-1 ring-white/40 border border-white/30 rounded-2xl p-5 mb-3 shadow-xl transition-all"
-      style={{ width: (width - 52) / 2, minHeight: 80 }}
+      className="group flex flex-row items-center bg-white/8 backdrop-blur-xl border border-white/40 rounded-2xl p-5 mb-4 shadow-2xl transition-all duration-500 hover:bg-white/15 hover:shadow-white/20 hover:scale-[1.02] hover:rotate-1 cursor-pointer"
+      style={{ width: '100%', minHeight: 80 }}
       onClick={() => { console.log('RoomListItem pressed', room.id); onPress(); }}
     >
-      <div className="mr-4">
-        <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
+      {/* Enhanced avatar container */}
+      <div className="mr-5 relative">
+        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center overflow-hidden shadow-xl border-2 border-white/30 transition-all duration-500 group-hover:scale-110 group-hover:border-white/50">
           {imageUrl ? (
-            <img src={imageUrl} className="w-12 h-12 rounded-full object-cover" alt="avatar" />
+            <img 
+              src={imageUrl} 
+              className="w-14 h-14 rounded-full object-cover transition-all duration-500 group-hover:scale-125" 
+              alt="avatar" 
+            />
           ) : (
-            <span className="text-indigo-500 text-xl font-bold">{avatarChar}</span>
+            <span className="text-indigo-500 text-2xl font-bold group-hover:scale-110 transition-transform duration-300">{avatarChar}</span>
           )}
         </div>
+        {/* Glow effect */}
+        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/20 to-purple-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
-      <div className="flex-1 space-y-1">
-        <div className="text-base font-bold text-white/90 drop-shadow truncate">
+      
+      {/* Enhanced info container */}
+      <div className="flex-1 space-y-3">
+        <div className="text-lg font-bold text-white/95 drop-shadow-lg truncate leading-tight">
           {language === 'th' ? room.name?.th || 'Unnamed' : room.name?.en || 'Unnamed'}
         </div>
-        <div className="flex flex-row items-center gap-4 mt-0.5">
-          <div className="flex flex-row items-center gap-1">
-            <Users size={13} color="#ffffffb0" />
-            <span className="text-xs text-white/80 ml-1">{room.members_count ?? 0} Members</span>
+        
+        <div className="flex flex-row items-center gap-6">
+          <div className="flex flex-row items-center gap-2 group/item">
+            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center transition-all duration-300 group-hover/item:scale-110 group-hover/item:bg-white/30">
+              <Users size={14} className="text-white/80" />
+            </div>
+            <span className="text-sm text-white/80 font-medium group-hover/item:text-white/95 transition-colors duration-300">
+              {room.members_count ?? 0} Members
+            </span>
           </div>
-          <div className="flex flex-row items-center gap-1">
-            <Clock size={12} color="#ffffffb0" />
-            <span className="text-xs text-white/80 ml-1">
+          
+          <div className="flex flex-row items-center gap-2 group/item">
+            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center transition-all duration-300 group-hover/item:scale-110 group-hover/item:bg-white/30">
+              <Clock size={12} className="text-white/80" />
+            </div>
+            <span className="text-sm text-white/80 font-medium group-hover/item:text-white/95 transition-colors duration-300">
               {room.type === 'readonly'
                 ? (language === 'th' ? 'อ่านอย่างเดียว' : 'Read-only')
                 : room.type === 'normal'
@@ -53,6 +71,9 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
           </div>
         </div>
       </div>
+      
+      {/* Shimmer effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none rounded-2xl" />
     </div>
   );
 };
