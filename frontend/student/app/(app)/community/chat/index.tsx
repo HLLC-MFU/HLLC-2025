@@ -256,7 +256,7 @@ export default function ChatPage() {
           scrollEventThrottle={16}
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <MessageSquare size={48} color="#eeeeeeee" />
+              <MessageSquare size={48} color="#F8F8F8" />
               <Text style={styles.emptyStateText}>
                 {t('chat.noCommunities', language)}
               </Text>
