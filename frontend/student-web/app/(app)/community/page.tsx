@@ -20,6 +20,21 @@ export default function CommunityPage() {
       }}>
         ไปยังหน้า Coin Hunting
       </Link>
+      <Link href="/community/chat"style={{
+        marginTop: '2rem',
+        padding: '0.75rem 2rem',
+        background: '#0070f3',
+        color: '#fff',
+        borderRadius: '8px',
+        fontWeight: 600,
+        fontSize: '1.1rem',
+        textDecoration: 'none',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        transition: 'background 0.2s',
+        display: 'inline-block',
+      }}>
+        ไปยังหน้า Chat
+      </Link>
     </div>
   );
 }

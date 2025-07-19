@@ -4,12 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProfile } from '@/hooks/useProfile';
 import { useChatRooms } from '@/hooks/chats/useChatRooms';
-import CategoryFilter from '@/app/(app)/chat/_components/CategoryFilter';
-import ChatHeader from '@/app/(app)/chat/_components/ChatHeader';
-import { ChatTabBar } from '@/app/(app)/chat/_components/ChatTabBar';
-import RoomCard from '@/app/(app)/chat/_components/RoomCard';
-import RoomListItem from '@/app/(app)/chat/_components/RoomListItem';
-import ConfirmJoinModal from '@/app/(app)/chat/_components/ConfirmJoinModal';
+import CategoryFilter from '@/app/(app)/community/chat/_components/CategoryFilter';
+import ChatHeader from '@/app/(app)/community/chat/_components/ChatHeader';
+import { ChatTabBar } from '@/app/(app)/community/chat/_components/ChatTabBar';
+import RoomCard from '@/app/(app)/community/chat/_components/RoomCard';
+import RoomListItem from '@/app/(app)/community/chat/_components/RoomListItem';
+import ConfirmJoinModal from '@/app/(app)/community/chat/_components/ConfirmJoinModal';
 import chatService from '@/services/chats/chatService';
 
 interface ChatRoomWithId {
@@ -94,7 +94,7 @@ export default function ChatPage() {
       if (response.ok) {
         // Refresh rooms to update member status
         await loadRooms();
-        router.push(`/chat/${roomId}`);
+        router.push(`/community/chat/${roomId}`);
       } else {
         const errorText = await response.text();
         console.error('Join room error:', errorText);
@@ -117,7 +117,7 @@ export default function ChatPage() {
   const navigateToRoom = async (rid: string, isMember: boolean) => {
     try {
       if (isMember) {
-        router.push(`/chat/${rid}`);
+        router.push(`/community/chat/${rid}`);
       } else {
         await joinRoom(rid);
       }

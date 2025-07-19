@@ -6,13 +6,13 @@ import { useTranslation } from 'react-i18next';
 import { useChatRoom } from '@/hooks/chats/useChatRoom';
 import { useProfile } from '@/hooks/useProfile';
 import { ChatRoom } from '@/types/chat';
-import ChatInput from '@/app/(app)/chat/_components/ChatInput';
-import ErrorView from '@/app/(app)/chat/_components/ErrorView';
-import JoinBanner from '@/app/(app)/chat/_components/JoinBanner';
-import MessageList from '@/app/(app)/chat/_components/MessageList';
-import RoomInfoModal from '@/app/(app)/chat/_components/RoomInfoModal';
-import EvoucherModal from '@/app/(app)/chat/_components/EvoucherModal';
-import StickerPicker from '@/app/(app)/chat/_components/StickerPicker';
+import ChatInput from '@/app/(app)/community/chat/_components/ChatInput';
+import ErrorView from '@/app/(app)/community/chat/_components/ErrorView';
+import JoinBanner from '@/app/(app)/community/chat/_components/JoinBanner';
+import MessageList from '@/app/(app)/community/chat/_components/MessageList';
+import RoomInfoModal from '@/app/(app)/community/chat/_components/RoomInfoModal';
+import EvoucherModal from '@/app/(app)/community/chat/_components/EvoucherModal';
+import StickerPicker from '@/app/(app)/community/chat/_components/StickerPicker';
 import { Users, Info, Loader, ChevronLeft } from 'lucide-react';
 
 export default function ChatRoomPage() {
@@ -173,7 +173,7 @@ export default function ChatRoomPage() {
           <div className="flex items-center p-4 border-b border-white/30 bg-white/50">
           <button
             className="mr-4 p-2 rounded hover:bg-white/30"
-            onClick={() => router.replace('/chat')}
+            onClick={() => router.replace('/community/chat')}
           >
             <ChevronLeft color="#0A84FF" size={24} />
           </button>

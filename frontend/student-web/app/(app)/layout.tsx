@@ -136,10 +136,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const shouldBlur = pathname !== '/';
 
   const hideProgressSummary =
-    pathname.match(/^\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (chat/[id])
-
-  // ซ่อน BottomNav เฉพาะหน้าแชทห้อง
-  const hideBottomNav = pathname.match(/^\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (chat/[id])
+    pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
+  const hideBottomNav = pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
 
   return (
     <>
