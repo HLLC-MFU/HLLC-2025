@@ -282,12 +282,7 @@ export class CoinCollectionsService {
     if (collectedCount === 0) return null;
 
     //ใช้โอกาสแจกตรง ๆ เช่น 1 ใน 27
-    // const dropChance = 1 / 6;
-    // if (Math.random() >= dropChance) {
-    //   return null; // ไม่แจกครั้งนี้
-    // }
-
-    const dropChance = 1;
+    const dropChance = 1 / 6;
     if (Math.random() >= dropChance) {
       return null; // ไม่แจกครั้งนี้
     }
@@ -336,7 +331,6 @@ export class CoinCollectionsService {
       { $set: { user: new Types.ObjectId(userId) } },
       { sort: { createdAt: 1 }, new: true },
     );
-    const userObjectId = userId;
 
     if (!code) {
       throw new NotFoundException('No available evoucher codes to claim');
@@ -366,7 +360,7 @@ export class CoinCollectionsService {
         scope: [
           {
             type: 'user',
-            id: [userObjectId.toString()],
+            id: [userId],
           },
         ],
       });
