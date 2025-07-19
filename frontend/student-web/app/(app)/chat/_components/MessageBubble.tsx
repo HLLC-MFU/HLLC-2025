@@ -31,6 +31,7 @@ const MessageBubble = memo(({
   const [claimed, setClaimed] = useState<{ [id: string]: boolean }>({});
   const [claiming, setClaiming] = useState<{ [id: string]: boolean }>({});
   const [isHovered, setIsHovered] = useState(false);
+  const [showUnsendButton, setShowUnsendButton] = useState(false);
 
   const handleCloseImagePreview = useCallback(() => {
     setShowImagePreview(false);
@@ -52,7 +53,7 @@ const MessageBubble = memo(({
     setPreviewImageUrl('');
   }, []);
 
-  const handleLongPress = useCallback(() => {
+  const handleUnsend = useCallback(() => {
     const isDeleted = Boolean((message as any).isDeleted);
     if (isMyMessage && !isDeleted && onUnsend) {
       if (window.confirm('Do you want to unsend this message?')) {
@@ -60,6 +61,16 @@ const MessageBubble = memo(({
       }
     }
   }, [isMyMessage, message, onUnsend]);
+
+  const handleMouseEnter = useCallback(() => {
+    if (isMyMessage) {
+      setShowUnsendButton(true);
+    }
+  }, [isMyMessage]);
+
+  const handleMouseLeave = useCallback(() => {
+    setShowUnsendButton(false);
+  }, []);
 
   const statusElement = useMemo(() => isMyMessage && (
     <div className="flex items-center ml-2 text-xs text-gray-500 dark:text-gray-400">
@@ -181,7 +192,7 @@ const MessageBubble = memo(({
         <button 
           className="bg-transparent p-0 border-0 rounded-xl shadow-lg hover:scale-105 transition-transform duration-200 animate-fadein"
           onClick={() => handleOpenImagePreview(stickerImageUrl)} 
-          onContextMenu={handleLongPress}
+          onContextMenu={handleUnsend}
           style={{ animation: message.isTemp ? 'fadeIn 0.5s' : undefined }}
         >
           <img
@@ -201,7 +212,7 @@ const MessageBubble = memo(({
           <button 
             className="bg-transparent p-0 border-0 rounded-xl hover:scale-[1.02] transition-transform duration-200 shadow-sm hover:shadow-md" 
             onClick={() => handleOpenImagePreview(message.fileUrl || '')} 
-            onContextMenu={handleLongPress}
+            onContextMenu={handleUnsend}
           >
             <img
               src={message.fileUrl || ''}
@@ -213,7 +224,7 @@ const MessageBubble = memo(({
         );
       }
       return (
-        <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200" onContextMenu={handleLongPress}>
+        <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200" onContextMenu={handleUnsend}>
           <div className="flex items-center">
             <svg className="w-5 h-5 mr-2 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -229,7 +240,7 @@ const MessageBubble = memo(({
         {renderWithMentions(message.text || '', currentUsername)}
       </div>
     );
-  }, [message, claimed, claiming, handleOpenImagePreview, handleLongPress, stickerImageUrl, getMessageTextStyle, renderWithMentions, currentUsername, stickers, getStickerImageUrl]);
+  }, [message, claimed, claiming, handleOpenImagePreview, handleUnsend, stickerImageUrl, getMessageTextStyle, renderWithMentions, currentUsername, stickers, getStickerImageUrl]);
 
   const enrichedReplyTo = useMemo(() => {
     const replyTo = message.replyTo || undefined;
@@ -349,7 +360,14 @@ const MessageBubble = memo(({
   }, [enrichedReplyTo, isMyMessage, message.user, getDisplayName, currentUsername, renderWithMentions]);
 
   return (
-    <div className={`w-full flex flex-col ${isMyMessage ? 'items-end ml-12' : 'items-start mr-12'} mb-2`}>
+    <div 
+      className={`w-full flex flex-col ${isMyMessage ? 'items-end ml-12' : 'items-start mr-12'} mb-2 relative group`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Reply Preview - Show above the message bubble */}
+      {renderReplyPreview()}
+      
       <div className={`flex items-end ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
         {/* Avatar */}
         {!isMyMessage && (
@@ -358,17 +376,33 @@ const MessageBubble = memo(({
             size={36}
           />
         )}
-        <div className={`flex flex-col max-w-[80%] ${isMyMessage ? 'items-end' : 'items-start'}`}>
+        <div className={`flex flex-col max-w-[80%] ${isMyMessage ? 'items-end' : 'items-start'} relative`}>
           {/* Username */}
           {!isMyMessage && (
             <span className="text-xs font-semibold text-gray-800 mb-1 ml-1">{message.user?.username}</span>
           )}
+          
+          {/* Unsend Button - Show on hover for my messages */}
+          {isMyMessage && showUnsendButton && (
+            <div className="absolute top-1 -left-8 z-10 flex items-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg border border-gray-200/50 dark:border-gray-600/50 transition-all duration-300 animate-in slide-in-from-left-1">
+              <button
+                onClick={handleUnsend}
+                className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full p-1 transition-all duration-200 group/unsend"
+                title="Unsend message"
+              >
+                <svg className="w-3.5 h-3.5 group-hover/unsend:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          )}
+          
           {/* Sticker rendering (outside bubble) */}
           {((message.type === 'sticker' || message.stickerId) && stickerImageUrl) ? (
             <button 
               className="bg-transparent p-0 border-0 rounded-xl shadow-lg hover:scale-105 transition-transform duration-200 animate-fadein"
               onClick={() => handleOpenImagePreview(stickerImageUrl)} 
-              onContextMenu={handleLongPress}
+              onContextMenu={handleUnsend}
               style={{ animation: message.isTemp ? 'fadeIn 0.5s' : undefined }}
             >
               <img
@@ -390,8 +424,8 @@ const MessageBubble = memo(({
               }
               style={{ wordBreak: 'break-word' }}
             >
-              {/* Render message text with mention highlight */}
-              {renderWithMentions(message.text || '', currentUsername)}
+              {/* Render message content */}
+              {renderContent()}
             </div>
           )}
           {/* Date/time under bubble */}
