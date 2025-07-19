@@ -27,17 +27,42 @@ type (
 
 	// ข้อมูลของ bus
 	Bus struct {
-		brokers   []string // รายชื่อ brokers
-		groupID   string // รหัส group
-		handlers  map[string][]HandlerFunc // จับคู่ topic กับ handler
-		readers   map[string]*kafka.Reader // ใช้ดึง message จาก Kafka
-		writers   map[string]*kafka.Writer // writer สำหรับแต่ละ topic
-		ctx       context.Context
-		cancel    context.CancelFunc
-		wg        sync.WaitGroup
-		mu        sync.RWMutex
+		brokers  []string                 // รายชื่อ brokers
+		groupID  string                   // รหัส group
+		handlers map[string][]HandlerFunc // จับคู่ topic กับ handler
+		readers  map[string]*kafka.Reader // ใช้ดึง message จาก Kafka
+		writers  map[string]*kafka.Writer // writer สำหรับแต่ละ topic
+		ctx      context.Context
+		cancel   context.CancelFunc
+		wg       sync.WaitGroup
+		mu       sync.RWMutex
 	}
 )
+
+func isEmptyKafkaMessage(value []byte) bool {
+	var data map[string]interface{}
+	if err := json.Unmarshal(value, &data); err != nil {
+		return false
+	}
+
+	// ดึง payload.message.message ออกมาตรวจสอบ
+	payload, ok := data["payload"].(map[string]interface{})
+	if !ok {
+		return true // ไม่มี payload ถือว่า empty
+	}
+
+	msgObj, ok := payload["message"].(map[string]interface{})
+	if !ok {
+		return true // ไม่มี message ใน payload ถือว่า empty
+	}
+
+	// ตรวจสอบ field message ใน payload.message
+	if msg, ok := msgObj["message"].(string); ok && msg != "" {
+		return false // มีข้อความ ไม่ empty
+	}
+
+	return true // ข้อความว่างหรือไม่มี
+}
 
 // สร้าง bus
 func New(brokers []string, groupID string) *Bus {
@@ -57,7 +82,7 @@ func New(brokers []string, groupID string) *Bus {
 // สร้าง topic
 func (b *Bus) CreateTopics(topics []string) error {
 	log.Printf("[Kafka] Creating topics: %v", topics)
- 
+
 	// สร้าง connection ไปยัง broker
 	conn, err := kafka.Dial("tcp", b.brokers[0])
 	if err != nil {
@@ -76,7 +101,7 @@ func (b *Bus) CreateTopics(topics []string) error {
 	// สร้าง connection ไปยัง controller (with proper port)
 	controllerAddr := fmt.Sprintf("%s:%d", controller.Host, controller.Port)
 	log.Printf("[Kafka] Connecting to controller at %s", controllerAddr)
-	
+
 	controllerConn, err := kafka.Dial("tcp", controllerAddr)
 	if err != nil {
 		log.Printf("[Kafka] Failed to connect to controller %s: %v", controllerAddr, err)
@@ -159,14 +184,15 @@ func (b *Bus) getWriter(topic string) (*kafka.Writer, error) {
 
 // Emit ส่ง message ไปยัง topic
 func (b *Bus) Emit(ctx context.Context, topic, key string, payload any) error {
-	writer, err := b.getWriter(topic)
-	if err != nil {
-		return fmt.Errorf("failed to get writer for topic %s: %v", topic, err)
-	}
-
+	// แปลง payload เป็น JSON ก่อนเพื่อตรวจสอบ empty
 	value, err := json.Marshal(payload)
 	if err != nil {
 		return err
+	}
+
+	writer, err := b.getWriter(topic)
+	if err != nil {
+		return fmt.Errorf("failed to get writer for topic %s: %v", topic, err)
 	}
 
 	return writer.WriteMessages(ctx, kafka.Message{
@@ -177,7 +203,7 @@ func (b *Bus) Emit(ctx context.Context, topic, key string, payload any) error {
 
 // เริ่มต้นการทำงาน
 func (b *Bus) Start() error {
-	
+
 	// ล็อกการเข้าถึง handlers
 	b.mu.RLock()
 	defer b.mu.RUnlock()
@@ -254,6 +280,12 @@ func (b *Bus) consume(topic string, reader *kafka.Reader) {
 				Timestamp: msg.Time,
 			}
 
+			if isEmptyKafkaMessage(wrapped.Value) {
+				log.Printf("[Kafka] Skipping empty message at offset=%d topic=%s", msg.Offset, msg.Topic)
+				// ข้ามไม่เรียก handler
+				continue
+			}
+
 			// จับคู่ topic กับ handler
 			for _, h := range b.handlers[topic] {
 				go func(handler HandlerFunc) {
@@ -262,14 +294,14 @@ func (b *Bus) consume(topic string, reader *kafka.Reader) {
 							log.Printf("[Kafka] Handler panic recovered: %v", r)
 						}
 					}()
-			
+
 					// เรียกใช้งาน handler
 					if err := handler(context.Background(), wrapped); err != nil {
 						log.Printf("[Kafka] Handler error (will not commit): %v", err)
 						// Optional: retry / push to DLQ
 						return
 					}
-			
+
 					// ✅ Commit เมื่อ handler สำเร็จ
 					if err := reader.CommitMessages(context.Background(), msg); err != nil {
 						log.Printf("[Kafka] Commit failed: %v", err)
@@ -277,7 +309,7 @@ func (b *Bus) consume(topic string, reader *kafka.Reader) {
 						log.Printf("[Kafka] ✅ Message committed: offset=%d topic=%s", msg.Offset, msg.Topic)
 					}
 				}(h)
-			}			
+			}
 		}
 	}
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Button,
     Card,
@@ -18,14 +18,11 @@ import TutorialModal from './_components/TutorialModal';
 import SelectPhotoModal from './_components/SelectPhotoModal';
 import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import { useProfile } from '@/hooks/useProfile';
+import { StatusModal } from './_components/StatusModal';
 
 export default function LamduanOrigamiPage() {
     const { user, fetchUser } = useProfile();
 
-    useEffect(() => {
-      fetchUser()
-    }, [fetchUser])
-    
     const {
         flowers,
         lamduanSetting,
@@ -40,8 +37,34 @@ export default function LamduanOrigamiPage() {
     const [selectPhotoOpen, setSelectPhotoOpen] = useState(false);
     const [hasSubmitted, setHasSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [activityStatus, setActivityStatus] = useState<'not-started' | 'ended' | 'active'>('active');
+    const [statusModalVisible, setStatusModalVisible] = useState(true);
 
     const originalRef = useRef<any>(null);
+
+    useEffect(() => {
+        fetchUser();
+    }, [fetchUser]);
+
+    useEffect(() => {
+        if (!lamduanSetting.length) return;
+
+        const { startAt, endAt } = lamduanSetting[0];
+        const now = new Date();
+        const start = new Date(startAt);
+        const end = new Date(endAt);
+
+        if (now < start) {
+            setActivityStatus('not-started');
+            setStatusModalVisible(true);
+        } else if (now > end) {
+            setActivityStatus('ended');
+            setStatusModalVisible(true);
+        } else {
+            setActivityStatus('active');
+            setStatusModalVisible(false);
+        }
+    }, [lamduanSetting]);
 
     useEffect(() => {
         if (!user?._id || !flowers.length) return;
@@ -54,6 +77,16 @@ export default function LamduanOrigamiPage() {
             setHasSubmitted(true);
         }
     }, [flowers, user]);
+
+    const isChanged = useMemo(() => {
+        if (!hasSubmitted || !originalRef.current) return true;
+
+        const origin = originalRef.current;
+        const isCommentChanged = comment.trim() !== (origin.comment || '').trim();
+        const isImageChanged = image && !imagePreview?.includes(origin.photo);
+
+        return isCommentChanged || isImageChanged;
+    }, [comment, image, imagePreview, hasSubmitted]);
 
     const handleSubmit = async () => {
         if (!user?._id || !lamduanSetting?.[0]?._id) 
@@ -75,7 +108,7 @@ export default function LamduanOrigamiPage() {
                 if (res?.data?._id) {
                     originalRef.current = res.data;
                     setHasSubmitted(true);
-                    addToast({ title: 'Created successfully', color: 'success' });
+                    addToast({ title: 'Submit Lamduan successfully', color: 'success' });
                 }
             } else {
                 await updateLamduanFlowers(originalRef.current._id, formData);
@@ -96,10 +129,9 @@ export default function LamduanOrigamiPage() {
             <div className="grid grid-row-2 gap-4">
                 <Card className="bg-black/40 border border-white/20 backdrop-blur-lg rounded-2xl shadow-xl">
                     <CardBody className="space-y-4">
-                        <h1 className="text-xl font-semibold text-white">Lamduan Origami</h1>
+                        <h1 className="text-xl font-semibold text-white">Lamduan Flower</h1>
                         <p className="text-white/80 text-sm">
-                            Enhance your knowledge of the university through the origami Lamduan flower. 
-                            Additionally, immerse yourself in instructional origami videos that showcase the important information about the university.
+                             {lamduanSetting[0]?.description?.en || 'Loading...'}
                         </p>
                         <MediaCard />
                     </CardBody>
@@ -108,20 +140,32 @@ export default function LamduanOrigamiPage() {
                 <Card className="bg-black/40 border border-white/20 backdrop-blur-lg rounded-2xl shadow-xl">
                     <CardBody className="space-y-4">
                         <h2 className="text-lg font-semibold text-white">Upload Lamduan</h2>
-                        <div>
+                        <div className='flex items-center justify-center'>
                             {imagePreview ? (
                                 <Image
                                     src={imagePreview}
                                     alt="preview"
-                                    width={800}
-                                    height={450}
+                                    width="full"
+                                    height="full"
                                     className="w-full rounded-xl object-contain max-h-[300px] cursor-pointer"
-                                    onClick={() => setSelectPhotoOpen(true)}
+                                    onClick={() => {
+                                        if (activityStatus !== 'active') {
+                                            setStatusModalVisible(true);
+                                        } else {
+                                            setSelectPhotoOpen(true);
+                                        }
+                                    }}
                                 />
                             ) : (
                                 <div
-                                    className="bg-white/5 border border-white/20 rounded-xl h-40 flex items-center justify-center text-white cursor-pointer"
-                                    onClick={() => setSelectPhotoOpen(true)}
+                                    className="w-full bg-white/5 border border-white/20 rounded-xl h-40 flex items-center justify-center text-white cursor-pointer"
+                                    onClick={() => {
+                                        if (activityStatus !== 'active') {
+                                            setStatusModalVisible(true);
+                                        } else {
+                                            setSelectPhotoOpen(true);
+                                        }
+                                    }}
                                 >
                                     Upload Picture
                                 </div>
@@ -134,6 +178,7 @@ export default function LamduanOrigamiPage() {
                             className="text-white"
                             value={comment}
                             onChange={(e) => setComment(e.target.value.slice(0, 144))}
+                            isDisabled={activityStatus !== 'active'}
                         />
 
                         <div className="flex justify-between items-center">
@@ -141,7 +186,7 @@ export default function LamduanOrigamiPage() {
                             <Button
                                 color="primary"
                                 onPress={() => setConfirmOpen(true)}
-                                isDisabled={!comment || (!image && !imagePreview) || loading}
+                                isDisabled={ loading || (!comment && !image && !imagePreview) || (hasSubmitted && !isChanged) || activityStatus !== 'active'}
                             >
                                 {loading ? <Spinner size="sm" /> : hasSubmitted ? 'Save' : 'Submit'}
                             </Button>
@@ -173,6 +218,12 @@ export default function LamduanOrigamiPage() {
                     isOpen={false}
                     onClose={() => { }}
                     photoUrl={null}
+                />
+
+                <StatusModal
+                    isVisible={statusModalVisible}
+                    onClose={() => setStatusModalVisible(false)}
+                    status={activityStatus}
                 />
             </div>
         </ScrollShadow>

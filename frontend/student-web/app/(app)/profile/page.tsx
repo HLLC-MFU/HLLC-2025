@@ -1,51 +1,128 @@
 'use client';
 
+import { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three';
-
 import ProfileCard from './_components/ProfileCard';
 import { Scene } from './_components/Scene';
 import { SceneLights } from './_components/SceneLights';
 import { useProfile } from '@/hooks/useProfile';
-import { useEffect } from 'react';
+import { Button } from '@heroui/react';
+import { Eye, EyeOff, Settings, TriangleAlert } from 'lucide-react';
+import { ReportModal } from '../report/page';
+import { useAppearances } from '@/hooks/useAppearances';
+import Image from 'next/image';
 
 export default function ProfilePage() {
-  const { user, loading, error, fetchUser, schoolAcronym } = useProfile();
+  const { schoolAcronym } = useProfile();
+  const { assets } = useAppearances();
 
-  useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
-
-  // if (loading) return <div>Loading...</div>;
-  // if (error) return <div>{error}</div>;
-  // if (!user) return <div>No user</div>;
+  const [isVisible, setIsVisible] = useState<boolean>(true);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   return (
-    <div className="fixed inset-0">
+    <div className="flex flex-col justify-between fixed inset-0 pt-6 pb-16 px-4 z-50">
+      <div className="flex flex-col self-end gap-2 z-50">
+        <Button
+          className="bg-black/10 border rounded-full"
+          size="lg"
+          isIconOnly
+          onPress={() => setIsVisible(prev => !prev)}
+        >
+          {isVisible ? (
+            (assets && assets.visible) ? (
+              <Image
+                alt="Visible"
+                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.visible}`}
+                width={20}
+                height={20}
+              />
+            ) : (
+              <Eye color="white" />
+            )
+          ) : (
+            (assets && assets.invisible) ? (
+              <Image
+                alt="Invisible"
+                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.invisible}`}
+                width={20}
+                height={20}
+              />
+            ) : (
+              <EyeOff color="white" />
+            )
+          )}
+        </Button>
+        <Button
+          className="bg-black/10 border rounded-full"
+          size="lg"
+          isIconOnly
+          onPress={() => { }}
+        >
+          {(assets && assets.settings) ? (
+            <Image
+              alt="Settings"
+              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.settings}`}
+              width={20}
+              height={20}
+            />
+          ) : (
+            <Settings color="white" />
+          )}
+        </Button>
+        <Button
+          className="bg-black/10 border rounded-full"
+          size="lg"
+          isIconOnly
+          onPress={() => setIsReportOpen(true)}
+        >
+          {(assets && assets.settings) ? (
+            <Image
+              alt="Report"
+              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.report}`}
+              width={20}
+              height={20}
+            />
+          ) : (
+            <TriangleAlert color="white" />
+          )}
+        </Button>
+      </div>
+
       <Canvas
         camera={{ position: [0, 0, 10], fov: 30 }}
         style={{
-          width: '100%',
-          height: 300,
-          position: 'absolute',
-          top: 80,
+          width: "100%",
+          height: "100%",
+          top: 0,
           left: 0,
           zIndex: 1,
-          pointerEvents: 'none',
+          position: "absolute",
         }}
         onCreated={() => {
           THREE.ColorManagement.enabled = true;
         }}
       >
-        {schoolAcronym ? <SceneLights /> : ''}
-        <Scene schoolAcronym={schoolAcronym}/>
+        {schoolAcronym ? <SceneLights /> : <ambientLight intensity={0.05} />}
+        <Scene schoolAcronym={schoolAcronym} />
+        <OrbitControls
+          minDistance={10}
+          maxDistance={15}
+          minPolarAngle={Math.PI / 2.25}
+          maxPolarAngle={Math.PI / 1.75}
+        />
       </Canvas>
 
-      <div className="absolute inset-0 z-10 overflow-y-auto">
-        <div className="pt-[380px] px-4 pb-10 w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto">
+      {isVisible &&
+        <div className="px-4 pb-10 w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto z-10">
           <ProfileCard />
         </div>
-      </div>
+      }
+      <ReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+      />
     </div>
   );
 }

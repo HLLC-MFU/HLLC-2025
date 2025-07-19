@@ -24,7 +24,7 @@ export default function EvoucherPage() {
   };
 
     if (loading) return (
-        <div className="flex flex-col gap-6 px-6">
+        <div className="flex flex-col gap-6">
             <Input
                 aria-label="Search"
                 classNames={{
@@ -48,7 +48,7 @@ export default function EvoucherPage() {
     )
 
     return (
-        <div className="flex flex-col h-full gap-6 px-6">
+        <div className="flex flex-col h-full gap-6">
             {/* Search Bar */}
             <Input
                 aria-label="Search"
@@ -70,8 +70,8 @@ export default function EvoucherPage() {
             />
 
             {/* Sponsors Group */}
-            <ScrollShadow className="h-[90%] overflow-y-auto" size={40} hideScrollBar>
-                <div className="grid grid-cols-2 gap-8">
+            <ScrollShadow className="h-[90%] overflow-y-auto pb-10" size={40} hideScrollBar>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
                     {filteredSponsors.map((sponsor, index) => {
                         if (sponsor?.logo?.logoPhoto) {
                             return (
@@ -79,7 +79,7 @@ export default function EvoucherPage() {
                                     key={index}
                                     alt={sponsor.name?.en ?? ""}
                                     src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.logo.logoPhoto}`}
-                                    className="border-2 border-[#b1b1b1ff] rounded-3xl active:brightness-50"
+                                    className="aspect-square object-contain bg-white/40 border-2 border-[#b1b1b1ff] rounded-3xl active:brightness-50"
                                     onClick={() => handleSponsorCardClick(sponsor._id)}
                                 />
                             )
@@ -87,7 +87,7 @@ export default function EvoucherPage() {
                             return (
                                 <div
                                     key={index}
-                                    className="flex aspect-square justify-center items-center rounded-3xl shadow-xl bg-white/40 backdrop-blur-md border border-white active:brightness-50"
+                                    className="flex justify-center items-center aspect-square bg-white/20 rounded-3xl shadow-xl backdrop-blur-md border border-white active:brightness-50"
                                     onClick={() => handleSponsorCardClick(sponsor._id)}
                                 >
                                     <p className="font-semibold">{sponsor?.name?.en ?? ""}</p>

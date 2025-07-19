@@ -40,31 +40,16 @@ export default function RoomAccordion({
     // Filter rooms by type
     const getRoomsForType = (type: string): Room[] => {
         if (!rooms.length) return [];
-        
-        return rooms
-            .filter(roomResponse => {
-                if (type === "school") {
-                    return roomResponse.metadata?.groupType === "school";
-                } else if (type === "major") {
-                    return roomResponse.metadata?.groupType === "major";
-                } else {
-                    return roomResponse.type === type && !roomResponse.metadata?.groupType;
-                }
-            })
-            .map(roomResponse => ({
-                _id: roomResponse._id,
-                name: roomResponse.name,
-                type: roomResponse.type as RoomType,
-                status: roomResponse.status,
-                capacity: roomResponse.capacity,
-                memberCount: roomResponse.memberCount,
-                createdBy: roomResponse.createdBy,
-                image: roomResponse.image || "",
-                createdAt: roomResponse.createdAt || "",
-                updatedAt: roomResponse.updatedAt || "",
-                metadata: roomResponse.metadata || {},
-                schedule: roomResponse.schedule
-            }));
+        return rooms.filter(room => {
+            if (type === "school") {
+                return room.metadata?.groupType === "school";
+            }
+            if (type === "major") {
+                return room.metadata?.groupType === "major";
+            }
+            // เฉพาะ normal/readonly ที่ไม่มี groupType เท่านั้น
+            return room.type === type && !room.metadata?.groupType;
+        });
     };
 
     if (loading) {
@@ -121,6 +106,7 @@ export default function RoomAccordion({
                         }}
                     >
                         <RoomSection
+                            type={type}
                             rooms={rooms}
                             onAdd={() => onAdd(type as RoomType | "school" | "major")}
                             onEdit={onEdit}
@@ -143,12 +129,13 @@ type RoomSectionProps = {
 };
 
 const RoomSection = ({ 
+    type,
     rooms, 
     onAdd, 
     onEdit, 
     onDelete, 
     onToggleStatus
-}: RoomSectionProps) => {
+}: RoomSectionProps & { type: string }) => {
     const [filterValue, setFilterValue] = useState("");
     
     const filteredRooms = useMemo(() => {
@@ -178,9 +165,18 @@ const RoomSection = ({
                 <Button 
                     endContent={<PlusIcon size={20} />} 
                     onPress={onAdd}
-                    className="bg-primary hover:bg-primary/90 text-white font-medium"
+                    className={
+                        type === 'normal' ? "bg-primary hover:bg-primary/90 text-white font-medium" :
+                        type === 'readonly' ? "bg-blue-600 hover:bg-blue-700 text-white font-medium" :
+                        type === 'school' ? "bg-green-600 hover:bg-green-700 text-white font-medium" :
+                        type === 'major' ? "bg-yellow-500 hover:bg-yellow-600 text-white font-medium" :
+                        "bg-primary text-white font-medium"
+                    }
                 >
-                    Add Room
+                    {type === 'normal' && 'Add Normal Room'}
+                    {type === 'readonly' && 'Add Readonly Room'}
+                    {type === 'school' && 'Add School Room'}
+                    {type === 'major' && 'Add Major Room'}
                 </Button>
             </div>
 

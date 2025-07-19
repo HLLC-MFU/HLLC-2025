@@ -31,8 +31,8 @@ export class SseService {
   sendToUser(userId: string, payload: SsePayload): void {
     const res = this.connections.get(userId);
     if (!res) return;
-
     res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    console.log(`Sent SSE to user ${userId}:`, payload);
   }
 
   /**

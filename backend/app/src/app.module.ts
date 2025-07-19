@@ -38,6 +38,7 @@ import { StepAchievementModule } from './module/step-counters/step-achievement.m
 import { EvouchersModule } from './module/evouchers/evouchers.module';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { DevicesModule } from './module/devices/devices.module';
+import { TimeSettingModule } from './module/time-setting/time-setting.module';
 
 @Module({
   imports: [
@@ -96,6 +97,7 @@ import { DevicesModule } from './module/devices/devices.module';
     EvouchersModule,
     SponsorsModule,
     DevicesModule,
+    TimeSettingModule,
   ],
   providers: [
     {

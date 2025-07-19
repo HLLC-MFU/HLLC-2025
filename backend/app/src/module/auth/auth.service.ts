@@ -60,7 +60,7 @@ export class AuthService {
     const isMatch = await bcrypt.compare(pass, userDoc.password);
     if (!isMatch) throw new UnauthorizedException('Invalid password');
 
-    const { ...user } = userDoc;
+    const { password,...user } = userDoc;
     let role: RoleDocument | null = null;
     if (
       user.role &&
@@ -72,7 +72,6 @@ export class AuthService {
         role.permissions = role.permissions.map(decryptItem);
       }
     }
-
     return user;
   }
 
@@ -180,6 +179,9 @@ export class AuthService {
       ...user.metadata,
       secret: await bcrypt.hash(metadata.secret, 10),
     };
+
+    // 🆕 Hash and save refreshToken
+    user.refreshToken = await bcrypt.hash(refreshToken, 10);
 
     await user.save();
 

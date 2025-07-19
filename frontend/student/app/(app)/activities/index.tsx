@@ -23,6 +23,7 @@ import FadeView from "@/components/ui/FadeView"
 import ActivityCard from "./_components/activity-card"
 import { useTranslation } from "react-i18next"
 import { SearchInput } from "@/components/global/SearchInput"
+import { useProgress } from "@/hooks/useProgress"
 
 export default function ActivitiesPage() {
   const router = useRouter()
@@ -32,6 +33,7 @@ export default function ActivitiesPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const { fetchProgress } = useProgress()
 
   // Fetch activities on mount and refresh
   useEffect(() => {
@@ -61,6 +63,7 @@ export default function ActivitiesPage() {
   const onRefresh = () => {
     setRefreshing(true)
     fetchActivities()
+    fetchProgress() // Refresh progress data as well
   }
 
   // Filter activities by search query

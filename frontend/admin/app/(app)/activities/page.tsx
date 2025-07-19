@@ -31,6 +31,7 @@ import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
 import { PageHeader } from '@/components/ui/page-header';
 import { useActivities } from '@/hooks/useActivities';
 import { Activities, ActivityType } from '@/types/activities';
+import { Activity } from '@/types/checkin';
 
 export default function ActivitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,7 +54,7 @@ export default function ActivitiesPage() {
     deleteActivityType,
     loading,
     fetchActivities,
-  } = useActivities();
+  } = useActivities({ autoFetch: true });
 
   const filteredActivities = useMemo(() => {
     if (!activities) return [];
@@ -75,20 +76,21 @@ export default function ActivitiesPage() {
     const groups: Record<string, Activities[]> = {};
 
     filteredActivities.forEach((activity) => {
-      const typeId =
-        typeof activity.type === 'object' && activity.type !== null && '_id' in activity.type
-          ? (activity.type as { _id: string })._id
-          : activity.type || 'other';
+      // activity.type is already a string (type name)
+      const typeName = typeof activity.type === 'string'
+        ? activity.type
+        : typeof activity.type === 'object' && 'name' in activity.type
+          ? activity.type.name
+          : 'Other';
 
-      if (!groups[typeId]) {
-        groups[typeId] = [];
+      if (!groups[typeName]) {
+        groups[typeName] = [];
       }
-      groups[typeId].push(activity);
+      groups[typeName].push(activity);
     });
 
     return groups;
   }, [filteredActivities]);
-
 
 
   const handleAddActivity = (typeId: string) => {
@@ -97,9 +99,9 @@ export default function ActivitiesPage() {
     setIsActivityModalOpen(true);
   };
 
-  const handleEditActivity = (activity: Activities) => {
+  const handleEditActivity = (typeId: string) => {
     setModalMode('edit');
-    setSelectedActivity(activity);
+    setSelectedActivity({ type: typeId } as Activities);
     setIsActivityModalOpen(true);
   };
 
@@ -121,14 +123,20 @@ export default function ActivitiesPage() {
     setConfirmationModalType('delete');
   };
 
-  const handleSubmitActivity = (formData: FormData, mode: 'add' | 'edit') => {
-    if (mode === 'edit' && selectedActivity) {
-      formData.append('type', selectedActivity.type._id || '');
-      updateActivity(selectedActivity._id, formData);
-    } else {
-      createActivity(formData);
+  const handleSubmitActivity = async (formData: FormData, mode: 'add' | 'edit') => {
+    try {
+      if (mode === 'edit' && selectedActivity) {
+        formData.append('type', (selectedActivity.type as ActivityType)._id || '');
+        await updateActivity(selectedActivity._id, formData);
+      } else {
+        await createActivity(formData);
+        console.log('Activity created successfully');
+      }
+    } catch (error) {
+      console.error('Error creating/updating activity:', error);
+    } finally {
+      setIsActivityModalOpen(false);
     }
-    setIsActivityModalOpen(false);
   };
 
   const handleSubmitType = async (typeData: Partial<ActivityType>) => {
@@ -221,7 +229,7 @@ export default function ActivitiesPage() {
               variant="splitted"
             >
               {activityTypes.map((type) => {
-                const typeActivities = groupedActivities[type._id] || [];
+                const typeActivities = groupedActivities[type.name] || [];
 
                 return (
                   <AccordionItem
@@ -308,11 +316,12 @@ export default function ActivitiesPage() {
       </div>
 
       <ActivityModal
-        activity={selectedActivity}
+        activity={selectedActivity as { type: string }}
         isOpen={isActivityModalOpen}
         mode={modalMode}
         onClose={() => setIsActivityModalOpen(false)}
         onSuccess={handleSubmitActivity}
+        typeActivities={selectedType?._id}
       />
 
       <ActivityTypeModal

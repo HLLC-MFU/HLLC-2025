@@ -33,35 +33,35 @@ const (
 
 type (
 	SystemMetrics struct {
-		QueueCapacity    float64 // กำหนดจำนวน queue ต่อหน่วยความจำ
-		ErrorRate        float64 // กำหนดอัตราความผิดพลาด
-		MessageRate      float64 // กำหนดจำนวนข้อความต่อวินาที
-		LastAlertTime    time.Time // กำหนดวันที่ของการแจ้งเตือนล่าสุด
-		AlertCooldown    time.Duration // กำหนดระยะเวลาการแจ้งเตือน
+		QueueCapacity float64       // กำหนดจำนวน queue ต่อหน่วยความจำ
+		ErrorRate     float64       // กำหนดอัตราความผิดพลาด
+		MessageRate   float64       // กำหนดจำนวนข้อความต่อวินาที
+		LastAlertTime time.Time     // กำหนดวันที่ของการแจ้งเตือนล่าสุด
+		AlertCooldown time.Duration // กำหนดระยะเวลาการแจ้งเตือน
 	}
 
 	ChatService struct {
 		*queries.BaseService[model.ChatMessage]
-		cache       *utils.ChatCacheService
-		hub         *utils.Hub
-		fkValidator *service.ForeignKeyValidator
-		collection  *mongo.Collection
-		emitter     *utils.ChatEventEmitter
-		kafkaBus    *kafka.Bus
-		mongo       *mongo.Database
-		redis       *redis.Client
-		Config      *config.Config
+		cache               *utils.ChatCacheService
+		hub                 *utils.Hub
+		fkValidator         *service.ForeignKeyValidator
+		collection          *mongo.Collection
+		emitter             *utils.ChatEventEmitter
+		kafkaBus            *kafka.Bus
+		mongo               *mongo.Database
+		redis               *redis.Client
+		Config              *config.Config
 		notificationService *notificationService.NotificationService
 		historyService      *HistoryService
-		restrictionService   *restrictionService.RestrictionService
-		
+		restrictionService  *restrictionService.RestrictionService
+
 		// **NEW: Async helper for worker pools and error handling**
-		asyncHelper       *utils.AsyncHelper
-		statusCollection  *mongo.Collection
+		asyncHelper      *utils.AsyncHelper
+		statusCollection *mongo.Collection
 		mu               sync.RWMutex
 	}
 )
-	
+
 func NewChatService(
 	db *mongo.Database,
 	redis *redis.Client,
@@ -70,7 +70,7 @@ func NewChatService(
 ) *ChatService {
 	collection := db.Collection("chat-messages")
 	statusCollection := db.Collection("message-status")
-	
+
 	if err := kafkaBus.Start(); err != nil {
 		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)
 	}
@@ -91,25 +91,25 @@ func NewChatService(
 	roleService := userService.NewRoleService(db)
 
 	chatService := &ChatService{
-		BaseService:  queries.NewBaseService[model.ChatMessage](collection),
-		cache:       utils.NewChatCacheService(redis),
-		hub:         hub,
-		fkValidator: service.NewForeignKeyValidator(db),
-		collection:  collection,
-		emitter:     emitter,
-		kafkaBus:    kafkaBus,
-		mongo:       db,
-		redis:       redis,
-		Config:      cfg,
+		BaseService:         queries.NewBaseService[model.ChatMessage](collection),
+		cache:               utils.NewChatCacheService(redis),
+		hub:                 hub,
+		fkValidator:         service.NewForeignKeyValidator(db),
+		collection:          collection,
+		emitter:             emitter,
+		kafkaBus:            kafkaBus,
+		mongo:               db,
+		redis:               redis,
+		Config:              cfg,
 		notificationService: notificationService.NewNotificationService(db, kafkaBus, roleService),
 		historyService:      NewHistoryService(db, utils.NewChatCacheService(redis)),
 		statusCollection:    statusCollection,
 	}
-	
+
 	// **NEW: Initialize async helper**
 	chatService.asyncHelper = utils.NewAsyncHelper(db, cfg)
 	chatService.asyncHelper.SetPhantomDetectorHandler(chatService)
-	
+
 	chatService.restrictionService = restrictionService.NewRestrictionService(db, chatService.hub, chatService.emitter, chatService.notificationService, kafkaBus)
 
 	// Start monitoring
@@ -118,19 +118,37 @@ func NewChatService(
 	return chatService
 }
 
+/* Helper function for Validate Empty Message */
+func isValidChatMessage(msg *model.ChatMessage) bool {
+	return msg != nil &&
+		(msg.Message != "" || msg.StickerID != nil || msg.FileName != "" ||
+			msg.EvoucherInfo != nil || msg.MentionInfo != nil || msg.ModerationInfo != nil)
+}
+
 // **Interface implementations for AsyncHelper**
+/* Prevent save empty message to database */
 func (s *ChatService) SaveMessageToDB(ctx context.Context, msg *model.ChatMessage) error {
+	if !isValidChatMessage(msg) {
+		log.Printf("[ChatService] Skipping empty message from user %s in room %s", msg.UserID.Hex(), msg.RoomID.Hex())
+		return nil
+	}
+
 	_, err := s.Create(ctx, *msg)
 	return err
 }
 
+/* Prevent save empty message to database */
 func (s *ChatService) SaveMessageToCache(ctx context.Context, msg *model.ChatMessage) error {
-	// **ENHANCED: Create properly enriched message with all data**
+	if !isValidChatMessage(msg) {
+		log.Printf("[ChatService] Skipping cache for empty message %s", msg.ID.Hex())
+		return nil
+	}
+
 	enriched := model.ChatMessageEnriched{
 		ChatMessage: *msg,
 	}
 
-	// **ENHANCED: Get reply-to message if exists**
+	// Enrich if reply-to exists
 	if msg.ReplyToID != nil {
 		replyToMsg, err := s.historyService.getReplyToMessageWithUser(ctx, *msg.ReplyToID)
 		if err != nil {
@@ -141,7 +159,7 @@ func (s *ChatService) SaveMessageToCache(ctx context.Context, msg *model.ChatMes
 		}
 	}
 
-	// **ENHANCED: Log special message types being cached**
+	// Log special cases
 	if msg.EvoucherInfo != nil {
 		log.Printf("[ChatService] Caching evoucher message %s", msg.ID.Hex())
 	}
@@ -163,15 +181,24 @@ func (s *ChatService) SaveMessageBatch(ctx context.Context, msgs []*model.ChatMe
 	if len(msgs) == 0 {
 		return nil
 	}
-	
-	// Convert to interface slice for bulk insert
-	docs := make([]interface{}, len(msgs))
-	for i, msg := range msgs {
-		docs[i] = *msg
+
+	// Filter valid messages only
+	validMsgs := make([]interface{}, 0, len(msgs))
+	for _, msg := range msgs {
+		if isValidChatMessage(msg) {
+			validMsgs = append(validMsgs, *msg)
+		} else {
+			log.Printf("[ChatService] Skipping empty message in batch from user %s in room %s", msg.UserID.Hex(), msg.RoomID.Hex())
+		}
 	}
-	
-	// Perform bulk insert
-	_, err := s.collection.InsertMany(ctx, docs)
+
+	if len(validMsgs) == 0 {
+		// No valid messages to insert
+		return nil
+	}
+
+	// Bulk insert valid messages
+	_, err := s.collection.InsertMany(ctx, validMsgs)
 	return err
 }
 
@@ -179,28 +206,32 @@ func (s *ChatService) SaveMessageBatchToCache(ctx context.Context, roomID string
 	if len(msgs) == 0 {
 		return nil
 	}
-	
-	// Convert to enriched messages and save in batches
+
 	pipeline := s.redis.Pipeline()
+	key := fmt.Sprintf("chat:room:%s:messages", roomID)
+
 	for _, msg := range msgs {
+		if !isValidChatMessage(msg) {
+			log.Printf("[ChatService] Skipping empty message in batch cache for room %s", roomID)
+			continue
+		}
+
 		enriched := model.ChatMessageEnriched{
 			ChatMessage: *msg,
 		}
-		
+
 		jsonData, err := json.Marshal(enriched)
 		if err != nil {
 			return fmt.Errorf("failed to marshal message: %w", err)
 		}
-		
-		key := fmt.Sprintf("chat:room:%s:messages", roomID)
+
 		score := float64(msg.Timestamp.UnixNano())
 		pipeline.ZAdd(ctx, key, redis.Z{
 			Score:  score,
 			Member: jsonData,
 		})
 	}
-	
-	// Execute pipeline
+
 	_, err := pipeline.Exec(ctx)
 	return err
 }
@@ -249,9 +280,9 @@ func (s *ChatService) SendNotifications(ctx context.Context, message *model.Chat
 // getRoomMembers gets all members of a room
 func (s *ChatService) getRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error) {
 	log.Printf("[ChatService] Getting room members for room %s", roomID.Hex())
-	
+
 	roomCollection := s.collection.Database().Collection("rooms")
-	
+
 	// Use bson.M to handle any document structure
 	var room bson.M
 
@@ -294,7 +325,7 @@ func (s *ChatService) getRoomMembers(ctx context.Context, roomID primitive.Objec
 		}
 	}
 
-	log.Printf("[ChatService] ✅ Found room %s (%s) with %d members", 
+	log.Printf("[ChatService] ✅ Found room %s (%s) with %d members",
 		roomID.Hex(), roomName, len(members))
 
 	return members, nil
@@ -338,12 +369,12 @@ func (s *ChatService) UpdateMessageStatusWithError(messageID primitive.ObjectID,
 func (s *ChatService) RetrieveMessage(messageID primitive.ObjectID) (*model.ChatMessage, error) {
 	filter := bson.M{"_id": messageID}
 	var message model.ChatMessage
-	
+
 	err := s.collection.FindOne(context.Background(), filter).Decode(&message)
 	if err == nil {
 		return &message, nil
 	}
-	
+
 	return nil, fmt.Errorf("message not found: %s", messageID.Hex())
 }
 
@@ -359,24 +390,24 @@ func (s *ChatService) SubmitNotificationJob(msg *model.ChatMessage, onlineUsers 
 // **Message Status Management**
 func (s *ChatService) createMessageStatus(messageID primitive.ObjectID, roomID primitive.ObjectID) error {
 	status := &utils.MessageStatus{
-		ID:              primitive.NewObjectID(),
-		MessageID:       messageID,
-		RoomID:          roomID,
-		BroadcastAt:     time.Now(),
-		SavedToDB:       false,
-		SavedToCache:    false,
+		ID:               primitive.NewObjectID(),
+		MessageID:        messageID,
+		RoomID:           roomID,
+		BroadcastAt:      time.Now(),
+		SavedToDB:        false,
+		SavedToCache:     false,
 		NotificationSent: false,
-		RetryCount:      0,
-		Status:          "pending",
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		RetryCount:       0,
+		Status:           "pending",
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
 	}
-	
+
 	_, err := s.statusCollection.InsertOne(context.Background(), status)
 	if err != nil {
 		return fmt.Errorf("failed to create message status: %v", err)
 	}
-	
+
 	return nil
 }
 
@@ -388,10 +419,10 @@ func (s *ChatService) updateMessageStatus(messageID primitive.ObjectID, field st
 			"updated_at": time.Now(),
 		},
 	}
-	
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	_, err := s.statusCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		log.Printf("[ERROR] Failed to update message status %s.%s: %v", messageID.Hex(), field, err)
@@ -402,15 +433,15 @@ func (s *ChatService) updateMessageStatusWithError(messageID primitive.ObjectID,
 	filter := bson.M{"message_id": messageID}
 	update := bson.M{
 		"$set": bson.M{
-			"last_error":   errorMsg,
-			"retry_count":  retryCount,
-			"updated_at":   time.Now(),
+			"last_error":  errorMsg,
+			"retry_count": retryCount,
+			"updated_at":  time.Now(),
 		},
 	}
-	
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	_, err := s.statusCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		log.Printf("[ERROR] Failed to update message status with error %s: %v", messageID.Hex(), err)
@@ -437,7 +468,7 @@ func (s *ChatService) GetMongo() *mongo.Database {
 
 func (s *ChatService) GetUserById(ctx context.Context, userID string) (*userModel.User, error) {
 	log.Printf("[DEBUG] GetUserById called for user: %s", userID)
-	
+
 	userObjID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		log.Printf("[ERROR] Invalid user ID format: %s, error: %v", userID, err)
@@ -503,7 +534,7 @@ func (s *ChatService) checkSystemMetrics(metrics *SystemMetrics) {
 	// Check queue capacity
 	dbQueueSize, dbQueueCapacity := s.asyncHelper.GetDatabaseWorkerQueueMetrics()
 	queueCapacityPercentage := float64(dbQueueSize) / float64(dbQueueCapacity) * 100
-	
+
 	if queueCapacityPercentage > QueueCapacityThreshold {
 		s.alertHighQueueCapacity(queueCapacityPercentage)
 	}
@@ -520,19 +551,19 @@ func (s *ChatService) checkSystemMetrics(metrics *SystemMetrics) {
 }
 
 func (s *ChatService) alertHighQueueCapacity(capacity float64) {
-	log.Printf("[ALERT] High queue capacity: %.2f%% (threshold: %d%%)", 
+	log.Printf("[ALERT] High queue capacity: %.2f%% (threshold: %d%%)",
 		capacity, QueueCapacityThreshold)
 	// Implement alert notification (e.g., Slack, email, etc.)
 }
 
 func (s *ChatService) alertHighErrorRate(rate float64) {
-	log.Printf("[ALERT] High error rate: %.2f%% (threshold: %d%%)", 
+	log.Printf("[ALERT] High error rate: %.2f%% (threshold: %d%%)",
 		rate, ErrorRateThreshold)
 	// Implement alert notification
 }
 
 func (s *ChatService) alertHighLoad(rate float64) {
-	log.Printf("[ALERT] High message rate: %.2f/s (threshold: %d/s)", 
+	log.Printf("[ALERT] High message rate: %.2f/s (threshold: %d/s)",
 		rate, HighLoadThreshold)
 	// Implement alert notification
 }

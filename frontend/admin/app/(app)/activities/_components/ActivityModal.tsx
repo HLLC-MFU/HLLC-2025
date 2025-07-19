@@ -32,8 +32,9 @@ interface ActivityModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (formData: FormData, mode: "add" | "edit") => void;
-  activity?: Activities;
+  activity?: { type: string };
   mode: "add" | "edit";
+  typeActivities: string | undefined;
 }
 
 const getSchoolSearchFields = (school: any) => [
@@ -62,7 +63,8 @@ export function ActivityModal({
   onClose,
   onSuccess,
   activity,
-  mode
+  mode,
+  typeActivities,
 }: ActivityModalProps) {
   const { activityTypes, loading: typesLoading } = useActivities();
   const { schools, loading: schoolsLoading } = useSchools();
@@ -82,7 +84,6 @@ export function ActivityModal({
   const [logoPhoto, setLogoPhoto] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState("");
   const [logoPreview, setLogoPreview] = useState("");
-  const [type, setType] = useState("");
   const [isOpen, setIsOpen] = useState(true);
   const [isProgressCount, setIsProgressCount] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
@@ -101,6 +102,10 @@ export function ActivityModal({
 
   const bannerInputRef = createRef<HTMLInputElement | null>();
   const logoInputRef = createRef<HTMLInputElement | null>();
+
+  function isValidISODateString(date: string | null | undefined): date is string {
+    return typeof date === "string" && date.trim() !== "" && !isNaN(Date.parse(date));
+  }
 
   const populateActivityForm = (activity: Activities) => {
     setNameEn(activity.name?.en || "");
@@ -122,7 +127,6 @@ export function ActivityModal({
         ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.logoPhoto}`
         : ""
     );
-    setType(activity.type || "");
     setIsOpen(activity.metadata?.isOpen ?? true);
     setIsProgressCount(activity.metadata?.isProgressCount ?? true);
     setIsVisible(activity.metadata?.isVisible ?? true);
@@ -144,15 +148,23 @@ export function ActivityModal({
 
     // Parse ISO strings to ZonedDateTime for date/time pickers
     setCheckinTime(
-      parseAbsoluteToLocal(activity.metadata.checkinStartAt?.toString() || "")
+      isValidISODateString(activity?.metadata?.checkinStartAt)
+        ? parseAbsoluteToLocal(activity.metadata.checkinStartAt)
+        : now(getLocalTimeZone())
+    );
 
-    );
     setStartTime(
-      parseAbsoluteToLocal(activity.metadata?.startAt?.toString() || "")
+      isValidISODateString(activity?.metadata?.startAt)
+        ? parseAbsoluteToLocal(activity.metadata.startAt)
+        : now(getLocalTimeZone())
     );
+
     setEndTime(
-      parseAbsoluteToLocal(activity.metadata?.endAt?.toString() || "")
+      isValidISODateString(activity?.metadata?.endAt)
+        ? parseAbsoluteToLocal(activity.metadata.endAt)
+        : now(getLocalTimeZone())
     );
+
     setLatitude(activity.location?.latitude?.toString() || "");
     setLongitude(activity.location?.longitude?.toString() || "");
     setMapUrl(activity.location?.mapUrl || "");
@@ -174,7 +186,6 @@ export function ActivityModal({
     setLogoPhoto(null);
     setBannerPreview("");
     setLogoPreview("");
-    setType("");
     setIsOpen(true);
     setIsProgressCount(true);
     setIsVisible(true);
@@ -188,7 +199,7 @@ export function ActivityModal({
 
   useEffect(() => {
     if (activity) {
-      populateActivityForm(activity);
+      populateActivityForm(activity as Activities);
     } else {
       resetActivityForm();
     }
@@ -212,14 +223,14 @@ export function ActivityModal({
   };
 
   const handleSubmit = async () => {
-    if (!nameEn.trim() || !nameTh.trim() || !type) return;
+    if (!nameEn.trim() || !nameTh.trim() || !activity?.type) return;
 
     const formData = new FormData();
 
     formData.append("name[en]", nameEn.trim());
     formData.append("name[th]", nameTh.trim());
     formData.append("acronym", acronym.trim() || nameEn.substring(0, 3).toUpperCase());
-    formData.append("type", type);
+    formData.append("type", activity?.type);
 
     formData.append("fullDetails[en]", fullDetailsEn.trim());
     formData.append("fullDetails[th]", fullDetailsTh.trim());
@@ -250,7 +261,9 @@ export function ActivityModal({
     formData.append("location[th]", thLocation);
     formData.append("location[en]", enLocation);
 
+    console.log('Calling onSuccess with formData:', formData);
     onSuccess(formData, mode);
+    console.log('onSuccess called');
     onClose();
   };
 
@@ -268,14 +281,12 @@ export function ActivityModal({
             <BasicInformation
               acronym={acronym}
               activityTypes={activityTypes}
-              disableTypeSelection={mode === "add" && !!type}
+              disableTypeSelection={mode === "add" && !!typeActivities}
               nameEn={nameEn}
               nameTh={nameTh}
               setAcronym={setAcronym}
               setNameEn={setNameEn}
               setNameTh={setNameTh}
-              setType={setType}
-              type={type}
               typesLoading={typesLoading}
             />
 

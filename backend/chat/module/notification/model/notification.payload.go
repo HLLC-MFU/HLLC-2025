@@ -13,17 +13,10 @@ const (
 	MessageTypeSticker     = "sticker"
 	MessageTypeMention     = "mention"
 	MessageTypeEvoucher    = "evoucher"
-	MessageTypeUnsend      = "unsend_message"
+	MessageTypeUnsend      = "unsend"
 	MessageTypeRestriction = "restriction"
 	MessageTypeUpload      = "upload"
 	MessageTypeReaction    = "reaction"
-	
-	// Specific Restriction Types
-	MessageTypeRestrictionBan    = "restriction_ban"
-	MessageTypeRestrictionUnban  = "restriction_unban"
-	MessageTypeRestrictionMute   = "restriction_mute"
-	MessageTypeRestrictionUnmute = "restriction_unmute"
-	MessageTypeRestrictionKick   = "restriction_kick"
 )
 
 type NotificationPayload struct {
@@ -76,10 +69,10 @@ type NotificationStickerInfo struct {
 }
 
 type NotificationReplyInfo struct {
-	MessageID      string `json:"messageId"`
-	Message        string `json:"message,omitempty"`
-	ReplyUserID    string `json:"ReplyUserID,omitempty"`
-	ReplyUserName  string `json:"ReplyUserName,omitempty"`
+	MessageID    string `json:"messageId"`
+	Message      string `json:"message,omitempty"`
+	SenderID     string `json:"senderId,omitempty"`
+	SenderName   string `json:"senderName,omitempty"`
 }
 
 type NotificationReactionInfo struct {
@@ -201,72 +194,6 @@ func NewRestrictionNotification(room NotificationRoom, sender NotificationSender
 	}
 }
 
-// Specific restriction notification constructors
-func NewRestrictionBanNotification(room NotificationRoom, sender NotificationSender, message NotificationMessage, receiver string) NotificationPayload {
-	message.Type = MessageTypeRestrictionBan
-	
-	return NotificationPayload{
-		Type:      MessageTypeRestrictionBan,
-		Room:      room,
-		Sender:    sender,
-		Message:   message,
-		Receiver:  receiver,
-		Timestamp: message.Timestamp,
-	}
-}
-
-func NewRestrictionUnbanNotification(room NotificationRoom, sender NotificationSender, message NotificationMessage, receiver string) NotificationPayload {
-	message.Type = MessageTypeRestrictionUnban
-	
-	return NotificationPayload{
-		Type:      MessageTypeRestrictionUnban,
-		Room:      room,
-		Sender:    sender,
-		Message:   message,
-		Receiver:  receiver,
-		Timestamp: message.Timestamp,
-	}
-}
-
-func NewRestrictionMuteNotification(room NotificationRoom, sender NotificationSender, message NotificationMessage, receiver string) NotificationPayload {
-	message.Type = MessageTypeRestrictionMute
-	
-	return NotificationPayload{
-		Type:      MessageTypeRestrictionMute,
-		Room:      room,
-		Sender:    sender,
-		Message:   message,
-		Receiver:  receiver,
-		Timestamp: message.Timestamp,
-	}
-}
-
-func NewRestrictionUnmuteNotification(room NotificationRoom, sender NotificationSender, message NotificationMessage, receiver string) NotificationPayload {
-	message.Type = MessageTypeRestrictionUnmute
-	
-	return NotificationPayload{
-		Type:      MessageTypeRestrictionUnmute,
-		Room:      room,
-		Sender:    sender,
-		Message:   message,
-		Receiver:  receiver,
-		Timestamp: message.Timestamp,
-	}
-}
-
-func NewRestrictionKickNotification(room NotificationRoom, sender NotificationSender, message NotificationMessage, receiver string) NotificationPayload {
-	message.Type = MessageTypeRestrictionKick
-	
-	return NotificationPayload{
-		Type:      MessageTypeRestrictionKick,
-		Room:      room,
-		Sender:    sender,
-		Message:   message,
-		Receiver:  receiver,
-		Timestamp: message.Timestamp,
-	}
-}
-
 func NewUnsendNotification(room NotificationRoom, sender NotificationSender, message NotificationMessage, receiver string) NotificationPayload {
 	message.Type = MessageTypeUnsend
 	
@@ -281,14 +208,13 @@ func NewUnsendNotification(room NotificationRoom, sender NotificationSender, mes
 }
 
 // Helper function to create base notification components
-func CreateNotificationRoom(id, nameTh, nameEn, image string) NotificationRoom {
+func CreateNotificationRoom(id, nameTh, nameEn string) NotificationRoom {
 	return NotificationRoom{
 		ID: id,
 		Name: common.LocalizedName{
 			Th: nameTh,
 			En: nameEn,
 		},
-		Image: image,
 	}
 }
 

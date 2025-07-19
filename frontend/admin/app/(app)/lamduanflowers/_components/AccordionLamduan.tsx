@@ -13,6 +13,7 @@ import { SettingLamduanFlowers } from "./SettingLamduanFlowers";
 import { LamduanFlowers } from "@/types/lamduan-flowers";
 import { useLamduanFlowers } from "@/hooks/useLamduanFlowers";
 import { LamduanSetting } from "@/types/lamduan-flowers";
+import { Lang } from "@/types/lang";
 
 type LamduanFlowersSettingProps = {
     handleSave: (
@@ -20,7 +21,8 @@ type LamduanFlowersSettingProps = {
         file: File | null,
         videoLink: string,
         startDate: string,
-        endDate: string
+        endDate: string,
+        description: Lang
     ) => Promise<void>;
     originalRef: RefObject<LamduanSetting | null>;
 }

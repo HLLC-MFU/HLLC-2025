@@ -39,6 +39,25 @@ func getRoomTopic(roomID string) string {
 	return fmt.Sprintf("%s%s", RoomTopicPrefix, roomID)
 }
 
+func isEmptyMessage(payload interface{}) bool {
+    switch msg := payload.(type) {
+    case map[string]interface{}:
+        // ตรวจสอบ fields ใน map
+        if msg["Message"] == "" &&
+            (msg["StickerID"] == nil || msg["StickerID"] == "") &&
+            msg["FileName"] == "" &&
+            msg["EvoucherInfo"] == nil &&
+            msg["MentionInfo"] == nil &&
+            msg["ModerationInfo"] == nil {
+            return true
+        }
+    default:
+        // ใช้ reflection หรือแปลงเป็น map เพื่อตรวจสอบ (ถ้าจำเป็น)
+        // หรือถ้า payload เป็น struct type ที่คุณรู้จัก ก็แปลงและเช็คตรงๆได้
+    }
+    return false
+}
+
 func (h *Hub) Register(c Client) {
 	roomKey := c.RoomID.Hex()
 	userKey := c.UserID.Hex()
@@ -102,8 +121,17 @@ func (h *Hub) countRoomStats(roomID string) (users int, connections int) {
 	return
 }
 
+
+
 func (h *Hub) BroadcastEvent(event ChatEvent) {
 	log.Printf("[ChatMessage] Broadcasting event type=%s", event.Type)
+
+	// Check if the event payload is empty
+	if isEmptyMessage(event.Payload) {
+		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected")
+		return
+	}
+
 
 	payload, err := json.Marshal(event)
 	if err != nil {
@@ -172,7 +200,11 @@ func (h *Hub) BroadcastEvent(event ChatEvent) {
 func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {
 	successCount := 0
 	failCount := 0
-
+	// Check if the event payload is empty
+	if isEmptyMessage(payload) {
+		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected")
+		return
+	}
 	if roomMap, ok := h.clients.Load(roomID); ok {
 		log.Printf("[WS] Broadcasting to room %s", roomID)
 		
@@ -213,7 +245,11 @@ func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {
 func (h *Hub) BroadcastToRoomExcept(roomID string, excludeUserID string, payload []byte) {
 	successCount := 0
 	failCount := 0
-
+		// Check if the event payload is empty
+	if isEmptyMessage(payload) {
+		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected")
+		return
+	}
 	if roomMap, ok := h.clients.Load(roomID); ok {
 		log.Printf("[DEBUG] Broadcasting to room %s (excluding user %s)", roomID, excludeUserID)
 		
@@ -315,26 +351,27 @@ func (h *Hub) GetOnlineUsersInRoom(roomID string) []string {
 func (h *Hub) GetConnectedRooms() map[string]bool {
 	connectedRooms := make(map[string]bool)
 	
+	// Iterate through all rooms in the hub
 	h.clients.Range(func(roomID, roomMap interface{}) bool {
-		roomIDStr, ok := roomID.(string)
-		if !ok {
-			return true
-		}
-		
-		// Check if room has any active connections
-		hasConnections := false
-		roomMap.(*sync.Map).Range(func(_, userConns interface{}) bool {
-			userConns.(*sync.Map).Range(func(_, _ interface{}) bool {
-				hasConnections = true
-				return false // Stop iteration - we found at least one connection
+		if roomIDStr, ok := roomID.(string); ok {
+			// Check if the room has any active users
+			if roomMapSync, ok := roomMap.(*sync.Map); ok {
+				hasActiveUsers := false
+				roomMapSync.Range(func(userID, userConns interface{}) bool {
+					if userConnsSync, ok := userConns.(*sync.Map); ok {
+						userConnsSync.Range(func(connID, conn interface{}) bool {
+							hasActiveUsers = true
+							return false // Stop after finding one active connection
 						})
-			return !hasConnections // Continue only if no connections found yet
+					}
+					return !hasActiveUsers // Stop if we found active users
 				})
 				
-		if hasConnections {
+				if hasActiveUsers {
 					connectedRooms[roomIDStr] = true
+				}
+			}
 		}
-		
 		return true
 	})
 	
@@ -345,7 +382,11 @@ func (h *Hub) GetConnectedRooms() map[string]bool {
 func (h *Hub) BroadcastToUser(targetUserID string, payload []byte) {
 	successCount := 0
 	failCount := 0
-	
+		// Check if the event payload is empty
+	if isEmptyMessage(payload) {
+		log.Printf("[DEBUG] Skipping broadcast: empty chat message detected")
+		return
+	}
 	log.Printf("[WS] Broadcasting to user %s across all rooms", targetUserID)
 	
 	// วนลูปทุก room เพื่อหา user

@@ -49,7 +49,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
         } else {
             setNameEn("");
             setNameTh("");
-            setType("normal");
             setStatus("active");
             setCapacity("");
             setSelectedSchool("");
@@ -58,6 +57,12 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
             setImage(null);
             setImagePreview(null);
             setSchedule(null);
+            // set type ตาม roomType เฉพาะตอน add
+            if (roomType === "normal" || roomType === "readonly") {
+                setType(roomType);
+            } else {
+                setType("normal");
+            }
         }
     }, [isOpen, room, roomType]);
 
@@ -178,6 +183,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                                 </div>
                             </div>
 
+                            {/* Room Type dropdown เฉพาะ school/major เท่านั้น */}
                             {(roomType === "school" || roomType === "major") && (
                                 <Select 
                                     label="Room Type" 

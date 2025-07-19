@@ -3,7 +3,6 @@ package utils
 import (
 	"chat/module/chat/model"
 	restrictionModel "chat/module/restriction/model"
-	roomModel "chat/module/room/room/model"
 	userModel "chat/module/user/model"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
@@ -36,7 +35,7 @@ func NewChatEventEmitter(hub *Hub, bus *kafka.Bus, redis *redis.Client, mongo *m
 }
 
 func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessage, metadata interface{}) error {
-	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s Text=%s", 
+	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s Text=%s",
 		msg.ID.Hex(), msg.RoomID.Hex(), msg.Message)
 
 	// Get user data
@@ -55,12 +54,8 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 		}
 	}
 
-	// Get room data (with name and image)
-	roomInfo, err := e.getRoomInfo(ctx, msg.RoomID)
-	if err != nil {
-		log.Printf("[WARN] Failed to get room info: %v, using fallback", err)
-		roomInfo = model.RoomInfo{ID: msg.RoomID.Hex()}
-	}
+	// Get room data (basic for now)
+	roomInfo := model.RoomInfo{ID: msg.RoomID.Hex()}
 
 	// If metadata is a complete event, use it directly
 	if metadataMap, ok := metadata.(map[string]interface{}); ok {
@@ -79,7 +74,7 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 	// Otherwise, determine message type from metadata or message content
 	var messageType string
 	var eventType string
-	
+
 	if metadataMap, ok := metadata.(map[string]interface{}); ok && metadataMap["type"] != nil {
 		messageType = metadataMap["type"].(string)
 		eventType = messageType
@@ -87,7 +82,7 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 		eventType = model.EventTypeSticker
 		messageType = model.MessageTypeSticker
 	} else if msg.ReplyToID != nil {
-		eventType = model.EventTypeReply  
+		eventType = model.EventTypeReply
 		messageType = model.MessageTypeReply
 	} else {
 		eventType = model.EventTypeMessage
@@ -124,7 +119,9 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 
 		// Create payload
 		manualPayload := map[string]interface{}{
-			"room": e.buildRoomPayload(roomInfo),
+			"room": map[string]interface{}{
+				"_id": roomInfo.ID,
+			},
 			"user": userMap,
 			"message": map[string]interface{}{
 				"_id":       messageInfo.ID,
@@ -144,12 +141,14 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 			Payload:   manualPayload,
 			Timestamp: msg.Timestamp,
 		}
-		
+
 		return e.emitEventStructured(ctx, msg, event)
 	} else if msg.Image != "" {
 		// File upload message
 		manualPayload := map[string]interface{}{
-			"room": e.buildRoomPayload(roomInfo),
+			"room": map[string]interface{}{
+				"_id": roomInfo.ID,
+			},
 			"user": map[string]interface{}{
 				"_id":      userInfo.ID,
 				"username": userInfo.Username,
@@ -161,7 +160,7 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 				"message":   messageInfo.Message,
 				"timestamp": messageInfo.Timestamp,
 			},
-			"filename": msg.Image,
+			"filename":  msg.Image,
 			"timestamp": msg.Timestamp,
 		}
 
@@ -170,7 +169,7 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 			Payload:   manualPayload,
 			Timestamp: msg.Timestamp,
 		}
-		
+
 		return e.emitEventStructured(ctx, msg, event)
 	} else {
 		// Text or reply message
@@ -191,7 +190,9 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 
 		// Create payload without reactions (new messages don't have reactions yet)
 		manualPayload := map[string]interface{}{
-			"room": e.buildRoomPayload(roomInfo),
+			"room": map[string]interface{}{
+				"_id": roomInfo.ID,
+			},
 			"user": map[string]interface{}{
 				"_id":      userInfo.ID,
 				"username": userInfo.Username,
@@ -237,18 +238,14 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 			Payload:   manualPayload,
 			Timestamp: msg.Timestamp,
 		}
-		
+
 		return e.emitEventStructured(ctx, msg, event)
 	}
 }
 
-
-
-
-
 func (e *ChatEventEmitter) EmitTyping(ctx context.Context, roomID, userID string) error {
 	event := ChatEvent{
-		Type:      "typing",
+		Type: "typing",
 		Payload: map[string]string{
 			"roomId": roomID,
 			"userId": userID,
@@ -262,7 +259,7 @@ func (e *ChatEventEmitter) EmitTyping(ctx context.Context, roomID, userID string
 
 func (e *ChatEventEmitter) EmitUserJoined(ctx context.Context, roomID, userID string) error {
 	event := ChatEvent{
-		Type:      "user_joined",
+		Type: "user_joined",
 		Payload: map[string]string{
 			"roomId": roomID,
 			"userId": userID,
@@ -306,69 +303,13 @@ func (e *ChatEventEmitter) EmitUserLeft(ctx context.Context, roomID, userID stri
 
 // Helper methods for mobile event structure
 
-// buildRoomPayload creates a complete room payload with all available information
-func (e *ChatEventEmitter) buildRoomPayload(roomInfo model.RoomInfo) map[string]interface{} {
-	payload := map[string]interface{}{
-		"_id": roomInfo.ID,
-	}
-	
-	// Add name if available
-	if roomInfo.Name.Th != "" || roomInfo.Name.En != "" {
-		payload["name"] = map[string]interface{}{
-			"th": roomInfo.Name.Th,
-			"en": roomInfo.Name.En,
-		}
-	}
-	
-	// Add image if available
-	if roomInfo.Image != "" {
-		payload["image"] = roomInfo.Image
-	}
-	
-	return payload
-}
-
-// getRoomInfo gets room information from database including name and image
-func (e *ChatEventEmitter) getRoomInfo(ctx context.Context, roomID primitive.ObjectID) (model.RoomInfo, error) {
-	log.Printf("[DEBUG] Getting room info for ID: %s", roomID.Hex())
-	
-	roomService := queries.NewBaseService[roomModel.Room](e.mongo.Collection("rooms"))
-	result, err := roomService.FindOne(ctx, bson.M{"_id": roomID})
-	
-	if err != nil {
-		log.Printf("[WARN] Failed to query room %s: %v, using fallback", roomID.Hex(), err)
-		// Return fallback with just ID
-		return model.RoomInfo{
-			ID: roomID.Hex(),
-		}, nil
-	}
-	
-	if len(result.Data) == 0 {
-		log.Printf("[WARN] Room %s not found in database, using fallback", roomID.Hex())
-		return model.RoomInfo{
-			ID: roomID.Hex(),
-		}, nil
-	}
-
-	room := result.Data[0]
-	
-	log.Printf("[DEBUG] Successfully retrieved room: ID=%s, Name.Th='%s', Name.En='%s', Image='%s'", 
-		room.ID.Hex(), room.Name.Th, room.Name.En, room.Image)
-
-	return model.RoomInfo{
-		ID:    room.ID.Hex(),
-		Name:  room.Name,
-		Image: room.Image,
-	}, nil
-}
-
 func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.ObjectID) (model.UserInfo, error) {
 	log.Printf("[DEBUG] Getting user info for ID: %s", userID.Hex())
-	
+
 	// **USE SIMPLE QUERY WITHOUT POPULATE TO AVOID ROLE DECODING ISSUES**
 	userService := queries.NewBaseService[userModel.User](e.mongo.Collection("users"))
 	result, err := userService.FindOne(ctx, bson.M{"_id": userID})
-	
+
 	if err != nil {
 		log.Printf("[WARN] Failed to query user %s: %v, using fallback", userID.Hex(), err)
 		// **FIXED: Never return error, always return valid user info**
@@ -382,7 +323,7 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 			},
 		}, nil
 	}
-	
+
 	if len(result.Data) == 0 {
 		log.Printf("[WARN] User %s not found in database, using fallback", userID.Hex())
 		// **FIXED: Never return error, always return valid user info**
@@ -398,9 +339,9 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 	}
 
 	user := result.Data[0]
-	
+
 	// **LOG RAW DATA FOR DEBUGGING**
-	log.Printf("[DEBUG] Raw user data: ID=%s, Username='%s', Name.First='%s', Name.Middle='%s', Name.Last='%s'", 
+	log.Printf("[DEBUG] Raw user data: ID=%s, Username='%s', Name.First='%s', Name.Middle='%s', Name.Last='%s'",
 		user.ID.Hex(), user.Username, user.Name.First, user.Name.Middle, user.Name.Last)
 
 	// **BUILD USER INFO WITH VALIDATION**
@@ -409,7 +350,7 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 		log.Printf("[WARN] User %s has empty username, using fallback", userID.Hex())
 		user.Username = "user_" + userID.Hex()[:8] // Use first 8 chars of ID as fallback
 	}
-	
+
 	if user.Name.First == "" && user.Name.Last == "" {
 		log.Printf("[WARN] User %s has empty name, using fallback", userID.Hex())
 		user.Name.First = "User"
@@ -419,15 +360,15 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 	userInfo := model.UserInfo{
 		ID:       user.ID.Hex(),
 		Username: user.Username,
-		Name:     map[string]interface{}{
-			"first":  user.Name.First,
+		Name: map[string]interface{}{
+			"first": user.Name.First,
 			"middle": func() string {
 				if user.Name.Middle == "" {
 					return ""
 				}
 				return user.Name.Middle
 			}(),
-			"last":   user.Name.Last,
+			"last": user.Name.Last,
 		},
 	}
 
@@ -461,13 +402,13 @@ func (e *ChatEventEmitter) getReplyToMessage(ctx context.Context, replyToID prim
 	// Get the original message being replied to
 	replyToService := queries.NewBaseService[model.ChatMessage](e.mongo.Collection("chat-messages"))
 	replyResult, err := replyToService.FindOne(ctx, bson.M{"_id": replyToID})
-	
+
 	if err != nil || len(replyResult.Data) == 0 {
 		return nil, err
 	}
 
 	replyMsg := replyResult.Data[0]
-	
+
 	// Determine message type
 	var messageType string
 	if replyMsg.StickerID != nil {
@@ -486,13 +427,10 @@ func (e *ChatEventEmitter) getReplyToMessage(ctx context.Context, replyToID prim
 
 // emitEventStructured handles the new unified Event structure
 func (e *ChatEventEmitter) emitEventStructured(ctx context.Context, msg *model.ChatMessage, event model.Event) error {
-
-	// Empty message avoidable
-	if msg.Message == "" || msg.RoomID.IsZero() {
-		log.Printf("[ChatEventEmitter] Skipping empty message %s in event %s", msg.ID.Hex(), event.Type)
-		return nil
+	if msg == nil || msg.RoomID.IsZero() || msg.ID.IsZero() {
+		return fmt.Errorf("invalid message data: RoomID=%s, MessageID=%s",
+			msg.RoomID.Hex(), msg.ID.Hex())
 	}
-
 	// For WebSocket broadcasting, marshal to bytes (needed for WebSocket protocol)
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
@@ -515,7 +453,7 @@ func (e *ChatEventEmitter) emitEventStructured(ctx context.Context, msg *model.C
 
 // EmitMentionMessage emits a message event with mention information
 func (e *ChatEventEmitter) EmitMentionMessage(ctx context.Context, msg *model.ChatMessage, mentionInfo []model.MentionInfo) error {
-	log.Printf("[TRACE] EmitMentionMessage called for message ID=%s Room=%s with %d mentions", 
+	log.Printf("[TRACE] EmitMentionMessage called for message ID=%s Room=%s with %d mentions",
 		msg.ID.Hex(), msg.RoomID.Hex(), len(mentionInfo))
 
 	// Get user data
@@ -530,12 +468,8 @@ func (e *ChatEventEmitter) EmitMentionMessage(ctx context.Context, msg *model.Ch
 		}
 	}
 
-	// Get room data (with name and image)
-	roomInfo, err := e.getRoomInfo(ctx, msg.RoomID)
-	if err != nil {
-		log.Printf("[WARN] Failed to get room info for mention message: %v", err)
-		roomInfo = model.RoomInfo{ID: msg.RoomID.Hex()}
-	}
+	// Get room data (basic for now)
+	roomInfo := model.RoomInfo{ID: msg.RoomID.Hex()}
 
 	// Create message info
 	messageInfo := model.MessageInfo{
@@ -547,7 +481,9 @@ func (e *ChatEventEmitter) EmitMentionMessage(ctx context.Context, msg *model.Ch
 
 	// Create payload with mention information
 	manualPayload := map[string]interface{}{
-		"room": e.buildRoomPayload(roomInfo),
+		"room": map[string]interface{}{
+			"_id": roomInfo.ID,
+		},
 		"user": map[string]interface{}{
 			"_id":      userInfo.ID,
 			"username": userInfo.Username,
@@ -559,7 +495,7 @@ func (e *ChatEventEmitter) EmitMentionMessage(ctx context.Context, msg *model.Ch
 			"message":   messageInfo.Message,
 			"timestamp": messageInfo.Timestamp,
 		},
-		"mentions": mentionInfo,
+		"mentions":  mentionInfo,
 		"timestamp": msg.Timestamp,
 	}
 
@@ -568,16 +504,14 @@ func (e *ChatEventEmitter) EmitMentionMessage(ctx context.Context, msg *model.Ch
 		Payload:   manualPayload,
 		Timestamp: msg.Timestamp,
 	}
-	
+
 	return e.emitEventStructured(ctx, msg, event)
 }
 
-
-
 // EmitEvoucherMessage emits an evoucher message event
 func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.ChatMessage) error {
-		log.Printf("[TRACE] EmitEvoucherMessage called for message ID=%s Room=%s", 
-			msg.ID.Hex(), msg.RoomID.Hex())
+	log.Printf("[TRACE] EmitEvoucherMessage called for message ID=%s Room=%s",
+		msg.ID.Hex(), msg.RoomID.Hex())
 
 	// Get user data
 	userInfo, err := e.getUserInfo(ctx, msg.UserID)
@@ -591,12 +525,8 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 		}
 	}
 
-	// Get room data (with name and image)
-	roomInfo, err := e.getRoomInfo(ctx, msg.RoomID)
-	if err != nil {
-		log.Printf("[WARN] Failed to get room info for evoucher message: %v", err)
-		roomInfo = model.RoomInfo{ID: msg.RoomID.Hex()}
-	}
+	// Get room data (basic for now)
+	roomInfo := model.RoomInfo{ID: msg.RoomID.Hex()}
 
 	// Create message info
 	messageInfo := model.MessageInfo{
@@ -608,7 +538,9 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 
 	// Create manual payload structure to match expected format
 	manualPayload := map[string]interface{}{
-		"room": e.buildRoomPayload(roomInfo),
+		"room": map[string]interface{}{
+			"_id": roomInfo.ID,
+		},
 		"user": map[string]interface{}{
 			"_id":      userInfo.ID,
 			"username": userInfo.Username,
@@ -621,8 +553,8 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 			"timestamp": messageInfo.Timestamp,
 		},
 		"evoucherInfo": map[string]interface{}{
-			"message":     msg.EvoucherInfo.Message,
-			"claimUrl":    msg.EvoucherInfo.ClaimURL,
+			"message":      msg.EvoucherInfo.Message,
+			"claimUrl":     msg.EvoucherInfo.ClaimURL,
 			"sponsorImage": msg.EvoucherInfo.SponsorImage,
 		},
 		"timestamp": msg.Timestamp,
@@ -641,7 +573,7 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 
 // EmitEvoucherClaimed emits an evoucher claimed event
 func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.ChatMessage, claimedByUserID primitive.ObjectID) error {
-	log.Printf("[ChatEventEmitter] Emitting evoucher claimed event for message %s by user %s", 
+	log.Printf("[ChatEventEmitter] Emitting evoucher claimed event for message %s by user %s",
 		msg.ID.Hex(), claimedByUserID.Hex())
 
 	// Get user info for the person who claimed
@@ -658,17 +590,12 @@ func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.C
 		return err
 	}
 
-	// Get room data (with name and image)
-	roomInfo, err := e.getRoomInfo(ctx, msg.RoomID)
-	if err != nil {
-		log.Printf("[WARN] Failed to get room info for evoucher claimed: %v", err)
-		roomInfo = model.RoomInfo{ID: msg.RoomID.Hex()}
-	}
-
 	// Create payload for evoucher claimed event
 	payload := map[string]interface{}{
-		"room": e.buildRoomPayload(roomInfo),
-		"user": senderInfo, // Original sender
+		"room": map[string]interface{}{
+			"_id": msg.RoomID.Hex(),
+		},
+		"user":    senderInfo,  // Original sender
 		"claimer": claimerInfo, // User who claimed
 		"message": map[string]interface{}{
 			"_id":       msg.ID.Hex(),
@@ -677,10 +604,10 @@ func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.C
 			"timestamp": msg.Timestamp,
 		},
 		"evoucherInfo": map[string]interface{}{
-			"message":     msg.EvoucherInfo.Message,
-			"claimUrl":    msg.EvoucherInfo.ClaimURL,
+			"message":      msg.EvoucherInfo.Message,
+			"claimUrl":     msg.EvoucherInfo.ClaimURL,
 			"sponsorImage": msg.EvoucherInfo.SponsorImage,
-			"claimedBy":   msg.EvoucherInfo.ClaimedBy,
+			"claimedBy":    msg.EvoucherInfo.ClaimedBy,
 		},
 		"timestamp": time.Now(),
 	}
@@ -698,7 +625,7 @@ func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.C
 		log.Printf("[ChatEventEmitter] Failed to marshal evoucher claimed event: %v", err)
 		return err
 	}
-	
+
 	e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventData)
 	log.Printf("[ChatEventEmitter] Broadcasted evoucher claimed event to room %s", msg.RoomID.Hex())
 
@@ -713,80 +640,51 @@ func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.C
 	return nil
 }
 
-func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, restriction *restrictionModel.UserRestriction, action string) error {
-	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s Action=%s", 
-		restriction.ID.Hex(), restriction.RoomID.Hex(), action)
+func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, restriction *restrictionModel.UserRestriction) error {
+	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s",
+		restriction.ID.Hex(), restriction.RoomID.Hex())
 
-	// Create sender info
+	//Create sender info
 	senderInfo := model.UserInfo{
-		ID: sender.ID.Hex(),
+		ID:       sender.ID.Hex(),
 		Username: sender.Username,
 		Name: map[string]interface{}{
-			"first": sender.Name.First,
+			"first":  sender.Name.First,
 			"middle": sender.Name.Middle,
-			"last": sender.Name.Last,
+			"last":   sender.Name.Last,
 		},
 	}
 
-	// Create restriction info
+	//Create restriction info
 	restrictionInfo := model.RestrictionInfo{
-		ID: restriction.ID.Hex(),
-		RoomID: restriction.RoomID.Hex(),
-		UserID: restriction.UserID.Hex(),
+		ID:          restriction.ID.Hex(),
+		RoomID:      restriction.RoomID.Hex(),
+		UserID:      restriction.UserID.Hex(),
 		Restriction: restriction.Restriction,
 	}
 
-	// Get room data (with name and image)
-	roomInfo, err := e.getRoomInfo(ctx, restriction.RoomID)
-	if err != nil {
-		log.Printf("[WARN] Failed to get room info for restriction message: %v", err)
-		roomInfo = model.RoomInfo{ID: restriction.RoomID.Hex()}
-	}
-
+	//Create message info (use msg.ID, msg.Timestamp, msg.Message)
 	messageInfo := model.MessageInfo{
-		ID: msg.ID.Hex(),
+		ID:        msg.ID.Hex(),
+		Type:      model.MessageTypeRestriction,
+		Message:   msg.Message,
 		Timestamp: msg.Timestamp,
 	}
 
-	// Handle different actions using a switch and determine specific event type
-	var eventType string
-	switch action {
-	case "ban":
-		eventType = model.EventTypeRestrictionBan
-		messageInfo.Type = "ban"
-		messageInfo.Message = fmt.Sprintf("User %s was banned for %s", sender.Username, restriction.Reason)
-	case "unban":
-		eventType = model.EventTypeRestrictionUnban
-		messageInfo.Type = "unban"
-		messageInfo.Message = fmt.Sprintf("User %s was unbanned", sender.Username)
-	case "mute":
-		eventType = model.EventTypeRestrictionMute
-		messageInfo.Type = "mute"
-		messageInfo.Message = fmt.Sprintf("User %s was muted for %s", sender.Username, restriction.Reason)
-	case "unmute":
-		eventType = model.EventTypeRestrictionUnmute
-		messageInfo.Type = "unmute"
-		messageInfo.Message = fmt.Sprintf("User %s was unmuted", sender.Username)
-	case "kick":
-		eventType = model.EventTypeRestrictionKick
-		messageInfo.Type = "kick"
-		messageInfo.Message = fmt.Sprintf("User %s was kicked out of the room for %s", sender.Username, restriction.Reason)
-	default:
-		return fmt.Errorf("unknown action: %s", action)
-	}
-
-	// Create Structured Restriction notice event with specific event type
+	// Create Structured Restriction notice event
 	restrictionEvent := model.Event{
-		Type: eventType,
+		Type: model.EventTypeRestriction,
 		Payload: map[string]interface{}{
-			"room": e.buildRoomPayload(roomInfo),
+			"room": map[string]interface{}{
+				"_id": restrictionInfo.RoomID,
+			},
 			"user": map[string]interface{}{
-				"_id": senderInfo.ID,
+				"_id":      senderInfo.ID,
 				"username": senderInfo.Username,
-				"name": senderInfo.Name,
+				"name":     senderInfo.Name,
 			},
 			"restriction": restrictionInfo,
-			"message": messageInfo,
+			"message":     messageInfo,
 		},
 		Timestamp: msg.Timestamp,
 	}
@@ -810,7 +708,6 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 	log.Printf("[Kafka] Successfully published restriction notice to topic %s", roomTopic)
 	return nil
 }
-
 
 // EmitEvent emits a custom event
 func (e *ChatEventEmitter) EmitEvent(ctx context.Context, msg *model.ChatMessage, event interface{}) error {

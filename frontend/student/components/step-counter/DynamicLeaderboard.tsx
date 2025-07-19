@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions, Text } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, Platform } from 'react-native';
 import TopUser from './TopUser';
 import { Name } from '@/types/user';
 import { Ranking } from '@/hooks/useStepLeaderboard';
@@ -18,7 +18,7 @@ type Props = {
 }
 export default function DynamicLeaderboard({ data, currentUserData }: Props) {
   const valueLabel = 'steps'; // or any other label you want to use
-  const { user} = useProfile();
+  const { user } = useProfile();
   const getShortName = (name: Name) => {
     const first = name?.first || '';
     const lastInitial = name?.last ? name.last.charAt(0) + '.' : '';
@@ -55,61 +55,69 @@ export default function DynamicLeaderboard({ data, currentUserData }: Props) {
           <LeaderboardList data={data} valueLabel={valueLabel} />
         </View>
         <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            marginHorizontal: width * 0.025,
+            bottom: 0,
+            zIndex: 10,
+            borderRadius: width * 0.045,
+            backgroundColor: 'rgba(255,255,255,0.13)',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.12,
+            shadowRadius: 6,
+            overflow: 'hidden',
+            marginBottom: height * 0.02,
+          }}
+        >
+          <BlurView
+            intensity={60}
+            tint="dark"
             style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              marginHorizontal: width * 0.025,
-              bottom: 0,
-              zIndex: 10,
               borderRadius: width * 0.045,
-              backgroundColor: 'rgba(255,255,255,0.13)',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.12,
-              shadowRadius: 6,
               overflow: 'hidden',
-              marginBottom: height * 0.02,
+              backgroundColor: Platform.OS === 'android' ? 'rgba(255,255,255,0.9)' : 'transparent',
             }}
           >
-            <BlurView intensity={60} tint="dark" style={{ borderRadius: width * 0.045, overflow: 'hidden' }}>
-              <View
-                style={[
-                  styles.cardMyteam,
-                  {
-                    backgroundColor: 'rgba(255,255,255,0.18)',
-                    borderColor: '#fff',
-                  },
-                ]}
-              >
-                <View style={styles.cardRankCircle}>
-                  <Text style={styles.cardRankText}>
-                    {currentUserData.rank || 'N/A'}
-                  </Text>
-                </View>
-                <View style={styles.cardMyAvatar}>
-                  <Text style={{
-                    position: 'absolute',
-                    top: -10,
-                    right: -10,
-                    backgroundColor: '#FFD700',
-                    color: '#fff',
-                    fontWeight: 'bold',
-                    borderRadius: 8,
-                    paddingHorizontal: 6,
-                    fontSize: 12,
-                    zIndex: 20,
-                  }}>Me</Text>
-                </View>
-                <Text style={styles.cardMyName}>
-                  {currentUserData ? getShortName(user?.data[0]?.name || { first: 'Unknown', last: '' }) : "Loading..."}
-                </Text>
-                <Text style={styles.cardSteps}>
-                  {currentUserData ? `${currentUserData.totalStep} ${valueLabel}` : "Loading..."}
+            <View
+              style={[
+                styles.cardMyteam,
+                {
+                  backgroundColor: 'rgba(255,255,255,0.18)',
+                  borderColor: '#fff',
+                },
+              ]}
+            >
+              <View style={styles.cardRankCircle}>
+                <Text style={styles.cardRankText}>
+                  {currentUserData.rank || 'N/A'}
                 </Text>
               </View>
-            </BlurView>
-          </View>
+              <View style={styles.cardMyAvatar}>
+                <Text style={{
+                  position: 'absolute',
+                  top: -10,
+                  right: -10,
+                  backgroundColor: '#FFD700',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  borderRadius: 8,
+                  paddingHorizontal: 6,
+                  fontSize: Platform.OS === 'ios' ? 12 : 10,
+                  zIndex: 20,
+                }}>Me</Text>
+              </View>
+              <Text style={styles.cardMyName}>
+                {currentUserData ? getShortName(user?.data[0]?.name || { first: 'Unknown', last: '' }) : "Loading..."}
+              </Text>
+              <Text style={styles.cardSteps}>
+                {currentUserData ? `${currentUserData.totalStep} ${valueLabel}` : "Loading..."}
+              </Text>
+            </View>
+          </BlurView>
+        </View>
       </View>
     </View>
   )

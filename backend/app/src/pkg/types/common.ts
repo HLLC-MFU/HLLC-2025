@@ -4,6 +4,7 @@ export type Localization = {
 };
 
 export type Photo = {
+  avatar: string;
   coverPhoto: string;
   bannerPhoto?: string;
   thumbnail?: string;
