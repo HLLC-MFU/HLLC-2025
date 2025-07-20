@@ -574,8 +574,6 @@ func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.C
 	}
 }
 
-
-
 // handleUnsendMessage จะต้องมีการตรวจสอบสิทธิ์การส่งข้อความก่อน
 func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.ClientObject, ctx context.Context) {
 	// Check if room is still active
@@ -702,4 +700,3 @@ func (h *WebSocketHandler) HandleRoomStatusChange(ctx context.Context, roomID st
 	
 	log.Printf("[WS] ✅ Successfully disconnected all users from inactive room %s", roomID)
 }
-

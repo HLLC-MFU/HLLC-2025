@@ -3,6 +3,7 @@ package utils
 import (
 	"chat/module/chat/model"
 	restrictionModel "chat/module/restriction/model"
+	roomModel "chat/module/room/room/model"
 	userModel "chat/module/user/model"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
@@ -640,11 +641,11 @@ func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.C
 	return nil
 }
 
-func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, restriction *restrictionModel.UserRestriction) error {
-	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s",
-		restriction.ID.Hex(), restriction.RoomID.Hex())
+func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, restriction *restrictionModel.UserRestriction, action string) error {
+	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s Action=%s", 
+		restriction.ID.Hex(), restriction.RoomID.Hex(), action)
 
-	//Create sender info
+	// Create sender info
 	senderInfo := model.UserInfo{
 		ID:       sender.ID.Hex(),
 		Username: sender.Username,
@@ -655,7 +656,7 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 		},
 	}
 
-	//Create restriction info
+	// Create restriction info
 	restrictionInfo := model.RestrictionInfo{
 		ID:          restriction.ID.Hex(),
 		RoomID:      restriction.RoomID.Hex(),
@@ -663,21 +664,50 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 		Restriction: restriction.Restriction,
 	}
 
-	//Create message info (use msg.ID, msg.Timestamp, msg.Message)
+	// Get room data (with name and image)
+	roomInfo, err := e.getRoomInfo(ctx, restriction.RoomID)
+	if err != nil {
+		log.Printf("[WARN] Failed to get room info for restriction message: %v", err)
+		roomInfo = model.RoomInfo{ID: restriction.RoomID.Hex()}
+	}
+
 	messageInfo := model.MessageInfo{
-		ID:        msg.ID.Hex(),
-		Type:      model.MessageTypeRestriction,
-		Message:   msg.Message,
+		ID: msg.ID.Hex(),
 		Timestamp: msg.Timestamp,
 	}
 
-	// Create Structured Restriction notice event
+	// Handle different actions using a switch and determine specific event type
+	var eventType string
+	switch action {
+	case "ban":
+		eventType = model.EventTypeRestrictionBan
+		messageInfo.Type = "ban"
+		messageInfo.Message = fmt.Sprintf("User %s was banned for %s", sender.Username, restriction.Reason)
+	case "unban":
+		eventType = model.EventTypeRestrictionUnban
+		messageInfo.Type = "unban"
+		messageInfo.Message = fmt.Sprintf("User %s was unbanned", sender.Username)
+	case "mute":
+		eventType = model.EventTypeRestrictionMute
+		messageInfo.Type = "mute"
+		messageInfo.Message = fmt.Sprintf("User %s was muted for %s", sender.Username, restriction.Reason)
+	case "unmute":
+		eventType = model.EventTypeRestrictionUnmute
+		messageInfo.Type = "unmute"
+		messageInfo.Message = fmt.Sprintf("User %s was unmuted", sender.Username)
+	case "kick":
+		eventType = model.EventTypeRestrictionKick
+		messageInfo.Type = "kick"
+		messageInfo.Message = fmt.Sprintf("User %s was kicked out of the room for %s", sender.Username, restriction.Reason)
+	default:
+		return fmt.Errorf("unknown action: %s", action)
+	}
+
+	// Create Structured Restriction notice event with specific event type
 	restrictionEvent := model.Event{
-		Type: model.EventTypeRestriction,
+		Type: eventType,
 		Payload: map[string]interface{}{
-			"room": map[string]interface{}{
-				"_id": restrictionInfo.RoomID,
-			},
+			"room": e.buildRoomPayload(roomInfo),
 			"user": map[string]interface{}{
 				"_id":      senderInfo.ID,
 				"username": senderInfo.Username,
@@ -734,4 +764,60 @@ func (e *ChatEventEmitter) EmitEvent(ctx context.Context, msg *model.ChatMessage
 // GetHub returns the chat hub (for use in restriction/event helpers)
 func (e *ChatEventEmitter) GetHub() *Hub {
 	return e.hub
+}
+
+// buildRoomPayload creates a complete room payload with all available information
+func (e *ChatEventEmitter) buildRoomPayload(roomInfo model.RoomInfo) map[string]interface{} {
+	payload := map[string]interface{}{
+		"_id": roomInfo.ID,
+	}
+	
+	// Add name if available
+	if roomInfo.Name.Th != "" || roomInfo.Name.En != "" {
+		payload["name"] = map[string]interface{}{
+			"th": roomInfo.Name.Th,
+			"en": roomInfo.Name.En,
+		}
+	}
+	
+	// Add image if available
+	if roomInfo.Image != "" {
+		payload["image"] = roomInfo.Image
+	}
+	
+	return payload
+}
+
+// getRoomInfo gets room information from database including name and image
+func (e *ChatEventEmitter) getRoomInfo(ctx context.Context, roomID primitive.ObjectID) (model.RoomInfo, error) {
+	log.Printf("[DEBUG] Getting room info for ID: %s", roomID.Hex())
+	
+	roomService := queries.NewBaseService[roomModel.Room](e.mongo.Collection("rooms"))
+	result, err := roomService.FindOne(ctx, bson.M{"_id": roomID})
+	
+	if err != nil {
+		log.Printf("[WARN] Failed to query room %s: %v, using fallback", roomID.Hex(), err)
+		// Return fallback with just ID
+		return model.RoomInfo{
+			ID: roomID.Hex(),
+		}, nil
+	}
+	
+	if len(result.Data) == 0 {
+		log.Printf("[WARN] Room %s not found in database, using fallback", roomID.Hex())
+		return model.RoomInfo{
+			ID: roomID.Hex(),
+		}, nil
+	}
+
+	room := result.Data[0]
+	
+	log.Printf("[DEBUG] Successfully retrieved room: ID=%s, Name.Th='%s', Name.En='%s', Image='%s'", 
+		room.ID.Hex(), room.Name.Th, room.Name.En, room.Image)
+
+	return model.RoomInfo{
+		ID:    room.ID.Hex(),
+		Name:  room.Name,
+		Image: room.Image,
+	}, nil
 }

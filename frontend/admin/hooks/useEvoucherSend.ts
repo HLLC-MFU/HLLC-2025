@@ -80,8 +80,8 @@ export function useEvoucherSend(roomId: string | null) {
             
             setEvoucherData({
                 message: {
-                    th: evoucher.detail?.th || `รับส่วนลด ${evoucher.amount} บาท`,
-                    en: evoucher.detail?.en || `Get ${evoucher.amount} THB discount`
+                    th: evoucher.name?.th || `รับส่วนลด ${evoucher.amount} บาท`,
+                    en: evoucher.name?.en || `Get ${evoucher.amount} THB discount`
                 },
                 claimUrl: claimURL,
                 sponsorImage: sponsorImage

@@ -1,15 +1,14 @@
 "use client";
 
-import type { Room, RoomType, RoomSchedule } from "@/types/room";
+import type { Room, RoomType } from "@/types/room";
 import type { User } from "@/types/user";
 
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
 import { useState, useEffect, FormEvent } from "react";
 import { InfinityIcon } from "lucide-react";
 
-import { ImagePreview } from "./ImagePreview";
+
 import { RoomMembersSelector } from "./RoomMembersSelector";
-import { RoomScheduleSelector } from "./RoomScheduleSelector";
 
 import { useSchools } from "@/hooks/useSchool";
 import { useMajors } from "@/hooks/useMajor";
@@ -37,7 +36,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
     const [selectedMembers, setSelectedMembers] = useState<User[]>([]);
     const [image, setImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [schedule, setSchedule] = useState<RoomSchedule | null>(null);
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         if (isOpen && room) {
@@ -48,9 +47,20 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
             setCapacity(room.capacity.toString());
             setSelectedSchool(room.metadata?.groupType === "school" ? room.metadata.groupValue || "" : "");
             setSelectedMajor(room.metadata?.groupType === "major" ? room.metadata.groupValue || "" : "");
-            setSchedule(room.schedule || null);
             setSelectedMembers([]);
+            
+            // แก้ไขปัญหารูปภาพ - ใช้ URL ที่ถูกต้อง
+            if (room.image) {
+                const imageUrl = `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${room.image}`;
+                setImagePreview(imageUrl);
+                setImage(null); // ไม่ต้อง set file เพราะเป็น URL
+            } else {
+                setImagePreview(null);
+                setImage(null);
+            }
+            setImageError(false);
         } else {
+            // Reset ทุกอย่างเมื่อเปิด modal ใหม่
             setNameEn("");
             setNameTh("");
             setStatus("active");
@@ -60,7 +70,8 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
             setSelectedMembers([]);
             setImage(null);
             setImagePreview(null);
-            setSchedule(null);
+            setImageError(false);
+            
             // set type ตาม roomType เฉพาะตอน add
             if (roomType === "normal" || roomType === "readonly") {
                 setType(roomType);
@@ -113,11 +124,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
 
         if (image) {
             formData.append("image", image);
-        }
-        
-        if (schedule && (schedule.startAt || schedule.endAt)) {
-            if (schedule.startAt) formData.append("scheduleStartAt", schedule.startAt);
-            if (schedule.endAt) formData.append("scheduleEndAt", schedule.endAt);
         }
         
         onSuccess(formData, mode);
@@ -236,24 +242,70 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                                 setSelectedMembers={setSelectedMembers}
                             />
 
-                            <Input 
-                                accept="image/*" 
-                                label="Room Image (Optional)" 
-                                type="file" 
-                                onChange={handleImageChange} 
-                            />
-                            
-                            {imagePreview && (
-                                <ImagePreview 
-                                    imagePreview={imagePreview} 
-                                    onRemove={() => { setImage(null); setImagePreview(null); }} 
-                                />
-                            )}
+                            {/* Enhanced Image Upload Section */}
+                            <div className="space-y-4">
+                                <label className="text-sm font-medium text-gray-700">Room Image (Optional)</label>
+                                
+                                <div className="flex items-start gap-6">
+                                    {/* Current Image Preview */}
+                                    <div className="flex-shrink-0">
+                                        <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 overflow-hidden bg-gray-50 flex items-center justify-center">
+                                            {imagePreview ? (
+                                                <img
+                                                    src={imagePreview}
+                                                    alt="Room preview"
+                                                    className="w-full h-full object-cover"
+                                                    onError={() => setImageError(true)}
+                                                />
+                                            ) : (
+                                                <div className="text-center">
+                                                    <div className="w-8 h-8 mx-auto mb-1 text-gray-400">
+                                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500">No image</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
 
-                            <RoomScheduleSelector
-                                schedule={schedule}
-                                onChange={setSchedule}
-                            />
+                                    {/* Upload Controls */}
+                                    <div className="flex-1 space-y-3">
+                                        <Input 
+                                            accept="image/*" 
+                                            label="Choose new image" 
+                                            type="file" 
+                                            onChange={handleImageChange}
+                                            classNames={{
+                                                label: "text-sm font-medium",
+                                                inputWrapper: "border-gray-200 hover:border-gray-300"
+                                            }}
+                                        />
+                                        
+                                        {imagePreview && (
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    color="danger"
+                                                    variant="flat"
+                                                    onPress={() => { 
+                                                        setImage(null); 
+                                                        setImagePreview(null); 
+                                                        setImageError(false);
+                                                    }}
+                                                >
+                                                    Remove Image
+                                                </Button>
+                                            </div>
+                                        )}
+                                        
+                                        <p className="text-xs text-gray-500">
+                                            Recommended: Square image, max 2MB. Supports JPG, PNG, GIF.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </ModalBody>
 

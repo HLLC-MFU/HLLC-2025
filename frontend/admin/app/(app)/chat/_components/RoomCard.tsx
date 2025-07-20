@@ -10,7 +10,6 @@ import {
     DropdownItem, 
     Image,
     Switch,
-    Chip,
     Divider
 } from "@heroui/react";
 import { 
@@ -21,8 +20,7 @@ import {
     Trash2, 
     Users, 
     CheckCircle, 
-    XCircle,
-    CalendarClock
+    XCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -69,79 +67,30 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
         return `https://ui-avatars.com/api/?name=${room.name.en.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=56`;
     };
 
-    /**
-     * Format date for display
-     */
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    };
 
-    /**
-     * Format time for display
-     */
-    const formatTime = (dateString: string) => {
-        return new Date(dateString).toLocaleTimeString('en-US', {
-            hour: "2-digit",
-            minute: "2-digit"
-        });
-    };
-
-    const hasSchedule = room.schedule && (room.schedule.startAt || room.schedule.endAt);
 
     return (
-        <Card className="h-full min-h-[200px]">
-            <CardBody className="p-6">
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-4 flex-1">
+        <Card className="w-full h-full">
+            <CardBody className="p-3 md:p-4 lg:p-5">
+                {/* Header Section */}
+                <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                         <Image
                             alt={room.name.en}
-                            className="w-14 h-14 object-cover rounded-xl"
+                            className="w-10 h-10 md:w-12 md:h-12 object-cover rounded-lg flex-shrink-0"
                             src={getRoomImageUrl()}
                             onError={() => setImageError(true)}
                         />
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-semibold text-base truncate">{room.name.en}</h3>
-                                {/* Enhanced Status Badge */}
-                                <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                                    room.status === 'active' 
-                                        ? 'bg-green-100 text-green-700 border border-green-200' 
-                                        : 'bg-red-100 text-red-700 border border-red-200'
-                                }`}>
-                                    <div className={`w-1.5 h-1.5 rounded-full ${
-                                        room.status === 'active' ? 'bg-green-500' : 'bg-red-500'
-                                    }`}></div>
-                                    {room.status === 'active' ? 'Active' : 'Inactive'}
-                                </div>
-                            </div>
-                            <p className="text-sm text-gray-500 truncate mb-2">{room.name.th}</p>
-                            
-                            {hasSchedule && (
-                                <Chip 
-                                    color="primary" 
-                                    size="sm" 
-                                    startContent={<CalendarClock className="w-3 h-3" />}
-                                    variant="flat"
-                                    className="font-medium px-3 py-1"
-                                    classNames={{
-                                        content: "text-center px-1"
-                                    }}
-                                >
-                                    Scheduled
-                                </Chip>
-                            )}
+                            <h3 className="font-semibold text-sm md:text-base truncate mb-1">{room.name.en}</h3>
+                            <p className="text-xs md:text-sm text-gray-500 truncate">{room.name.th}</p>
                         </div>
                     </div>
 
                     <Dropdown>
                         <DropdownTrigger>
-                            <Button isIconOnly size="sm" variant="light">
-                                <EllipsisVertical size={16} />
+                            <Button isIconOnly size="sm" variant="light" className="flex-shrink-0">
+                                <EllipsisVertical size={14} />
                             </Button>
                         </DropdownTrigger>
                         <DropdownMenu>
@@ -170,63 +119,56 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                     </Dropdown>
                 </div>
 
-                {/* Schedule Information */}
-                {hasSchedule && (
-                    <div className="mt-3 px-3 py-2 bg-gray-50 rounded text-xs">
-                        {room.schedule?.startAt && room.schedule?.endAt ? (
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">
-                                    <span className="font-medium">Start:</span> {formatDate(room.schedule.startAt)} {formatTime(room.schedule.startAt)}
-                                </span>
-                                <span className="text-gray-600">
-                                    <span className="font-medium">End:</span> {formatDate(room.schedule.endAt)} {formatTime(room.schedule.endAt)}
-                                </span>
-                            </div>
-                        ) : room.schedule?.startAt ? (
-                            <span className="text-gray-600">
-                                <span className="font-medium">Start:</span> {formatDate(room.schedule.startAt)} {formatTime(room.schedule.startAt)}
-                            </span>
-                        ) : room.schedule?.endAt ? (
-                            <span className="text-gray-600">
-                                <span className="font-medium">End:</span> {formatDate(room.schedule.endAt)} {formatTime(room.schedule.endAt)}
-                            </span>
-                        ) : null}
+                {/* Status Badge */}
+                <div className="mb-3">
+                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                        room.status === 'active' 
+                            ? 'bg-green-100 text-green-700 border border-green-200' 
+                            : 'bg-red-100 text-red-700 border border-red-200'
+                    }`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${
+                            room.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+                        }`}></div>
+                        {room.status === 'active' ? 'Active' : 'Inactive'}
                     </div>
-                )}
+                </div>
 
-                <Divider className="my-4" />
+                <Divider className="my-3" />
                 
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <div className="flex items-center gap-1">
-                            <Building2 size={14} />
-                            <span>Capacity: {room.capacity === 0 ? "Unlimited" : room.capacity}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <Users size={14} />
-                            <span>Members: {room.memberCount || 0}</span>
-                        </div>
+                {/* Stats Section */}
+                <div className="space-y-2 mb-4">
+                    <div className="flex items-center gap-1 text-xs md:text-sm text-gray-600">
+                        <Building2 size={12} />
+                        <span className="font-medium">Capacity:</span>
+                        <span>{room.capacity === 0 ? "Unlimited" : room.capacity}</span>
                     </div>
+                    <div className="flex items-center gap-1 text-xs md:text-sm text-gray-600">
+                        <Users size={12} />
+                        <span className="font-medium">Members:</span>
+                        <span>{room.memberCount || 0}</span>
+                    </div>
+                </div>
 
-                    <div className="flex items-center gap-2">
-                        {onToggleStatus && (
-                            <Switch
-                                size="sm"
-                                isSelected={room.status === "active"}
-                                isDisabled={isToggling}
-                                onValueChange={handleToggleStatus}
-                            />
-                        )}
-                        <Button 
-                            size="sm" 
-                            color="primary"
-                            variant="flat"
-                            startContent={<Eye size={14} />}
-                            onPress={() => router.push(`/chat/${room._id}`)}
-                        >
-                            View
-                        </Button>
-                    </div>
+                {/* Actions Section */}
+                <div className="flex items-center justify-between gap-2">
+                    {onToggleStatus && (
+                        <Switch
+                            size="sm"
+                            isSelected={room.status === "active"}
+                            isDisabled={isToggling}
+                            onValueChange={handleToggleStatus}
+                        />
+                    )}
+                    <Button 
+                        size="sm" 
+                        color="primary"
+                        variant="flat"
+                        startContent={<Eye size={12} />}
+                        onPress={() => router.push(`/chat/${room._id}`)}
+                        className="flex-1 max-w-[80px]"
+                    >
+                        View
+                    </Button>
                 </div>
             </CardBody>
         </Card>
