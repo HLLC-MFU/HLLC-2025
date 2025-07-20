@@ -5,9 +5,10 @@ import { CustomFinderTracker } from './CustomOutline';
 type QrCodeScannerProps = {
   selectedActivityId: string[];
   onCheckin: (studentId: string, selectedActivityId: string[]) => Promise<void>;
+  sound: boolean;
 };
 
-export function QrCodeScanner({ selectedActivityId, onCheckin }: QrCodeScannerProps) {
+export function QrCodeScanner({ selectedActivityId, onCheckin, sound }: QrCodeScannerProps) {
   const isProcessingRef = useRef(false);
   const selectedActivityIdRef = useRef<string[]>(selectedActivityId);
 
@@ -64,7 +65,7 @@ export function QrCodeScanner({ selectedActivityId, onCheckin }: QrCodeScannerPr
           container: { width: '400px', height: '400px' },
         }}
         allowMultiple={true}
-        sound={false}
+        sound={sound}
       />
     </div>
   );
