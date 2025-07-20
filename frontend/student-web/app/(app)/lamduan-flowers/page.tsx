@@ -19,8 +19,10 @@ import SelectPhotoModal from './_components/SelectPhotoModal';
 import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import { useProfile } from '@/hooks/useProfile';
 import { StatusModal } from './_components/StatusModal';
+import { useRouter } from 'next/navigation';
 
 export default function LamduanOrigamiPage() {
+    const router = useRouter();
     const { user, fetchUser } = useProfile();
 
     const {
@@ -89,7 +91,7 @@ export default function LamduanOrigamiPage() {
     }, [comment, image, imagePreview, hasSubmitted]);
 
     const handleSubmit = async () => {
-        if (!user?._id || !lamduanSetting?.[0]?._id) 
+        if (!user?._id || !lamduanSetting?.[0]?._id)
             return addToast({ title: 'Server error, please contact admin.', color: 'danger' });
         if (!image && !imagePreview)
             return addToast({ title: 'Please select an image.', color: 'danger' });
@@ -123,15 +125,20 @@ export default function LamduanOrigamiPage() {
     };
 
     return (
-        <ScrollShadow className="w-full h-full px-4">
+        <ScrollShadow className="w-full h-full">
+            <Button
+                onPress={() => router.replace('/')}
+                className="bg-black/10 border rounded-full text-white"
+            >
+                Back
+            </Button>
             <BannerImage />
-
             <div className="grid grid-row-2 gap-4">
                 <Card className="bg-black/40 border border-white/20 backdrop-blur-lg rounded-2xl shadow-xl">
                     <CardBody className="space-y-4">
                         <h1 className="text-xl font-semibold text-white">Lamduan Flower</h1>
                         <p className="text-white/80 text-sm">
-                             {lamduanSetting[0]?.description?.en || 'Loading...'}
+                            {lamduanSetting[0]?.description?.en || 'Loading...'}
                         </p>
                         <MediaCard />
                     </CardBody>
@@ -186,7 +193,7 @@ export default function LamduanOrigamiPage() {
                             <Button
                                 color="primary"
                                 onPress={() => setConfirmOpen(true)}
-                                isDisabled={ loading || (!comment && !image && !imagePreview) || (hasSubmitted && !isChanged) || activityStatus !== 'active'}
+                                isDisabled={loading || (!comment && !image && !imagePreview) || (hasSubmitted && !isChanged) || activityStatus !== 'active'}
                             >
                                 {loading ? <Spinner size="sm" /> : hasSubmitted ? 'Save' : 'Submit'}
                             </Button>

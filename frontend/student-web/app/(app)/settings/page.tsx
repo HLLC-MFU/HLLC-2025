@@ -10,19 +10,18 @@ export default function SettingsPage() {
     const router = useRouter();
 
     return (
-        // Fix later, Rush for 
         <div className="flex flex-col items-center justify-center fixed inset-0 w-full h-full gap-6 text-white bg-black/20">
             <p className="text-[24px] font-semibold">Settings</p>
             <GlassButton>
-                <Image src={'/images/uk.png'} width={24}/>
+                <Image src={'/images/uk.png'} width={24} />
                 <p>English</p>
             </GlassButton>
-            <GlassButton>
+            <GlassButton onClick={() => router.replace('/logout')}>
                 <LogOut />
                 <p>Logout</p>
             </GlassButton>
-            <GlassButton onClick={() => router.replace('/')}>
-                <p>Back to Home</p>
+            <GlassButton onClick={() => router.replace('/profile')}>
+                Back
             </GlassButton>
         </div>
     )

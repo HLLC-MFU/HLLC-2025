@@ -31,7 +31,7 @@ export default function ProgressBar({
   }, [avatarUrl]);
 
   return (
-    <div className="relative w-48 md:w-[16rem] lg:w-[24rem] max-w-full mx-4 mt-6 flex items-center gap-2">
+    <div className="relative w-48 md:w-[16rem] lg:w-[24rem] max-w-full flex items-center gap-2">
       {/* Avatar Circle */}
       <button
         className="relative z-10 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-2 border-gray-500/50 bg-gray-300/30 backdrop-blur-md overflow-hidden shadow-md flex items-center justify-center"
@@ -63,10 +63,7 @@ export default function ProgressBar({
 
         {/* Percentage Bubble */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm md:text-base w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 pointer-events-none transition-all duration-300"
-          style={{
-            left: `calc(max(0.5rem, min(${percentage}%, 100% - 3.5rem)))`,
-          }}
+          className="absolute top-1/2 right-0 -translate-y-1/2 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm md:text-base w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 pointer-events-none transition-all duration-300"
         >
           {percentage}%
         </div>

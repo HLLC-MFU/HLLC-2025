@@ -72,18 +72,20 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
         isOpen={isOpen}
         onClose={onClose}
         placement="center"
-        className="flex items-center justify-center bg-black/40 backdrop-blur-sm z-50"
+        className="flex items-center justify-center bg-black/40 z-50"
+        hideCloseButton
       >
-        <ModalContent className="w-[350px] py-6 bg-white/20 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl">
-          <ModalBody className="space-y-6">
+        <ModalContent className="w-[350px] py-6 bg-white/10 backdrop-blur-md border border-white/60 rounded-3xl shadow-2xl">
+          <ModalBody className="w-full space-y-6">
             <div className="flex flex-col items-center gap-2">
               <AlertTriangle className="w-12 h-12 text-red-500" />
-              <h2 className="text-2xl font-semibold text-black/80">Report</h2>
+              <h2 className="text-2xl font-semibold text-white">Report</h2>
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium text-black/70">Topic</label>
+              <label className="text-sm font-medium text-white">Topic</label>
               <Select
+                aria-label="Choose Topic"
                 selectedKeys={selectedTopic ? [selectedTopic] : []}
                 placeholder="Choose Topic"
                 isDisabled={loading}
@@ -98,14 +100,14 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium text-black/70">Description</label>
+              <label className="text-sm font-medium text-white">Description</label>
               <Textarea
                 placeholder="Description"
                 value={description}
                 maxLength={DESCRIPTION_LIMIT}
                 onChange={(e) => setDescription(e.target.value)}
               />
-              <p className="text-sm text-right text-black/50">
+              <p className="text-sm text-right text-white/50">
                 {description.length}/{DESCRIPTION_LIMIT}
               </p>
             </div>
@@ -113,16 +115,16 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
             <div className="grid grid-cols-2 gap-10 pt-2">
               <Button
                 onPress={handleClose}
-                className="w-full py-2 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-full"
+                className="w-full py-2 bg-danger hover:bg-gray-600 text-white font-bold rounded-full"
               >
-                CLOSE
+                Cancel
               </Button>
               <Button
                 onPress={handleSubmit}
                 disabled={!selectedTopic || !description.trim() || loading}
-                className="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-full transition-opacity duration-300 disabled:opacity-50 disabled:pointer-events-none"
+                className="w-full py-2 bg-primary hover:bg-blue-600 text-white font-bold rounded-full transition-opacity duration-300 disabled:opacity-50 disabled:pointer-events-none"
               >
-                {loading ? <Spinner size="sm" /> : 'CONFIRM'}
+                {loading ? <Spinner size="sm" /> : 'Confirm'}
               </Button>
             </div>
           </ModalBody>
