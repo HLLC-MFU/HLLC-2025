@@ -1,14 +1,20 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { CustomFinderTracker } from './CustomOutline';
 
 type QrCodeScannerProps = {
   selectedActivityId: string[];
-  onCheckin: (studentId: string) => Promise<void>;
+  onCheckin: (studentId: string, selectedActivityId: string[]) => Promise<void>;
 };
 
 export function QrCodeScanner({ selectedActivityId, onCheckin }: QrCodeScannerProps) {
   const isProcessingRef = useRef(false);
+  const selectedActivityIdRef = useRef<string[]>(selectedActivityId);
+
+  // Sync ref with latest prop
+  useEffect(() => {
+    selectedActivityIdRef.current = selectedActivityId;
+  }, [selectedActivityId]);
 
   const handleScan = async (detectedCodes: any[]) => {
     if (!detectedCodes || detectedCodes.length === 0) return;
@@ -27,8 +33,8 @@ export function QrCodeScanner({ selectedActivityId, onCheckin }: QrCodeScannerPr
     isProcessingRef.current = true;
 
     try {
-      await onCheckin(studentId);
-    } catch {
+      await onCheckin(studentId, selectedActivityIdRef.current);
+    } catch (err) {
       return;
     } finally {
       setTimeout(() => {

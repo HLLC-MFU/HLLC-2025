@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { QrCodeScanner } from './_components/QrCodeScanner';
 import Selectdropdown from './_components/SelectDropdown';
 import { PageHeader } from '@/components/ui/page-header';
@@ -15,12 +15,16 @@ export default function CheckinPage() {
   const { activities } = useActivities({ autoFetch: true, useCanCheckin: true });
   const [activeTab, setActiveTab] = useState<'scan' | 'typing'>('scan');
   const [studentId, setStudentId] = useState('');
-  const { createCheckin } = useCheckin();
+  const { createCheckin } = useCheckin(null);
 
-const handleSubmit = async (id?: string) => {
+  useEffect(() => {
+  }, [selectedActivityId]);
+
+const handleSubmit = async (id?: string, activityIds?: string[]) => {
   const sid = id ?? studentId;
+  const activitiesToSend = activityIds ?? selectedActivityId;
 
-  if (selectedActivityId.length === 0) {
+  if (activitiesToSend.length === 0) {
     return addToast({
       title: 'No select Activities',
       description: 'Please select activities before checkin.',
@@ -30,7 +34,7 @@ const handleSubmit = async (id?: string) => {
 
   const result = await createCheckin({
     user: sid,
-    activities: selectedActivityId,
+    activities: activitiesToSend, // Always send as array
   });
 
   if (result) {
@@ -72,7 +76,7 @@ const handleSubmit = async (id?: string) => {
         {activeTab === 'scan' ? (
           <QrCodeScanner
             selectedActivityId={selectedActivityId}
-            onCheckin={handleSubmit}
+            onCheckin={(studentId, selectedActivityId) => handleSubmit(studentId, selectedActivityId)}
           />
         ) : (
           <Input
