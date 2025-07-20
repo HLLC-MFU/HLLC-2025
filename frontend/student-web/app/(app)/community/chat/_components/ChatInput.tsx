@@ -285,11 +285,11 @@ const ChatInput = ({
 
         {isDisabled && (
           <div className="text-xs text-red-500 dark:text-red-400 font-medium bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded-full shadow-sm">
-            {!isConnected ? 'การเชื่อมต่อมีปัญหา' : 
-             !isMember ? 'กรุณาเข้าร่วมกลุ่มก่อน' : 
-             isInactiveRoom ? 'ห้องไม่เปิดใช้งาน' : 
-             isReadOnlyRoom && !isAdministrator ? 'ห้องอ่านอย่างเดียว' : 
-             'ไม่สามารถส่งข้อความได้'}
+            {!isConnected ? 'Connection problem' : 
+             !isMember ? 'Please join the group first' : 
+             isInactiveRoom ? 'Room is inactive' : 
+             isReadOnlyRoom && !isAdministrator ? 'Read only' : 
+             'Cannot send message'}
           </div>
         )}
       </div>
