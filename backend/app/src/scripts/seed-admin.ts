@@ -65,7 +65,7 @@ const config = {
       last: 'Administrator',
     },
     username: 'admin',
-    password: 'password123',
+    password: 'user1234',
     roleName: 'Administrator',
     permissions: createPermissions(),
   },
