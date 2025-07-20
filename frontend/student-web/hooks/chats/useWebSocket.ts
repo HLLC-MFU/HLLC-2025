@@ -76,7 +76,8 @@ function onMessage(event: MessageEvent, args: any) {
       'ping',
       'pong',
       'heartbeat',
-      'system_notification'
+      'system_notification',
+      'user_kicked' // Block user_kicked messages from showing in chat
     ];
 
     if (systemMessageTypes.includes(data.type) || systemMessageTypes.includes(data.eventType)) {
@@ -100,6 +101,41 @@ function onMessage(event: MessageEvent, args: any) {
       }
       return;
     }
+
+    // Handle restriction events FIRST (ban, unban, mute, unmute, kick)
+    const restrictionTypes = ['restriction_ban', 'restriction_unban', 'restriction_mute', 'restriction_unmute', 'restriction_kick'];
+    if (restrictionTypes.includes(data.type)) {
+      debugLog('[onMessage] Processing restriction event:', data);
+      
+      // Extract data from payload
+      const user = data.payload?.user || { username: 'Unknown User' };
+      const message = data.payload?.message || {};
+      const restrictionText = message.message || data.payload?.message?.message || '';
+      
+      // Map restriction types to display types
+      let actionType = data.type.replace('restriction_', ''); // ban, unban, mute, unmute, kick
+      
+      const restrictionMessage = {
+        id: generateUniqueMessageId('restriction'),
+        type: 'restriction',
+        subType: actionType, // ban, unban, mute, unmute, kick
+        user: user,
+        timestamp: data.payload?.timestamp || data.timestamp || new Date().toISOString(),
+        text: restrictionText,
+        username: user.username || 'Unknown User',
+        restrictionData: {
+          action: actionType,
+          restriction: data.payload?.restriction,
+          room: data.payload?.room
+        }
+      };
+
+      const newMessage = require('@/hooks/chats/messageUtils').createMessage(restrictionMessage, false);
+      debugLog('[onMessage] Adding restriction message:', newMessage);
+      if (newMessage) addMessage(newMessage);
+      return;
+    }
+
     // --- FIX: Properly distinguish sticker messages ---
     if (data.type && data.payload) {
       let msg;
@@ -267,6 +303,8 @@ function onMessage(event: MessageEvent, args: any) {
       if (newMessage) addMessage(newMessage);
       return;
     }
+
+
 
     // Handle history event
     if (data.eventType === 'history') {

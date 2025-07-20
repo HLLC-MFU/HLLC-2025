@@ -4,7 +4,7 @@ export interface Message {
   id?: string;
   text?: string;
   user?: User;
-  type: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention' | 'evoucher';
+  type: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention' | 'evoucher' | 'restriction';
   timestamp: string;
   isRead: boolean;
   isTemp?: boolean;
@@ -39,6 +39,13 @@ export interface Message {
     };
     claimUrl: string;
     sponsorImage?: string;
+  };
+  // Restriction message fields
+  subType?: string; // ban, unban, mute, unmute, kick
+  restrictionData?: {
+    action: string;
+    restriction?: any;
+    room?: any;
   };
   // Add payload field for WebSocket messages that contain additional data
   payload?: {

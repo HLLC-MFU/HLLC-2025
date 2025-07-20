@@ -73,6 +73,18 @@ export function createMessage(data: any, isHistory = false): Message {
     };
   }
 
+  // Handle restriction system messages
+  if (data.type === 'restriction') {
+    return {
+      ...baseMessage,
+      type: 'restriction' as const,
+      subType: data.subType, // ban, unban, mute, unmute, kick
+      text: data.text || '',
+      username: data.username || data.user?.username || '',
+      restrictionData: data.restrictionData || {}
+    };
+  }
+
   // ถ้า data เป็น string ให้สร้าง message ปกติ
   if (typeof data === 'string') {
     return {

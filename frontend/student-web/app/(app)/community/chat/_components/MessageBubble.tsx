@@ -31,6 +31,11 @@ const MessageBubble = memo(({
   const [claiming, setClaiming] = useState<{ [id: string]: boolean }>({});
   const [showUnsendButton, setShowUnsendButton] = useState(false);
   const [showClaimDialog, setShowClaimDialog] = useState(false);
+
+  // Debug showClaimDialog state changes
+  useEffect(() => {
+    console.log('[DEBUG] showClaimDialog state changed:', showClaimDialog);
+  }, [showClaimDialog]);
   const [claimDialogMessage, setClaimDialogMessage] = useState('');
   const [claimDialogType, setClaimDialogType] = useState<'success' | 'error' | 'info'>('info');
   const [showMysteryValues, setShowMysteryValues] = useState(false);
@@ -179,6 +184,85 @@ const MessageBubble = memo(({
                 <span className="font-semibold">{userName}</span>
                 <br />
                 <span className="text-xs opacity-75">{actionText}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Handle restriction system messages (ban, unban, mute, unmute, kick)
+    if (message.type === 'restriction') {
+      const action = message.subType || 'action';
+      const restrictionText = message.text || '';
+      
+      // Define colors and emojis for different restriction types
+      const getRestrictionStyle = (action: string) => {
+        switch (action) {
+          case 'ban':
+            return {
+              emoji: '🚫',
+              bgColor: 'bg-red-50/80 dark:bg-red-900/20',
+              borderColor: 'border-red-200/50 dark:border-red-700/30',
+              textColor: 'text-red-700 dark:text-red-300',
+              iconBg: 'bg-red-100 dark:bg-red-800'
+            };
+          case 'unban':
+            return {
+              emoji: '✅',
+              bgColor: 'bg-green-50/80 dark:bg-green-900/20',
+              borderColor: 'border-green-200/50 dark:border-green-700/30',
+              textColor: 'text-green-700 dark:text-green-300',
+              iconBg: 'bg-green-100 dark:bg-green-800'
+            };
+          case 'mute':
+            return {
+              emoji: '🔇',
+              bgColor: 'bg-orange-50/80 dark:bg-orange-900/20',
+              borderColor: 'border-orange-200/50 dark:border-orange-700/30',
+              textColor: 'text-orange-700 dark:text-orange-300',
+              iconBg: 'bg-orange-100 dark:bg-orange-800'
+            };
+          case 'unmute':
+            return {
+              emoji: '🔊',
+              bgColor: 'bg-blue-50/80 dark:bg-blue-900/20',
+              borderColor: 'border-blue-200/50 dark:border-blue-700/30',
+              textColor: 'text-blue-700 dark:text-blue-300',
+              iconBg: 'bg-blue-100 dark:bg-blue-800'
+            };
+          case 'kick':
+            return {
+              emoji: '👢',
+              bgColor: 'bg-purple-50/80 dark:bg-purple-900/20',
+              borderColor: 'border-purple-200/50 dark:border-purple-700/30',
+              textColor: 'text-purple-700 dark:text-purple-300',
+              iconBg: 'bg-purple-100 dark:bg-purple-800'
+            };
+          default:
+            return {
+              emoji: '⚠️',
+              bgColor: 'bg-gray-50/80 dark:bg-gray-800/20',
+              borderColor: 'border-gray-200/50 dark:border-gray-700/30',
+              textColor: 'text-gray-600 dark:text-gray-300',
+              iconBg: 'bg-gray-100 dark:bg-gray-700'
+            };
+        }
+      };
+
+      const style = getRestrictionStyle(action);
+      
+      return (
+        <div className={`${style.bgColor} backdrop-blur-sm rounded-2xl border ${style.borderColor} shadow-sm w-full max-w-md p-4`}>
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0">
+              <div className={`w-10 h-10 rounded-full ${style.iconBg} flex items-center justify-center`}>
+                <span className="text-xl">{style.emoji}</span>
+              </div>
+            </div>
+            <div className="flex-1">
+              <div className={`${style.textColor} font-medium text-sm leading-relaxed`}>
+                {restrictionText}
               </div>
             </div>
           </div>
@@ -552,8 +636,8 @@ const MessageBubble = memo(({
     );
   }, [enrichedReplyTo, isMyMessage, message.user, getDisplayName, currentUsername, renderWithMentions]);
 
-  // Handle join/leave messages as special bubbles - centered but with proper bubble structure
-  if (message.type === 'join' || message.type === 'leave') {
+  // Handle join/leave/restriction messages as special bubbles - centered but with proper bubble structure
+  if (message.type === 'join' || message.type === 'leave' || message.type === 'restriction') {
     return (
       <div className="w-full flex justify-center mb-3" data-message-id={message.id}>
         <div className="flex flex-col items-center">

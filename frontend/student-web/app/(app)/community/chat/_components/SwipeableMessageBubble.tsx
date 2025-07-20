@@ -33,7 +33,7 @@ const SwipeableMessageBubble: React.FC<SwipeableMessageBubbleProps> = ({
   stickers,
 }) => {
   // Check if this is a system message that shouldn't be replyable
-  const isSystemMessage = message.type === 'join' || message.type === 'leave';
+  const isSystemMessage = message.type === 'join' || message.type === 'leave' || message.type === 'restriction' || message.type === 'evoucher';
   
   return (
     <div className="relative flex items-center group">
