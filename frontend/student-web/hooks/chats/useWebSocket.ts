@@ -61,29 +61,29 @@ function onMessage(event: MessageEvent, args: any) {
   try {
     const data = JSON.parse(event.data);
     debugLog('[onMessage] Received:', data);
-    
+
     // Block system messages that shouldn't be displayed in chat
     if (data.type === 'room_status' || data.eventType === 'room_status') {
       debugLog('[onMessage] Blocking room_status message:', data);
       return; // Don't add to chat messages
     }
-    
+
     // Block other system messages
     const systemMessageTypes = [
       'room_status',
-      'user_status', 
+      'user_status',
       'connection_status',
       'ping',
       'pong',
       'heartbeat',
       'system_notification'
     ];
-    
+
     if (systemMessageTypes.includes(data.type) || systemMessageTypes.includes(data.eventType)) {
       debugLog('[onMessage] Blocking system message:', data);
       return; // Don't add to chat messages
     }
-    
+
     // Handle unsend event
     if (
       data.eventType === 'unsend' ||
@@ -166,15 +166,108 @@ function onMessage(event: MessageEvent, args: any) {
           username: user.username,
           ...extra,
         };
-        
 
-        
+
+
         const newMessage = require('@/hooks/chats/messageUtils').createMessage(messageData, true);
         debugLog(`[onMessage] Adding ${data.type} message:`, newMessage);
         if (newMessage) addMessage(newMessage);
       }
       return;
     }
+    // Handle join/leave events - backend sends proper payload structure
+    if (data.eventType === 'user_joined' || data.type === 'user_joined') {
+      debugLog('[onMessage] Processing user_joined event:', data);
+      debugLog('[onMessage] User data from payload:', data.payload?.user);
+
+      // Backend should send: { eventType: "user_joined", payload: { user: { username: "...", ... } } }
+      let user = data.payload?.user;
+      
+      // Debug what we got
+      if (user) {
+        debugLog('[onMessage] Found user in payload:', user);
+        debugLog('[onMessage] Username:', user.username);
+      } else {
+        debugLog('[onMessage] No user in payload, data structure:', Object.keys(data));
+      }
+      
+      // If no user object in payload, try to construct from available data
+      if (!user && data.userId) {
+        debugLog('[onMessage] No user object, trying to use userId:', data.userId);
+        user = { 
+          _id: data.userId, 
+          username: `User_${data.userId.slice(-4)}` // Use last 4 chars of userId as fallback
+        };
+      }
+      
+      // Final fallback
+      if (!user) {
+        debugLog('[onMessage] No user data available, using fallback');
+        user = { username: 'Unknown User' };
+      }
+
+      const joinMessage = {
+        id: generateUniqueMessageId('join'),
+        type: 'join',
+        user: user,
+        timestamp: data.payload?.timestamp || data.timestamp || new Date().toISOString(),
+        text: '',
+        username: user.username || 'Unknown User'
+      };
+
+      debugLog('[onMessage] Final join message:', joinMessage);
+      const newMessage = require('@/hooks/chats/messageUtils').createMessage(joinMessage, false);
+      debugLog('[onMessage] Adding join message:', newMessage);
+      if (newMessage) addMessage(newMessage);
+      return;
+    }
+
+    if (data.eventType === 'user_left' || data.type === 'user_left') {
+      debugLog('[onMessage] Processing user_left event:', data);
+      debugLog('[onMessage] User data from payload:', data.payload?.user);
+
+      // Backend should send: { eventType: "user_left", payload: { user: { username: "...", ... } } }
+      let user = data.payload?.user;
+      
+      // Debug what we got
+      if (user) {
+        debugLog('[onMessage] Found user in payload:', user);
+        debugLog('[onMessage] Username:', user.username);
+      } else {
+        debugLog('[onMessage] No user in payload, data structure:', Object.keys(data));
+      }
+      
+      // If no user object in payload, try to construct from available data
+      if (!user && data.userId) {
+        debugLog('[onMessage] No user object, trying to use userId:', data.userId);
+        user = { 
+          _id: data.userId, 
+          username: `User_${data.userId.slice(-4)}` // Use last 4 chars of userId as fallback
+        };
+      }
+      
+      // Final fallback
+      if (!user) {
+        debugLog('[onMessage] No user data available, using fallback');
+        user = { username: 'Unknown User' };
+      }
+
+      const leaveMessage = {
+        id: generateUniqueMessageId('leave'),
+        type: 'leave',
+        user: user,
+        timestamp: data.payload?.timestamp || data.timestamp || new Date().toISOString(),
+        text: '',
+        username: user.username || 'Unknown User'
+      };
+
+      debugLog('[onMessage] Final leave message:', leaveMessage);
+      const newMessage = require('@/hooks/chats/messageUtils').createMessage(leaveMessage, false);
+      debugLog('[onMessage] Adding leave message:', newMessage);
+      if (newMessage) addMessage(newMessage);
+      return;
+    }
+
     // Handle history event
     if (data.eventType === 'history') {
       const messageData = data.payload;
@@ -233,14 +326,14 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
 
   const addMessage = useCallback((message: Message | null) => {
     if (!message) return;
-    
+
     // Generate a more unique ID if not present
     if (!message.id) {
       message.id = generateUniqueMessageId();
     }
-    
 
-    
+
+
     setState(prev => {
       const messageId = message.id || '';
       if (!messageId) return prev;
@@ -251,12 +344,12 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         if (msg.id === messageId) {
           return true;
         }
-        
+
         // Second check: if both messages have IDs but they're different, they're not duplicates
         if (msg.id && messageId && msg.id !== messageId) {
           return false;
         }
-        
+
         // Third check: only compare content for temporary messages within a very short time window
         // This prevents blocking real messages that might have similar content
         if (message.isTemp && msg.isTemp) {
@@ -272,14 +365,14 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
             }
           }
         }
-        
+
         // Fourth check: for non-temp messages, only block if they have the exact same ID
         // This allows similar content messages to be sent
         if (!message.isTemp && !msg.isTemp) {
           // Only block if they have the same ID, not based on content
           return false;
         }
-        
+
         return false;
       });
 
@@ -321,19 +414,19 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         isTemp: message.isTemp,
         totalMessages: newMessages.length
       });
-      
+
       return { ...prev, messages: newMessages };
     });
   }, []);
 
   const connect = useCallback(async (roomIdParam?: string) => {
     const rid = roomIdParam || roomId || '';
-    debugLog('[WebSocket] Attempting to connect...', { 
+    debugLog('[WebSocket] Attempting to connect...', {
       roomId: rid,
       isConnecting: connectionState.current.isConnecting,
       hasExistingConnection: !!(wsRef.current && wsRef.current.readyState === WebSocket.OPEN)
     });
-    
+
     if (!rid) {
       warnLog('[WebSocket] No roomId provided, cannot connect');
       updateState({ error: 'No roomId provided' });
@@ -375,7 +468,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       const wsUrl = getWebSocketUrl(rid, token);
       debugLog('Connecting to WebSocket URL:', wsUrl);
       if (wsRef.current) {
-        try { wsRef.current.close(); } catch {}
+        try { wsRef.current.close(); } catch { }
       }
       const socket: any = new WebSocket(wsUrl);
       wsRef.current = socket; // <-- set wsRef
@@ -418,12 +511,12 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       socket.onerror = (error: Event) => {
         // Don't log the error object directly as it may contain circular references
         warnLog('WebSocket connection error occurred - this is normal during connection attempts');
-        
+
         // Only update error state if we're not in a reconnection attempt
         if (!connectionState.current.isConnecting) {
           updateState({ error: 'WebSocket connection error' });
         }
-        
+
         // Don't trigger immediate reconnection on error - let onclose handle it
         debugLog('[WebSocket] Error event details:', {
           type: error.type,
@@ -445,7 +538,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
   const disconnect = useCallback(() => {
     debugLog('Disconnect called');
     if (wsRef.current) {
-      try { wsRef.current.close(); } catch {}
+      try { wsRef.current.close(); } catch { }
       wsRef.current = null;
     }
     updateConnectionState({ hasAttemptedConnection: false });
@@ -507,7 +600,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
   useEffect(() => {
     const accessToken = getToken('accessToken');
     debugLog('useEffect [roomId, accessToken] called', { roomId, accessToken });
-    
+
     // Only attempt connection if we have both roomId and token, and haven't already attempted
     if (roomId && accessToken && !connectionState.current.hasAttemptedConnection) {
       updateConnectionState({ hasAttemptedConnection: true });
@@ -525,7 +618,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         socket.onmessage = null;
         socket.onopen = null;
         if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
-          try { socket.close(1000, 'Component unmounted'); } catch {}
+          try { socket.close(1000, 'Component unmounted'); } catch { }
         }
         wsRef.current = null;
       }

@@ -63,6 +63,16 @@ export function createMessage(data: any, isHistory = false): Message {
     isTemp: false
   };
 
+  // Handle join/leave system messages
+  if (data.type === 'join' || data.type === 'leave') {
+    return {
+      ...baseMessage,
+      type: data.type as 'join' | 'leave',
+      text: data.message || data.text || '',
+      username: data.username || data.user?.username || ''
+    };
+  }
+
   // ถ้า data เป็น string ให้สร้าง message ปกติ
   if (typeof data === 'string') {
     return {

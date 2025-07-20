@@ -157,6 +157,35 @@ const MessageBubble = memo(({
 
   // In renderContent, always show sticker image for sticker messages
   const renderContent = useCallback(() => {
+    // Handle join/leave system messages as special bubbles
+    if (message.type === 'join' || message.type === 'leave') {
+      const userName = message.user?.username || message.username || 'Someone';
+      const actionText = message.type === 'join' ? 'joined the room' : 'left the room';
+      const emoji = message.type === 'join' ? '🎉' : '👋';
+      const bgColor = message.type === 'join' ? 'bg-green-50/80 dark:bg-green-900/20' : 'bg-gray-50/80 dark:bg-gray-800/20';
+      const borderColor = message.type === 'join' ? 'border-green-200/50 dark:border-green-700/30' : 'border-gray-200/50 dark:border-gray-700/30';
+      const textColor = message.type === 'join' ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-300';
+      
+      return (
+        <div className={`${bgColor} backdrop-blur-sm rounded-2xl border ${borderColor} shadow-sm w-full max-w-sm p-4`}>
+          <div className="flex items-center justify-center gap-3">
+            <div className="flex-shrink-0">
+              <div className={`w-10 h-10 rounded-full ${message.type === 'join' ? 'bg-green-100 dark:bg-green-800' : 'bg-gray-100 dark:bg-gray-700'} flex items-center justify-center`}>
+                <span className="text-xl">{emoji}</span>
+              </div>
+            </div>
+            <div className="flex-1 text-center">
+              <div className={`${textColor} font-medium text-sm`}>
+                <span className="font-semibold">{userName}</span>
+                <br />
+                <span className="text-xs opacity-75">{actionText}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     if (message.type === 'evoucher') {
       // Debug logging for evoucher message processing
       console.log('[DEBUG][MessageBubble] 🔄 Processing evoucher message:', {
@@ -522,6 +551,19 @@ const MessageBubble = memo(({
       </div>
     );
   }, [enrichedReplyTo, isMyMessage, message.user, getDisplayName, currentUsername, renderWithMentions]);
+
+  // Handle join/leave messages as special bubbles - centered but with proper bubble structure
+  if (message.type === 'join' || message.type === 'leave') {
+    return (
+      <div className="w-full flex justify-center mb-3" data-message-id={message.id}>
+        <div className="flex flex-col items-center">
+          {renderContent()}
+          {/* Date/time under bubble */}
+          <span className="text-xs font-medium text-gray-500 mt-2">{formatTime(message.timestamp)}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 

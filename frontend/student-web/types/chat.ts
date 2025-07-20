@@ -112,6 +112,16 @@ export interface RoomsResponse {
   page: number;
   rooms: ChatRoom[];
   total: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  category?: string;
+  search?: string;
 }
 
 export interface UserName {

@@ -32,6 +32,9 @@ const SwipeableMessageBubble: React.FC<SwipeableMessageBubbleProps> = ({
   onUnsend,
   stickers,
 }) => {
+  // Check if this is a system message that shouldn't be replyable
+  const isSystemMessage = message.type === 'join' || message.type === 'leave';
+  
   return (
     <div className="relative flex items-center group">
       <MessageBubble
@@ -48,37 +51,40 @@ const SwipeableMessageBubble: React.FC<SwipeableMessageBubbleProps> = ({
         onUnsend={onUnsend}
         stickers={stickers}
       />
-      <button
-        className="absolute top-1/2 -translate-y-1/2 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-1 border border-gray-200 shadow"
-        style={{ right: isMyMessage ? 'auto' : 0, left: isMyMessage ? 0 : 'auto' }}
-        onClick={() => {
-          // Create a clean reply object with only necessary fields
-          let replyId = message.id;
-          
-          // For evoucher messages, use message._id from payload if available
-          if (message.type === 'evoucher' && message.payload?.evoucherInfo?.message?._id) {
-            replyId = message.payload.evoucherInfo.message._id;
-          }
-          
-          const cleanReplyMessage = {
-            id: replyId,
-            text: message.text,
-            type: message.type,
-            timestamp: message.timestamp,
-            user: message.user,
-            stickerId: message.stickerId,
-            fileName: message.fileName,
-            fileType: message.fileType,
-            // For evoucher messages, don't include the complex evoucherInfo object
-            // The reply preview will handle evoucher type rendering
-          };
-          onReply(cleanReplyMessage as Message);
-        }}
-        title="Reply"
-        type="button"
-      >
-        <Reply size={22} color="#0A84FF" />
-      </button>
+      {/* Only show reply button for non-system messages */}
+      {!isSystemMessage && (
+        <button
+          className="absolute top-1/2 -translate-y-1/2 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-1 border border-gray-200 shadow"
+          style={{ right: isMyMessage ? 'auto' : 0, left: isMyMessage ? 0 : 'auto' }}
+          onClick={() => {
+            // Create a clean reply object with only necessary fields
+            let replyId = message.id;
+            
+            // For evoucher messages, use message._id from payload if available
+            if (message.type === 'evoucher' && message.payload?.evoucherInfo?.message?._id) {
+              replyId = message.payload.evoucherInfo.message._id;
+            }
+            
+            const cleanReplyMessage = {
+              id: replyId,
+              text: message.text,
+              type: message.type,
+              timestamp: message.timestamp,
+              user: message.user,
+              stickerId: message.stickerId,
+              fileName: message.fileName,
+              fileType: message.fileType,
+              // For evoucher messages, don't include the complex evoucherInfo object
+              // The reply preview will handle evoucher type rendering
+            };
+            onReply(cleanReplyMessage as Message);
+          }}
+          title="Reply"
+          type="button"
+        >
+          <Reply size={22} color="#0A84FF" />
+        </button>
+      )}
     </div>
   );
 };

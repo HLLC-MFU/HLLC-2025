@@ -107,8 +107,9 @@ const MessageList = ({
   >
     {messages.map((group, groupIdx) => (
       <div key={groupIdx} className="mb-4">
-        {group.length === 1 && (group[0].type === 'join' || group[0].type === 'leave') ? (
-          <SystemMessage text={group[0].text || ''} timestamp={group[0].timestamp || ''} />
+        {/* Remove special handling for join/leave - let MessageBubble handle them */}
+        {false ? (
+          <SystemMessage text={''} timestamp={''} />
         ) : (
           <div className="mb-2">
             {group.map((message, index) => {
@@ -136,6 +137,7 @@ const MessageList = ({
                   onReplyPreviewClick={handleReplyPreviewClick}
                   currentUsername={currentUsername}
                   onUnsend={onUnsend}
+                  stickers={stickers}
                 />
               );
             })}
