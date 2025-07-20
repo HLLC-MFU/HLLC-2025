@@ -3,7 +3,6 @@ import { create } from 'zustand';
 import { apiRequest } from '@/utils/api';
 import { Activities, Progress } from '@/types/activities';
 import { NotificationItem } from '@/types/notification';
-import { getToken } from '@/utils/storage';
 
 type SseState = {
   activities: Activities[];
