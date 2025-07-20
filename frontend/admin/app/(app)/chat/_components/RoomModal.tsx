@@ -1,15 +1,19 @@
 "use client";
 
+import type { Room, RoomType, RoomSchedule } from "@/types/room";
+import type { User } from "@/types/user";
+
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
 import { useState, useEffect, FormEvent } from "react";
 import { InfinityIcon } from "lucide-react";
+
 import { ImagePreview } from "./ImagePreview";
 import { RoomMembersSelector } from "./RoomMembersSelector";
 import { RoomScheduleSelector } from "./RoomScheduleSelector";
-import type { Room, RoomType, RoomSchedule } from "@/types/room";
+
 import { useSchools } from "@/hooks/useSchool";
 import { useMajors } from "@/hooks/useMajor";
-import type { User } from "@/types/user";
+
 
 type RoomModalProps = {
     isOpen: boolean;
@@ -82,6 +86,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
         }
 
         const formData = new FormData();
+
         formData.append("name.en", nameEn.trim());
         formData.append("name.th", nameTh.trim());
         formData.append("type", type);
@@ -120,9 +125,11 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+
         if (file) {
             setImage(file);
             const reader = new FileReader();
+
             reader.onload = (e) => setImagePreview(e.target?.result as string);
             reader.readAsDataURL(file);
         }
@@ -134,7 +141,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
          (roomType === "major" && selectedMajor));
 
     return (
-        <Modal isOpen={isOpen} size="3xl" onClose={onClose} scrollBehavior="inside">
+        <Modal isDismissable={false} isOpen={isOpen} scrollBehavior="inside" size="3xl" onClose={onClose}>
             <Form onSubmit={handleSubmit}>
                 <ModalContent>
                     <ModalHeader>
@@ -144,18 +151,18 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input
+                                    isRequired
                                     label="Room Name (English)"
+                                    placeholder="Enter room name in English"
                                     value={nameEn}
                                     onValueChange={setNameEn}
-                                    placeholder="Enter room name in English"
-                                    isRequired
                                 />
                                 <Input
+                                    isRequired
                                     label="Room Name (Thai)"
+                                    placeholder="กรอกชื่อห้องเป็นภาษาไทย"
                                     value={nameTh}
                                     onValueChange={setNameTh}
-                                    placeholder="กรอกชื่อห้องเป็นภาษาไทย"
-                                    isRequired
                                 />
                             </div>
 
@@ -170,12 +177,12 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input
+                                    isRequired
                                     label="Capacity"
+                                    placeholder="0 = unlimited"
                                     type="number"
                                     value={capacity}
                                     onValueChange={setCapacity}
-                                    placeholder="0 = unlimited"
-                                    isRequired
                                 />
                                 <div className="flex items-center gap-2 text-sm text-blue-600 mt-2">
                                     <InfinityIcon className="w-5 h-5" />
@@ -197,11 +204,11 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
 
                             {roomType === "school" && (
                                 <Select 
-                                    label="Select School" 
+                                    isRequired 
                                     isLoading={schoolsLoading}
-                                    selectedKeys={selectedSchool ? [selectedSchool] : []} 
+                                    label="Select School" 
+                                    selectedKeys={selectedSchool ? [selectedSchool] : []}
                                     onSelectionChange={(keys) => setSelectedSchool(Array.from(keys)[0] as string)}
-                                    isRequired
                                 >
                                     {schools.map(school => (
                                         <SelectItem key={school._id}>{school.name.en}</SelectItem>
@@ -211,11 +218,11 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
 
                             {roomType === "major" && (
                                 <Select 
-                                    label="Select Major" 
+                                    isRequired 
                                     isLoading={majorsLoading}
-                                    selectedKeys={selectedMajor ? [selectedMajor] : []} 
+                                    label="Select Major" 
+                                    selectedKeys={selectedMajor ? [selectedMajor] : []}
                                     onSelectionChange={(keys) => setSelectedMajor(Array.from(keys)[0] as string)}
-                                    isRequired
                                 >
                                     {majors.map(major => (
                                         <SelectItem key={major._id}>{major.name.en}</SelectItem>
@@ -224,15 +231,15 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                             )}
 
                             <RoomMembersSelector 
+                                allowSelectAll={roomType !== 'school' && roomType !== 'major'} 
                                 selectedMembers={selectedMembers} 
-                                setSelectedMembers={setSelectedMembers} 
-                                allowSelectAll={roomType !== 'school' && roomType !== 'major'}
+                                setSelectedMembers={setSelectedMembers}
                             />
 
                             <Input 
+                                accept="image/*" 
                                 label="Room Image (Optional)" 
                                 type="file" 
-                                accept="image/*" 
                                 onChange={handleImageChange} 
                             />
                             
@@ -254,7 +261,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                         <Button color="danger" variant="light" onPress={onClose}>
                             Cancel
                         </Button>
-                        <Button color="primary" type="submit" isDisabled={!isFormValid} className="bg-blue-600 hover:bg-blue-700">
+                        <Button className="bg-blue-600 hover:bg-blue-700" color="primary" isDisabled={!isFormValid} type="submit">
                             {mode === "add" ? "Add" : "Save"}
                         </Button>
                     </ModalFooter>

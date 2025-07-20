@@ -18,6 +18,7 @@ import { useEvoucher } from '@/hooks/useEvoucher';
 import { useTranslation } from 'react-i18next';
 import { XStack, YStack } from 'tamagui';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { SearchInput } from '@/components/global/SearchInput';
 
 export default function EvoucherScreen() {
@@ -32,12 +33,19 @@ export default function EvoucherScreen() {
     error: sponsorsError,
     fetchSponsorsWithEvouchers,
   } = useSponsors()
-  const { fetchMyEvoucherCodes } = useEvoucher()
+  const { fetchMyEvoucherCodes, getEvoucherCodesBySponsor } = useEvoucher()
 
   useEffect(() => {
     fetchSponsorsWithEvouchers()
     fetchMyEvoucherCodes()
   }, [])
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchSponsorsWithEvouchers();
+      fetchMyEvoucherCodes();
+    }, [fetchSponsorsWithEvouchers, fetchMyEvoucherCodes])
+  );
 
   const handleSponsorCardPress = (sponsorId: string) => {
     router.push(`/evoucher/${sponsorId}`)
@@ -103,16 +111,21 @@ export default function EvoucherScreen() {
           style={{ width: '100%', height: '100%' }}
           columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 10 }}
           contentContainerStyle={{ paddingBottom: 30, paddingTop: 10 }}
-          renderItem={({ item }) => (
-            <SponsorCard
-              key={item._id}
-              imageSource={{
-                uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${item.photo.logoPhoto || ''}`,
-              }}
-              title={item.name.en}
-              onPress={() => handleSponsorCardPress(item._id)}
-            />
-          )}
+          renderItem={({ item }) => {
+            const evoucherCodes = getEvoucherCodesBySponsor(item._id);
+            const unusedCount = evoucherCodes.filter(code => code.isUsed === false).length;
+            return (
+              <SponsorCard
+                key={item._id}
+                imageSource={{
+                  uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${item.photo.logoPhoto || ''}`,
+                }}
+                title={item.name.en}
+                onPress={() => handleSponsorCardPress(item._id)}
+                evoucherCount={unusedCount}
+              />
+            );
+          }}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
