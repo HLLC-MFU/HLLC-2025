@@ -118,6 +118,10 @@ export default function useCoinHunting() {
               th: item.hint?.th || '',
               en: item.hint?.en || '',
             },
+            name: {
+              th: item.name?.th || '',
+              en: item.name?.en || '',
+            },
             mapsUrl: item.location?.mapUrl || '',
             _id: item._id,
             coinImage: item.coinImage,
@@ -170,7 +174,7 @@ export default function useCoinHunting() {
 
   // Handlers
   const handleMarkerPress = (marker: typeof markers[0]) => {
-    setState(s => ({ ...s, selectedMarker: marker, modal: 'marker-detail' }));
+    router.push(`/community/coin-hunting/marker-detail/${marker._id}`);
   };
 
   const handleCheckIn = () => {
@@ -188,6 +192,10 @@ export default function useCoinHunting() {
 
   const handleAlert = (type: "already-collected" | "no-evoucher" | "too-far" | "cooldown", remainingCooldownMs?: number) => {
     setState(s => ({ ...s, alertType: type, modal: 'alert', remainingCooldownMs }));
+    // Trigger refresh when evoucher is exhausted to update collected coins
+    if (type === 'no-evoucher') {
+      setRefreshKey(k => k + 1);
+    }
   };
 
   const closeModal = () => setState(s => ({ ...s, modal: null }));
@@ -235,5 +243,6 @@ export default function useCoinHunting() {
     handleAlert,
     closeModal,
     setState, // เผื่ออยาก set อะไรเอง
+    setRefreshKey, // สำหรับ refresh ข้อมูล
   };
 } 

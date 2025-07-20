@@ -36,15 +36,23 @@ const maxImageWidth = screenWidth - horizontalPadding;
 
 export default function LamduanOrigamiPage() {
   const { t, i18n } = useTranslation();
-  const lang = i18n.language as "th" | "en";
+  const lang = i18n.language as 'th' | 'en';
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
+  const [imageSize, setImageSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
   const [comment, setComment] = useState('');
   const [isPhotoModalVisible, setPhotoModalVisible] = useState(false);
   const { user } = useProfile();
-  const { flowers, lamduanSetting, createLamduanFlowers, updateLamduanFlowers } = useLamduanFlowers();
-  const description = lamduanSetting[0]?.description?.[lang] ?? "";
+  const {
+    flowers,
+    lamduanSetting,
+    createLamduanFlowers,
+    updateLamduanFlowers,
+  } = useLamduanFlowers();
+  const description = lamduanSetting[0]?.description?.[lang] ?? '';
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const originalRef = useRef<LamduanFlower | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -52,7 +60,9 @@ export default function LamduanOrigamiPage() {
   const toast = useToastController();
   const isFocused = useIsFocused();
   const [statusModalVisible, setStatusModalVisible] = useState(true);
-  const [activityStatus, setActivityStatus] = useState<'not-started' | 'ended' | 'active'>('active');
+  const [activityStatus, setActivityStatus] = useState<
+    'not-started' | 'ended' | 'active'
+  >('active');
   const isChanged = useMemo(() => {
     if (!hasSubmitted || !originalRef.current) return true;
 
@@ -71,7 +81,9 @@ export default function LamduanOrigamiPage() {
       setComment(found.comment);
       const photoUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/${found.photo}`;
       setImageUri(photoUrl);
-      getImageSize(photoUrl).then(setImageSize).catch(() => setImageSize(null));
+      getImageSize(photoUrl)
+        .then(setImageSize)
+        .catch(() => setImageSize(null));
       setHasSubmitted(true);
     }
   }, [flowers, user]);
@@ -96,8 +108,12 @@ export default function LamduanOrigamiPage() {
     }
   }, [lamduanSetting, isFocused]);
 
-
-  const handleSave = async (file: File, user: string, comment: string, setting: string) => {
+  const handleSave = async (
+    file: File,
+    user: string,
+    comment: string,
+    setting: string,
+  ) => {
     const original = originalRef.current;
     const formData = new FormData();
     if (file) formData.append('photo', file);
@@ -112,14 +128,23 @@ export default function LamduanOrigamiPage() {
           originalRef.current = res.data;
           setHasSubmitted(true);
         }
-        toast.show(t('lamduanflower.toast.createSuccess'), { message: t('lamduanflower.toast.submitSuccessfully'), type: 'success' });
+        toast.show(t('lamduanflower.toast.createSuccess'), {
+          message: t('lamduanflower.toast.submitSuccessfully'),
+          type: 'success',
+        });
       } else {
         await updateLamduanFlowers(original._id, formData);
-        toast.show(t('lamduanflower.toast.updateSuccess'), { message: t('lamduanflower.toast.updatedSuccessfully'), type: 'success' });
+        toast.show(t('lamduanflower.toast.updateSuccess'), {
+          message: t('lamduanflower.toast.updatedSuccessfully'),
+          type: 'success',
+        });
       }
     } catch (err) {
       console.error('submit error:', err);
-      toast.show(t('lamduanflower.toast.error'), { message: t('lamduanflower.toast.errorSubmit'), type: 'danger' });
+      toast.show(t('lamduanflower.toast.error'), {
+        message: t('lamduanflower.toast.errorSubmit'),
+        type: 'danger',
+      });
     }
   };
 
@@ -130,13 +155,23 @@ export default function LamduanOrigamiPage() {
 
   const pickImage = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) return Alert.alert('Permission Denied', 'Allow access to photo library.');
-      const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, quality: 1 });
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted)
+        return Alert.alert(
+          'Permission Denied',
+          'Allow access to photo library.',
+        );
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: false,
+        quality: 1,
+      });
       if (result.canceled) return;
       const uri = result.assets[0].uri;
       setImageUri(uri);
-      getImageSize(uri).then(setImageSize).catch(() => setImageSize(null));
+      getImageSize(uri)
+        .then(setImageSize)
+        .catch(() => setImageSize(null));
     } catch (err) {
       toast.show('Error', { message: 'Failed to pick image.', type: 'danger' });
       console.error('pickImage error:', err);
@@ -146,12 +181,18 @@ export default function LamduanOrigamiPage() {
   const takePhoto = async () => {
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) return Alert.alert('Permission Denied', 'Allow camera access.');
-      const result = await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 1 });
+      if (!permission.granted)
+        return Alert.alert('Permission Denied', 'Allow camera access.');
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        quality: 1,
+      });
       if (result.canceled) return;
       const uri = result.assets[0].uri;
       setImageUri(uri);
-      getImageSize(uri).then(setImageSize).catch(() => setImageSize(null));
+      getImageSize(uri)
+        .then(setImageSize)
+        .catch(() => setImageSize(null));
     } catch (err) {
       toast.show('Error', { message: 'Failed to take photo.', type: 'danger' });
       console.error('takePhoto error:', err);
@@ -165,30 +206,33 @@ export default function LamduanOrigamiPage() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : -60} // ลด offset Android
       >
+        <TouchableOpacity>
+          <View style={styles.backButton}>
+            <GlassButton onPress={() => router.back()}>
+              <Text style={styles.backButtonText}>
+                {t('lamduanflower.back')}
+              </Text>
+            </GlassButton>
+          </View>
+        </TouchableOpacity>
         <ScrollView
           keyboardShouldPersistTaps="handled"
           ref={scrollViewRef}
           contentContainerStyle={[styles.container, { paddingBottom: 100 }]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.backButton}>
-            <GlassButton onPress={() => router.back()}>
-              <Text style={styles.backButtonText}>{t('lamduanflower.back')}</Text>
-            </GlassButton>
-          </View>
-
           <BannerImage />
 
           <BlurView intensity={40} tint="light" style={styles.card}>
             <Text style={styles.cardTitle}>{t('lamduanflower.title')}</Text>
-            <Text style={styles.cardText}>
-              {description}
-            </Text>
+            <Text style={styles.cardText}>{description}</Text>
             <MediaCard />
           </BlurView>
 
           <BlurView intensity={40} tint="light" style={styles.formBox}>
-            <Text style={styles.uploadTitle}>{t('lamduanflower.uploadLamduan')}</Text>
+            <Text style={styles.uploadTitle}>
+              {t('lamduanflower.uploadLamduan')}
+            </Text>
             <TouchableOpacity
               onPress={() => {
                 if (activityStatus !== 'active') {
@@ -213,7 +257,9 @@ export default function LamduanOrigamiPage() {
                 />
               ) : (
                 <View style={styles.uploadPlaceholder}>
-                  <Text style={styles.uploadText}>{t('lamduanflower.uploadPicture')}</Text>
+                  <Text style={styles.uploadText}>
+                    {t('lamduanflower.uploadPicture')}
+                  </Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -225,7 +271,7 @@ export default function LamduanOrigamiPage() {
               style={styles.input}
               value={comment}
               editable={activityStatus === 'active'}
-              onChangeText={(text) => setComment(text.slice(0, 144))}
+              onChangeText={text => setComment(text.slice(0, 144))}
               onFocus={() => {
                 if (activityStatus !== 'active') return;
                 inputRef.current?.focus();
@@ -233,7 +279,7 @@ export default function LamduanOrigamiPage() {
                   scrollViewRef.current?.scrollResponderScrollNativeHandleToKeyboard(
                     inputRef.current as any,
                     100,
-                    true
+                    true,
                   );
                 }, 100);
               }}
@@ -241,26 +287,45 @@ export default function LamduanOrigamiPage() {
               textAlignVertical="top"
             />
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16 }}>
-              <Text style={{ color: '#fff', fontSize: 13 }}>{comment.length} / 144</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+                marginTop: 16,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 13 }}>
+                {comment.length} / 144
+              </Text>
               <TouchableOpacity
                 style={[
                   styles.submitButton,
                   {
-                    opacity: (!imageUri || (hasSubmitted && !isChanged)) ? 0.4 : 1,
+                    opacity:
+                      !imageUri || (hasSubmitted && !isChanged) ? 0.4 : 1,
                   },
                 ]}
-                disabled={activityStatus !== 'active' || !imageUri || (hasSubmitted && !isChanged)}
+                disabled={
+                  activityStatus !== 'active' ||
+                  !imageUri ||
+                  (hasSubmitted && !isChanged)
+                }
                 onPress={() => {
-                  if (!imageUri) return Alert.alert('Error', 'Please select an image first.');
+                  if (!imageUri)
+                    return Alert.alert(
+                      'Error',
+                      'Please select an image first.',
+                    );
                   setConfirmModalVisible(true);
                 }}
               >
                 <Text style={{ color: '#fff', fontWeight: 'bold' }}>
-                  {hasSubmitted ? t('lamduanflower.save') : t('lamduanflower.submit')}
+                  {hasSubmitted
+                    ? t('lamduanflower.save')
+                    : t('lamduanflower.submit')}
                 </Text>
               </TouchableOpacity>
-
             </View>
           </BlurView>
 
@@ -269,10 +334,20 @@ export default function LamduanOrigamiPage() {
             onCancel={() => setConfirmModalVisible(false)}
             onConfirm={async () => {
               setConfirmModalVisible(false);
-              if (!imageUri) return Alert.alert('Error', 'Please select an image first.');
+              if (!imageUri)
+                return Alert.alert('Error', 'Please select an image first.');
               try {
-                const file = { uri: imageUri, name: 'photo.jpg', type: 'image/jpeg' } as any;
-                await handleSave(file, user?.data[0]._id!, comment, lamduanSetting[0]._id);
+                const file = {
+                  uri: imageUri,
+                  name: 'photo.jpg',
+                  type: 'image/jpeg',
+                } as any;
+                await handleSave(
+                  file,
+                  user?.data[0]._id!,
+                  comment,
+                  lamduanSetting[0]._id,
+                );
                 setHasSubmitted(true);
               } catch (err) {
                 console.error('Submit error:', err);
@@ -303,23 +378,24 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingTop: 30
+    paddingTop: 30,
   },
   container: {
     paddingTop: 20,
     paddingHorizontal: 20,
-    alignItems: 'center'
+    alignItems: 'center',
   },
   backButton: {
+    marginTop: Platform.OS === 'android' ? -10 : 30,
     alignSelf: 'flex-start',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'android' ? 0 : 16,
+    paddingHorizontal: 20,
     borderRadius: 12,
-    marginBottom: 16
+    marginBottom: Platform.OS === 'android' ? 10 : 0,
   },
   backButtonText: {
     fontSize: 16,
-    color: '#fff'
+    color: '#fff',
   },
   card: {
     width: '100%',
@@ -327,27 +403,27 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
-    overflow: 'hidden'
+    overflow: 'hidden',
   },
   cardTitle: {
     fontWeight: 'bold',
     fontSize: 16,
     marginBottom: 8,
     paddingLeft: 10,
-    color: '#fff'
+    color: '#fff',
   },
   cardText: {
     fontSize: 13,
     paddingLeft: 10,
     color: '#fff',
     marginBottom: 20,
-    marginTop: 4
+    marginTop: 4,
   },
   uploadTitle: {
     fontWeight: 'bold',
     fontSize: 16,
     color: '#fff',
-    marginBottom: 12
+    marginBottom: 12,
   },
   formBox: {
     width: '100%',
@@ -355,10 +431,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginBottom: 20,
-    overflow: 'hidden'
+    overflow: 'hidden',
   },
   imageUploadButton: {
-    marginBottom: 20
+    marginBottom: 20,
   },
   uploadPlaceholder: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',

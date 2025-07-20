@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import { View, Text, StyleSheet, Animated, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GLView } from "expo-gl";
 import { router } from "expo-router";
@@ -12,6 +12,7 @@ import { ReportModal } from "@/components/report/ReportModal";
 import { onContextCreate } from "@/components/profile/Scene";
 import { useAppearance } from "@/hooks/useAppearance";
 import AssetImage from "@/components/global/AssetImage";
+import { useLanguage } from "@/context/LanguageContext";
 
 const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/`
 
@@ -23,6 +24,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true)
   const [isReportModalVisible, setReportModalVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const { language } = useLanguage();
 
   useEffect(() => {
     Animated.timing(
@@ -73,8 +75,13 @@ export default function ProfileScreen() {
         }
       />
 
-      <Animated.View style={{ justifyContent: 'flex-end', position: 'absolute', width: '100%', height: '100%', paddingBottom: '10%', opacity: fadeAnim }}>
-        <BlurView style={styles.information}>
+      <Animated.View style={{ justifyContent: 'flex-end', position: 'absolute', width: '100%', height: '100%', paddingBottom: Platform.OS === 'android' ? '20%' : '10%', opacity: fadeAnim }}>
+        <BlurView
+          style={[
+            styles.information,
+            Platform.OS === 'android' && { backgroundColor: 'rgba(0,0,0,0.85)' }
+          ]}
+        >
           {/* Full name and Username */}
           <View style={styles.field}>
             <Text style={styles.name}>{user?.data[0].name.first} {user?.data[0].name.last ?? '-'}</Text>
@@ -87,7 +94,7 @@ export default function ProfileScreen() {
               <Text style={styles.topic}>SCHOOL</Text>
             </View>
             <Text style={styles.school}>
-              {user?.data?.[0]?.metadata?.major?.school?.name?.en ?? '-'}
+              {user?.data?.[0]?.metadata?.major?.school?.name[language] ?? '-'}
             </Text>
           </View>
           {/* Major */}
@@ -97,7 +104,7 @@ export default function ProfileScreen() {
               <Text style={styles.topic}>MAJOR</Text>
             </View>
             <Text style={styles.school}>
-              {user?.data?.[0]?.metadata?.major?.name?.en ?? '-'}
+              {user?.data?.[0]?.metadata?.major?.name[language] ?? '-'}
             </Text>
           </View>
         </BlurView>
@@ -162,7 +169,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     overflow: 'hidden',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },

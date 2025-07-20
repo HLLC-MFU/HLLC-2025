@@ -52,7 +52,7 @@ export default function AppLayout() {
     loading: posttestLoading,
     error: posttestError,
     submit: submitPosttest,
-  } = usePrePostModal({ type: 'posttest' });
+  } = usePrePostModal({ type: 'posttest', progress: progress?.progressPercentage });
 
   useEffect(() => {
     async function setupBackgroundTask() {
@@ -65,16 +65,16 @@ export default function AppLayout() {
     setupBackgroundTask();
   }, []);
   useEffect(() => {
-    if (pretestVisible && pretestQuestions.length < 0) {
+    if (pretestVisible && pretestQuestions.length > 0) {
       setShowPretestModal(true);
     }
   }, [pretestVisible, pretestQuestions]);
 
   useEffect(() => {
-    if (posttestVisible && pretestQuestions.length > 0) { // ensure pretest is available before posttest
+    if (posttestVisible && posttestQuestions.length > 0) { 
       setShowPosttestModal(true);
     }
-  }, [posttestVisible, pretestQuestions]);
+  }, [posttestVisible, posttestQuestions]);
 
   const isIndexPage = pathname === '/' || pathname === '/index';
   const opacity = useRef(new Animated.Value(!isIndexPage ? 1 : 0)).current;
@@ -159,6 +159,7 @@ export default function AppLayout() {
         }}
       >
         <ProgressBar
+          avatarUrl={user?.data[0].metadata.major.school.photos?.avatar ?? assets.profile}
           progress={progress?.progressPercentage ?? 0}
           onClickAvatar={() => router.push('/profile')}
         />

@@ -13,8 +13,10 @@ import { Eye, EyeOff, Settings, TriangleAlert } from 'lucide-react';
 import { ReportModal } from '../report/page';
 import { useAppearances } from '@/hooks/useAppearances';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { schoolAcronym } = useProfile();
   const { assets } = useAppearances();
 
@@ -22,72 +24,80 @@ export default function ProfilePage() {
   const [isReportOpen, setIsReportOpen] = useState(false);
 
   return (
-    <div className="flex flex-col justify-between fixed inset-0 pt-6 pb-16 px-4 z-50">
-      <div className="flex flex-col self-end gap-2 z-50">
+    <div className="flex flex-col justify-between h-full pt-4">
+      <div className="flex justify-between z-50">
         <Button
-          className="bg-black/10 border rounded-full"
-          size="lg"
-          isIconOnly
-          onPress={() => setIsVisible(prev => !prev)}
+          onPress={() => router.replace('/')}
+          className="bg-black/10 border rounded-full text-white"
         >
-          {isVisible ? (
-            (assets && assets.visible) ? (
+          Back
+        </Button>
+        <div className="flex flex-col self-end gap-2">
+          <Button
+            className="bg-black/10 border rounded-full"
+            size="lg"
+            isIconOnly
+            onPress={() => setIsVisible(prev => !prev)}
+          >
+            {isVisible ? (
+              (assets && assets.visible) ? (
+                <Image
+                  alt="Visible"
+                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.visible}`}
+                  width={20}
+                  height={20}
+                />
+              ) : (
+                <Eye color="white" />
+              )
+            ) : (
+              (assets && assets.invisible) ? (
+                <Image
+                  alt="Invisible"
+                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.invisible}`}
+                  width={20}
+                  height={20}
+                />
+              ) : (
+                <EyeOff color="white" />
+              )
+            )}
+          </Button>
+          <Button
+            className="bg-black/10 border rounded-full"
+            size="lg"
+            isIconOnly
+            onPress={() => { router.replace('/settings') }}
+          >
+            {(assets && assets.settings) ? (
               <Image
-                alt="Visible"
-                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.visible}`}
+                alt="Settings"
+                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.settings}`}
                 width={20}
                 height={20}
               />
             ) : (
-              <Eye color="white" />
-            )
-          ) : (
-            (assets && assets.invisible) ? (
+              <Settings color="white" />
+            )}
+          </Button>
+          <Button
+            className="bg-black/10 border rounded-full"
+            size="lg"
+            isIconOnly
+            onPress={() => setIsReportOpen(true)}
+          >
+            {(assets && assets.settings) ? (
               <Image
-                alt="Invisible"
-                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.invisible}`}
+                alt="Report"
+                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.report}`}
                 width={20}
                 height={20}
               />
             ) : (
-              <EyeOff color="white" />
-            )
-          )}
-        </Button>
-        <Button
-          className="bg-black/10 border rounded-full"
-          size="lg"
-          isIconOnly
-          onPress={() => { }}
-        >
-          {(assets && assets.settings) ? (
-            <Image
-              alt="Settings"
-              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.settings}`}
-              width={20}
-              height={20}
-            />
-          ) : (
-            <Settings color="white" />
-          )}
-        </Button>
-        <Button
-          className="bg-black/10 border rounded-full"
-          size="lg"
-          isIconOnly
-          onPress={() => setIsReportOpen(true)}
-        >
-          {(assets && assets.settings) ? (
-            <Image
-              alt="Report"
-              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.report}`}
-              width={20}
-              height={20}
-            />
-          ) : (
-            <TriangleAlert color="white" />
-          )}
-        </Button>
+              <TriangleAlert color="white" />
+            )}
+          </Button>
+        </div>
       </div>
 
       <Canvas
@@ -98,7 +108,7 @@ export default function ProfilePage() {
           top: 0,
           left: 0,
           zIndex: 1,
-          position: "absolute",
+          position: "fixed",
         }}
         onCreated={() => {
           THREE.ColorManagement.enabled = true;
@@ -115,10 +125,9 @@ export default function ProfilePage() {
       </Canvas>
 
       {isVisible &&
-        <div className="px-4 pb-10 w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto z-10">
           <ProfileCard />
-        </div>
       }
+
       <ReportModal
         isOpen={isReportOpen}
         onClose={() => setIsReportOpen(false)}

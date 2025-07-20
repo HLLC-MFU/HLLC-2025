@@ -79,8 +79,8 @@ export const useSseStore = create<SseState>((set, get) => ({
         'POST',
       );
 
-      if (res.data?.success) {
-        await get().fetchNotification(); // Refresh state
+      if (res.statusCode === 200 || res.statusCode === 201) {
+        await get().fetchNotification();
       } else {
         throw new Error('Failed to mark as read');
       }

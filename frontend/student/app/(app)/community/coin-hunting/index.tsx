@@ -20,7 +20,6 @@ export default function CoinHuntingScreen() {
     remainingCooldownMs,
     stampCount,           
     handleMarkerPress,
-    handleCheckIn,
     handleGoToStamp,
     closeModal,
     markers,
@@ -30,17 +29,25 @@ export default function CoinHuntingScreen() {
     collectedCoinImages,
     handleScannerSuccess,
     handleAlert,
+    setRefreshKey,
   } = useCoinHunting();
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [refreshKey, setRefreshKey] = useState(0);
   const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 1, height: 1 });
   const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 1, height: 1 });
 
   const handleScannerSuccessWithRefresh = useCallback((data?: any) => {
     handleScannerSuccess(data);
     setRefreshKey((k) => k + 1);
-  }, [handleScannerSuccess]);
+  }, [handleScannerSuccess, setRefreshKey]);
+
+  // ปรับ handleCheckIn ให้ปิด modal แล้ว push ไปหน้า qrcode tab scan
+  const handleCheckIn = useCallback(() => {
+    closeModal();
+    setTimeout(() => {
+      router.push({ pathname: '/qrcode', params: { tab: 'scan', t: Date.now() } });
+    }, 200);
+  }, [closeModal, router]);
 
   useEffect(() => {
     if (params.modal === 'success') {
@@ -50,7 +57,7 @@ export default function CoinHuntingScreen() {
       handleAlert(params.type as any, params.remainingCooldownMs ? Number(params.remainingCooldownMs) : undefined);
       router.replace('/community/coin-hunting');
     }
-  }, [params.modal, params.type, params.code, params.remainingCooldownMs, handleScannerSuccessWithRefresh]);
+  }, [params.modal, params.type, params.code, params.remainingCooldownMs, handleScannerSuccessWithRefresh, handleAlert]);
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -73,13 +80,6 @@ export default function CoinHuntingScreen() {
           containerSize={containerSize}
         />
       </InteractiveMap>
-      <MarkerDetailModal
-        visible={modal === 'marker-detail'}
-        marker={selectedMarker}
-        collectedIds={collectedIds}
-        onClose={closeModal}
-        onCheckIn={handleCheckIn}
-      />
       <CombinedModal
         visible={modal === 'success'}
         type="success"

@@ -33,9 +33,24 @@ export interface Message {
     message: {
       th: string;
       en: string;
+      _id?: string;
     };
     claimUrl: string;
     sponsorImage?: string;
+  };
+  // Add payload field for WebSocket messages that contain additional data
+  payload?: {
+    evoucherInfo?: {
+      message: {
+        th: string;
+        en: string;
+        _id?: string;
+      };
+      claimUrl: string;
+      sponsorImage?: string;
+      claimedBy?: string | null;
+    };
+    [key: string]: any;
   };
 }
 

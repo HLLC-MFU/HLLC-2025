@@ -85,7 +85,9 @@
         "back": "Back to Home",
         "delete_confirm_title": "Confirm Account Delete",
         "delete_confirm_message": "Are you sure you want to delete your account? This action cannot be undone.",
-        "logout": "Logout"
+        "logout": "Logout",
+        "switch_to_thai": "Switch to Thai",
+        "switch_to_english": "Switch to English"
     },
     "nav": {
         "welcome": "Welcome Back",
@@ -133,8 +135,17 @@
             "activityBeganAt": "Activity began at {{startAt}}",
             "checkedIn": "You have checked in this activity",
             "activityEndedAt": "Activity ended",
-            "evaluated": "You have completed the evaluation for this activity"
-        }
+            "evaluated": "You have completed the evaluation for this activity",
+            "assessmentCheckinDescription": "Scan the QR code at the event location or visit the designated check-in point to confirm your attendance.",
+            "assessmentCompletedDescription": "Congratulations! You've completed the activity. Please take a moment to share your feedback through the assessment.",
+            "assessmentPrompt": "Help us improve by sharing your experience and feedback about this activity.",
+            "assessmentEncouragement": "💭 Your feedback is valuable and helps us create better experiences for everyone.",
+            "assessmentButton": "Complete Assessment"
+        },
+        "noActivityData": "No activity data found.",
+        "getDirection": "Get Direction",
+        "openQrScanner": "Open QR Scanner",
+        "successfullyCheckedIn": "Successfully Checked In"
     },
     "evoucher": {
         "title": "E-Voucher",
@@ -171,7 +182,8 @@
         "you": "You",
         "unknownUser": "Unknown User",
         "connecting": "Connecting...",
-        "typeMessage": "Type your message here..."
+        "typeMessage": "Type your message here...",
+        "noCommunities": "No chat rooms found."
     },
     "roomInfo": {
         "roomDetails": "Room Details",
@@ -188,7 +200,9 @@
         "collection": "14 Guardian Crystals",
         "sponsorCollection": "Special Rewards",
         "checkInNow": "Check in Now",
-        "collected": "Collected"
+        "collected": "Checked in",
+        "notCheckedIn": "Not checked in yet",
+        "description": "Description"
     },
     "assessment": {
         "title": "Assessment Activity",
@@ -263,7 +277,43 @@
             "updateSuccess": "Update Success",
             "updatedSuccessfully": "Flower updated successfully!",
             "error" : "Error",
-            "errorSubmit" : "Error submitting flower" 
+            "errorSubmit" : "Error submitting flower"
         }
+    },
+    "step": {
+        "total": "Total",
+        "step": "Step",
+        "keepMoving": "Keep moving! Your steps contribute to the campaign.",
+        "goal": "Your goal is {{goal}} steps",
+        "deviceMismatch": "Device mismatch detected. Steps won’t count toward your campaign. Please update your device.",
+        "individual": "Individual",
+        "school": "School",
+        "achievement": "Achievement"
+    },
+    "report": {
+        "title": "Report",
+        "subtitle": "Report an issue or provide feedback",
+        "topic": "Topic",
+        "description": "Description",
+        "submit": "Submit Report",
+        "success": "Report submitted successfully!",
+        "error": "Failed to submit report. Please try again.",
+        "placeholder": {
+            "topic": "Enter the topic of your report",
+            "description": "Describe the issue or feedback in detail"
+        },
+        "reporting": "Reporting...",
+        "confirm": "Confirm",
+        "cancel": "Cancel",
+        "selectTopic": "Select a topic"
+    }  ,
+    "notification": {
+        "title": "Notifications",
+        "noNotifications": "No notifications yet",
+        "noNotificationsSubtext": "We'll notify you when something arrives",
+        "markAllAsRead": "Mark all as read",
+        "markingAsRead": "Marking as read...",
+        "read": "Read",
+        "unread": "Unread"
     }
 }

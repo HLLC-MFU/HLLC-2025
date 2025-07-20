@@ -392,7 +392,7 @@ export default function StampModal({
               <View style={styles.sponsor2RowsContainer}>
                 <View style={styles.sponsorRow2Row}>
                   {[0, 1, 2].map(i => {
-                    const idx = 15 + i;
+                    const idx = 14 + i; 
                     return (
                       <View key={idx} style={styles.sponsorStampSlot}>
                         {coinImages[idx] && (
@@ -412,7 +412,7 @@ export default function StampModal({
                   ]}
                 >
                   {[3, 4, 5, 6].map(i => {
-                    const idx = 15 + i;
+                    const idx = 14 + i; 
                     return (
                       <View key={idx} style={styles.sponsorStampSlot}>
                         {coinImages[idx] && (

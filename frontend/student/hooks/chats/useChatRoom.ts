@@ -6,7 +6,6 @@ import { Vibration } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useWebSocket } from './useWebSocket';
-import { useTypingIndicator } from './useTypingIndicator';
 import { useMessageGrouping } from './useMessageGrouping';
 import useProfile from '@/hooks/useProfile';
 import { ChatRoom, Message } from '@/types/chatTypes';
@@ -119,7 +118,6 @@ export const useChatRoom = () => {
     addMessage
   } = useWebSocket(roomId);
 
-  const { isTyping, handleTyping: originalHandleTyping } = useTypingIndicator();
   const groupMessages = useMessageGrouping(wsMessages);
 
   // State update helpers
@@ -142,7 +140,6 @@ export const useChatRoom = () => {
   // Handle text input changes for mentions
   const handleTextInput = (text: string) => {
     updateChatState({ messageText: text });
-    originalHandleTyping(); // Trigger typing indicator
 
     // Regex to find @ at the end of the string, or after a space
     const mentionMatch = text.match(/(?:^|\s)@(\w*)$/);
@@ -252,13 +249,6 @@ export const useChatRoom = () => {
     console.log('Connecting to WebSocket...');
     await wsConnect(roomId);
   }, [chatState.room, isConnected, wsConnect, roomId]);
-
-  // Modified handleTyping to avoid triggering while mentioning
-  const handleTyping = () => {
-    if (!mentionState.isMentioning) {
-      originalHandleTyping();
-    }
-  };
 
   // Initialize room on mount - only once
   useEffect(() => {
@@ -594,7 +584,6 @@ export const useChatRoom = () => {
     handleSendMessage,
     handleImageUpload,
     handleSendSticker,
-    handleTyping,
     handleTextInput,
     handleMentionSelect,
     setMessageText: (text: string) => handleTextInput(text),

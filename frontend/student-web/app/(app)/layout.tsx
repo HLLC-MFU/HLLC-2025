@@ -14,11 +14,14 @@ import { usePrepostQuestion } from '@/hooks/usePrePostQuestion';
 import { useSseStore } from '@/stores/useSseStore';
 import { addToast } from '@heroui/react';
 import { useState, useEffect } from 'react';
+import GlassButton from '@/components/ui/glass-button';
+import { Bell } from 'lucide-react';
+import NotificationsPage from './notifications/page';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { fetchUser } = useProfile();
+  const { user, fetchUser } = useProfile();
   const { assets } = useAppearances();
   const {
     pretestAnswersInput,
@@ -35,11 +38,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     posttestDueDate, // <-- เพิ่มตรงนี้
   } = usePrepostQuestion();
   const progress = useSseStore(state => state.progress);
-
   const [isPretestModalOpen, setIsPretestModalOpen] = useState(false);
   const [isPosttestModalOpen, setIsPosttestModalOpen] = useState(false);
   const [selectedPretestQuestions, setSelectedPretestQuestions] = useState<any[]>([]);
   const [selectedPosttestQuestions, setSelectedPosttestQuestions] = useState<any[]>([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   const openPretestModal = () => {
     const filteredQuestions = prepostQuestion.filter(q => q.displayType === 'pretest');
@@ -64,7 +67,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (hasPretestAnswers === false) {
+    if (hasPretestAnswers === false && prepostQuestion.length > 0) {
       openPretestModal();
     }
   }, [hasPretestAnswers]);
@@ -136,7 +139,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const shouldBlur = pathname !== '/';
 
   const hideProgressSummary =
-    pathname === '/community' || pathname.startsWith('/community/coin-hunting');
+    pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
+  const hideBottomNav = pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
 
   return (
     <>
@@ -175,22 +179,40 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           style={{
             backdropFilter: `blur(${shouldBlur ? 8 : 0}px)`,
             WebkitBackdropFilter: `blur(${shouldBlur ? 8 : 0}px)`,
-            backgroundColor: shouldBlur ? 'rgba(0,0,0,0.1)' : 'transparent',
+            backgroundColor: shouldBlur ? 'rgba(0,0,0,0.4)' : 'transparent',
             opacity: shouldBlur ? 1 : 0,
           }}
         />
 
         <div className="relative z-20 flex h-full flex-col text-foreground">
-          <div className="fixed top-0 left-0 right-0 z-40">
+          <div className="flex justify-between fixed top-0 left-0 right-0 mx-4 mt-6 z-40">
             {!hideProgressSummary && (
               <ProgressBar
-                avatarUrl={(assets && assets.profile)
-                  ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.profile}`
-                  : ""
+                avatarUrl={(user && user.metadata?.major?.school?.photos?.avatar)
+                  ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${user.metadata?.major?.school.photos.avatar}`
+                  : (assets && assets.profile)
+                    ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.profile}`
+                    : ""
                 }
                 onClickAvatar={() => router.push('/profile')}
               />
             )}
+            <GlassButton
+              iconOnly
+              className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 z-50"
+              onClick={() => setIsNotificationOpen(true)}
+            >
+              {assets && assets.notification ? (
+                <Image
+                  alt="Notification"
+                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.notification}`}
+                  width={20}
+                  height={20}
+                />
+              ) : (
+                <Bell className="text-white" size={20} />
+              )}
+            </GlassButton>
           </div>
 
           <main
@@ -231,11 +253,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             onSubmit={() => handlePosttestSubmit()}
           />
 
-          <div className="fixed bottom-0 left-0 right-0 z-50 mx-4 pb-4 h-20">
-            <BottomNav />
-          </div>
+          {!hideBottomNav && (
+            <div className="fixed bottom-0 left-0 right-0 z-50 mx-4 pb-4 h-20">
+              <BottomNav />
+            </div>
+          )}
         </div>
       </div>
+
+      <NotificationsPage
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+      />
     </>
   );
 }

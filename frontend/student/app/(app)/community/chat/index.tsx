@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, Sparkles } from 'lucide-react-native';
+import { Plus, MessageSquare } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/context/LanguageContext';
 import useProfile from '@/hooks/useProfile';
@@ -256,9 +256,9 @@ export default function ChatPage() {
           scrollEventThrottle={16}
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <Sparkles size={48} color="#a5b4fc" />
+              <MessageSquare size={48} color="#F8F8F8" />
               <Text style={styles.emptyStateText}>
-                {t('noCommunities', language)}
+                {t('chat.noCommunities', language)}
               </Text>
             </View>
           )}

@@ -10,14 +10,15 @@ import {
 } from "react-native";
 import { Bell, X, Check, ArrowDown, Clock } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { useNotification } from "@/hooks/notifications/useNotification";
-import { useApi } from "@/hooks/useApi";
 import { NotificationItem } from "@/types/notification";
 
 import tinycolor from "tinycolor2";
 import { AnimatePresence, MotiView } from "moti";
 import useProfile from "@/hooks/useProfile";
+import { useLanguage } from "@/context/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   visible: boolean;
@@ -35,14 +36,20 @@ interface UserWithTheme {
 
 export default function NotificationModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const { notifications = [], loading } = useNotification();
+  const { notifications: originalNotifications = [], loading, markAsRead, markAllAsRead } = useNotification();
   const { user } = useProfile();
-  const { request } = useApi();
-
+  const {language} = useLanguage();
   const [showing, setShowing] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
   const [markingAsRead, setMarkingAsRead] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [showUnread, setShowUnread] = useState(true);
+
+  // Update local notifications when original notifications change
+  useEffect(() => {
+    setNotifications(originalNotifications);
+  }, [originalNotifications]);
 
   // เปิด Modal ทันทีเมื่อ visible = true
   useEffect(() => {
@@ -56,8 +63,17 @@ export default function NotificationModal({ visible, onClose }: Props) {
   }, [visible]);
 
   const unreadCount = useMemo(
-    () => notifications.filter((n: NotificationItem) => !n.isRead && !n.read).length,
+    () => notifications.filter((n: NotificationItem) => !n.isRead).length,
     [notifications]
+  );
+
+  // กรองรายการ notification ตามสถานะที่เลือก
+  const filteredNotifications = useMemo(
+    () =>
+      notifications.filter((n) =>
+        showUnread ? !n.isRead : n.isRead
+      ),
+    [notifications, showUnread]
   );
 
   const handleClose = () => {
@@ -69,31 +85,31 @@ export default function NotificationModal({ visible, onClose }: Props) {
     
     setMarkingAsRead(true);
     try {
-      // Get all unread notification IDs
-      const unreadIds = notifications
-        .filter((n: NotificationItem) => !n.isRead && !n.read)
-        .map((n: NotificationItem) => n._id);
-      
-      if (unreadIds.length > 0) {
-        // Mark each notification as read
-        for (const id of unreadIds) {
-          await request(`/notifications/read`, "POST", {
-            notificationId: id,
-          });
-        }
-        
-        // Refetch notifications to update the UI
-        const res = await request(`/notifications/me`, "GET");
-        if (res) {
-          // The useNotification hook will handle the state update
-          console.log('Successfully marked all notifications as read');
-        }
-      }
+      const success = await markAllAsRead();
     } catch (error) {
-      console.error('Error marking notifications as read:', error);
+      // Handle error silently
     } finally {
       setMarkingAsRead(false);
     }
+  };
+
+  const handleMarkAsRead = async (notification: NotificationItem) => {
+    if (!notification._id || notification.isRead) return;
+    
+    try {
+      const success = await markAsRead(notification._id);
+    } catch (error) {
+      // Handle error silently
+    }
+  };
+
+  // Function to handle notification click
+  const handleNotificationClick = async (notification: NotificationItem) => {
+    // Mark as read when clicked
+    await handleMarkAsRead(notification);
+    
+    // Set selected notification for detail view
+    setSelectedNotification(notification);
   };
 
   // Function to get icon component based on icon name
@@ -126,6 +142,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
 
   // Type assertion for user with theme
   const userWithTheme = user as UserWithTheme;
+  const {t} = useTranslation();
 
   return (
     <Modal
@@ -153,7 +170,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
               <View style={styles.trianglePointer} />
               <View style={styles.header}>
                 <View style={styles.headerContent}>
-                  <Text style={styles.headerTitle}>Notifications</Text>
+                  <Text style={styles.headerTitle}>{t("notification.title")}</Text>
                   {unreadCount > 0 && (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>{unreadCount}</Text>
@@ -167,34 +184,53 @@ export default function NotificationModal({ visible, onClose }: Props) {
                   <X size={16} color="#6b7280" />
                 </TouchableOpacity>
               </View>
+              {/* Tab toggle for unread/read */}
+              <View style={styles.tabRow}>
+                <TouchableOpacity
+                  style={[styles.tabButton, showUnread && styles.tabButtonActive]}
+                  onPress={() => setShowUnread(true)}
+                >
+                  <Text style={[styles.tabText, showUnread && styles.tabTextActive]}>
+                    {t("notification.unread")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.tabButton, !showUnread && styles.tabButtonActive]}
+                  onPress={() => setShowUnread(false)}
+                >
+                  <Text style={[styles.tabText, !showUnread && styles.tabTextActive]}>
+                    {t("notification.read")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               <View style={styles.divider} />
               <FlatList
-                data={notifications}
+                data={filteredNotifications}
                 keyExtractor={(item: NotificationItem) => item._id}
                 contentContainerStyle={styles.scrollContent}
                 style={styles.scrollView}
                 ListEmptyComponent={() => (
                   <View style={styles.emptyContainer}>
                     <Bell size={40} color="#d1d5db" />
-                    <Text style={styles.emptyText}>No notifications yet</Text>
+                    <Text style={styles.emptyText}>{t("notification.noNotifications")}</Text>
                     <Text style={styles.emptySubtext}>
-                      We'll notify you when something arrives
+                      {t("notification.noNotificationsSubtext")}
                     </Text>
                   </View>
                 )}
                 renderItem={({ item: n }: { item: NotificationItem }) => {
-                  const isUnread = !n.isRead && !n.read;
+                  const isUnread = !n.isRead;
                   return (
                     <TouchableOpacity
                       style={styles.card}
                       activeOpacity={0.85}
-                      onPress={() => setSelectedNotification(n)}
+                      onPress={() => handleNotificationClick(n)}
                     >
                       <View style={styles.cardHeader}>
                         <View style={styles.iconWrap}>{getIconComponent(n.icon)}</View>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.cardTitle}>{n.title["en"] ?? "Untitled"}</Text>
-                          <Text style={styles.cardSubtitle}>{n.subtitle["en"] ?? "No detail"}</Text>
+                          <Text style={styles.cardTitle}>{n.title[language] ?? "Untitled"}</Text>
+                          <Text style={styles.cardSubtitle}>{n.subtitle[language] ?? "No detail"}</Text>
                         </View>
                         <Text style={styles.cardDate}>
                           {formatDate(n.createdAt || n.timestamp || new Date().toISOString())}
@@ -202,7 +238,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
                       </View>
                       <View style={styles.cardDivider} />
                       <View style={styles.cardBodyRow}>
-                        <Text style={styles.cardBody}>{n.body && n.body["en"]}</Text>
+                        <Text style={styles.cardBody}>{n.body && n.body[language]}</Text>
                         {n.image && n.image.trim() !== "" && (
                           <Image
                             source={{ uri: `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${n.image}` }}
@@ -218,7 +254,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
                   );
                 }}
               />
-              {notifications.length > 0 && unreadCount > 0 && (
+              {notifications.length > 0 && unreadCount > 0 && showUnread && (
                 <>
                   <View style={styles.divider} />
                   <TouchableOpacity 
@@ -235,7 +271,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
                         },
                       ]}
                     >
-                      {markingAsRead ? "Marking as read..." : "Mark all as read"}
+                      {markingAsRead ? t("notification.markingAsRead") : t("notification.markAllAsRead")}
                     </Text>
                   </TouchableOpacity>
                 </>
@@ -259,12 +295,12 @@ export default function NotificationModal({ visible, onClose }: Props) {
                 <>
                   <View style={styles.detailHeaderRow}>
                     <View style={styles.iconWrap}>{getIconComponent(selectedNotification.icon)}</View>
-                    <Text style={styles.detailTitle}>{selectedNotification.title["en"]}</Text>
+                    <Text style={styles.detailTitle}>{selectedNotification.title[language]}</Text>
                   </View>
-                  <Text style={styles.detailSubtitle}>{selectedNotification.subtitle["en"]}</Text>
+                  <Text style={styles.detailSubtitle}>{selectedNotification.subtitle[language]}</Text>
                   <Text style={styles.detailDate}>{formatDate(selectedNotification.createdAt || selectedNotification.timestamp || new Date().toISOString())}</Text>
                   <View style={styles.detailDivider} />
-                  <Text style={styles.detailBody}>{selectedNotification.body && selectedNotification.body["en"]}</Text>
+                  <Text style={styles.detailBody}>{selectedNotification.body && selectedNotification.body[language]}</Text>
                   {selectedNotification.image && selectedNotification.image.trim() !== "" && (
                     <Image
                       source={{ uri: `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${selectedNotification.image}` }}
@@ -327,7 +363,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
     color: "#111827",
   },
@@ -567,7 +603,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   detailTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     color: '#111827',
     marginLeft: 8,
@@ -575,7 +611,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   detailSubtitle: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#888',
     marginBottom: 8,
     width: '100%',
@@ -613,5 +649,28 @@ const styles = StyleSheet.create({
     marginTop: 8,
     backgroundColor: '#f3f4f6',
     alignSelf: 'center',
+  },
+  tabRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  tabButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    backgroundColor: "#f3f4f6",
+    marginHorizontal: 4,
+  },
+  tabButtonActive: {
+    backgroundColor: "#3b82f6",
+  },
+  tabText: {
+    color: "#6b7280",
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  tabTextActive: {
+    color: "#fff",
   },
 });

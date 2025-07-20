@@ -19,8 +19,10 @@ import SelectPhotoModal from './_components/SelectPhotoModal';
 import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import { useProfile } from '@/hooks/useProfile';
 import { StatusModal } from './_components/StatusModal';
+import { useRouter } from 'next/navigation';
 
 export default function LamduanOrigamiPage() {
+    const router = useRouter();
     const { user, fetchUser } = useProfile();
 
     const {
@@ -89,7 +91,7 @@ export default function LamduanOrigamiPage() {
     }, [comment, image, imagePreview, hasSubmitted]);
 
     const handleSubmit = async () => {
-        if (!user?._id || !lamduanSetting?.[0]?._id) 
+        if (!user?._id || !lamduanSetting?.[0]?._id)
             return addToast({ title: 'Server error, please contact admin.', color: 'danger' });
         if (!image && !imagePreview)
             return addToast({ title: 'Please select an image.', color: 'danger' });
@@ -123,109 +125,114 @@ export default function LamduanOrigamiPage() {
     };
 
     return (
-        <ScrollShadow className="w-full h-full px-4">
+        <ScrollShadow className="w-full h-full">
+            <Button
+                onPress={() => router.replace('/')}
+                className="bg-black/10 border rounded-full text-white"
+            >
+                Back
+            </Button>
             <BannerImage />
-
             <div className="grid grid-row-2 gap-4">
                 <Card className="bg-black/40 border border-white/20 backdrop-blur-lg rounded-2xl shadow-xl">
                     <CardBody className="space-y-4">
                         <h1 className="text-xl font-semibold text-white">Lamduan Flower</h1>
                         <p className="text-white/80 text-sm">
-                             {lamduanSetting[0]?.description?.en || 'Loading...'}
+                            {lamduanSetting[0]?.description?.en || 'Loading...'}
                         </p>
                         <MediaCard />
                     </CardBody>
                 </Card>
 
-                <Card className="bg-black/40 border border-white/20 backdrop-blur-lg rounded-2xl shadow-xl">
-                    <CardBody className="space-y-4">
-                        <h2 className="text-lg font-semibold text-white">Upload Lamduan</h2>
-                        <div className='flex items-center justify-center'>
-                            {imagePreview ? (
-                                <Image
-                                    src={imagePreview}
-                                    alt="preview"
-                                    width="full"
-                                    height="full"
-                                    className="w-full rounded-xl object-contain max-h-[300px] cursor-pointer"
-                                    onClick={() => {
-                                        if (activityStatus !== 'active') {
-                                            setStatusModalVisible(true);
-                                        } else {
-                                            setSelectPhotoOpen(true);
-                                        }
-                                    }}
-                                />
-                            ) : (
-                                <div
-                                    className="w-full bg-white/5 border border-white/20 rounded-xl h-40 flex items-center justify-center text-white cursor-pointer"
-                                    onClick={() => {
-                                        if (activityStatus !== 'active') {
-                                            setStatusModalVisible(true);
-                                        } else {
-                                            setSelectPhotoOpen(true);
-                                        }
-                                    }}
+                <div className="md:flex-[0.6]">
+                    <Card className="bg-black/40 border border-white/20 backdrop-blur-lg rounded-2xl shadow-xl">
+                        <CardBody className="space-y-4">
+                            <h2 className="text-lg font-semibold text-white">Upload Lamduan</h2>
+
+                            <div className="flex items-center justify-center">
+                                {imagePreview ? (
+                                    <Image
+                                        src={imagePreview}
+                                        alt="preview"
+                                        width="full"
+                                        height="full"
+                                        className="w-full rounded-xl object-contain max-h-[300px] md:max-h-[400px] lg:max-h-[600px] xl:max-h-[70vh] cursor-pointer"
+                                        onClick={() => {
+                                            if (activityStatus !== 'active') {
+                                                setStatusModalVisible(true);
+                                            } else {
+                                                setSelectPhotoOpen(true);
+                                            }
+                                        }}
+                                    />
+                                ) : (
+                                    <div
+                                        className="w-full bg-white/5 border border-white/20 rounded-xl h-40 flex items-center justify-center text-white cursor-pointer"
+                                        onClick={() => {
+                                            if (activityStatus !== 'active') {
+                                                setStatusModalVisible(true);
+                                            } else {
+                                                setSelectPhotoOpen(true);
+                                            }
+                                        }}
+                                    >
+                                        Upload Picture
+                                    </div>
+                                )}
+                            </div>
+
+                            <Textarea
+                                label="Message"
+                                placeholder="Say to yourself in the future..."
+                                className="text-white"
+                                value={comment}
+                                onChange={(e) => setComment(e.target.value.slice(0, 144))}
+                                isDisabled={activityStatus !== 'active'}
+                            />
+
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs text-white/70">{comment.length} / 144</span>
+                                <Button
+                                    color="primary"
+                                    onPress={() => setConfirmOpen(true)}
+                                    isDisabled={ loading || (!comment && !image && !imagePreview) || (hasSubmitted && !isChanged) || activityStatus !== 'active'}
                                 >
-                                    Upload Picture
-                                </div>
-                            )}
-                        </div>
-
-                        <Textarea
-                            label="Message"
-                            placeholder="Type message..."
-                            className="text-white"
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value.slice(0, 144))}
-                            isDisabled={activityStatus !== 'active'}
-                        />
-
-                        <div className="flex justify-between items-center">
-                            <span className="text-xs text-white/70">{comment.length} / 144</span>
-                            <Button
-                                color="primary"
-                                onPress={() => setConfirmOpen(true)}
-                                isDisabled={ loading || (!comment && !image && !imagePreview) || (hasSubmitted && !isChanged) || activityStatus !== 'active'}
-                            >
-                                {loading ? <Spinner size="sm" /> : hasSubmitted ? 'Save' : 'Submit'}
-                            </Button>
-                        </div>
-                    </CardBody>
-                </Card>
-
-                <ConfirmModal
-                    isVisible={confirmOpen}
-                    onCancel={() => setConfirmOpen(false)}
-                    onConfirm={() => {
-                        setConfirmOpen(false);
-                        handleSubmit();
-                    }}
-                    mode={hasSubmitted ? 'save' : 'submit'}
-                />
-
-                <SelectPhotoModal
-                    isOpen={selectPhotoOpen}
-                    onClose={() => setSelectPhotoOpen(false)}
-                    onSelect={(file, preview) => {
-                        setImage(file);
-                        setImagePreview(preview);
-                        setSelectPhotoOpen(false);
-                    }}
-                />
-
-                <TutorialModal
-                    isOpen={false}
-                    onClose={() => { }}
-                    photoUrl={null}
-                />
-
-                <StatusModal
-                    isVisible={statusModalVisible}
-                    onClose={() => setStatusModalVisible(false)}
-                    status={activityStatus}
-                />
+                                    {loading ? <Spinner size="sm" /> : hasSubmitted ? 'Save' : 'Submit'}
+                                </Button>
+                            </div>
+                        </CardBody>
+                    </Card>
+                </div>
             </div>
+
+            <ConfirmModal
+                isVisible={confirmOpen}
+                onCancel={() => setConfirmOpen(false)}
+                onConfirm={() => {
+                    setConfirmOpen(false);
+                    handleSubmit();
+                }}
+                mode={hasSubmitted ? 'save' : 'submit'}
+            />
+
+            <SelectPhotoModal
+                isOpen={selectPhotoOpen}
+                onClose={() => setSelectPhotoOpen(false)}
+                onSelect={(file, preview) => {
+                    setImage(file);
+                    setImagePreview(preview);
+                    setSelectPhotoOpen(false);
+                }}
+            />
+
+            <TutorialModal isOpen={false} onClose={() => { }} photoUrl={null} />
+
+            <StatusModal
+                isVisible={statusModalVisible}
+                onClose={() => setStatusModalVisible(false)}
+                status={activityStatus}
+            />
         </ScrollShadow>
     );
+
 }

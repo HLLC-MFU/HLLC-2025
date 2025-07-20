@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import {
     SafeAreaView, View, Text, StyleSheet, FlatList,
-    RefreshControl, TouchableOpacity, TextInput, ActivityIndicator
+    RefreshControl, TouchableOpacity, TextInput, ActivityIndicator, Platform
 } from 'react-native'
 import { ArrowLeft, Search } from 'lucide-react-native'
 import { useEvoucher } from '@/hooks/useEvoucher'
@@ -143,10 +143,16 @@ const styles = StyleSheet.create({
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: Platform.select({ ios: 26, default: 0 }),
     },
     backButton: {
         marginRight: 10,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'transparent',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     headerTitle: {
         fontSize: 34,

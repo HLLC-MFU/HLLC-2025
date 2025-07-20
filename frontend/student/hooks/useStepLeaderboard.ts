@@ -17,6 +17,7 @@ export type Ranking = {
       last?: string;
     };
     username: string;
+    avatar?: string;
   };
   totalStep: number;
 };
@@ -27,6 +28,7 @@ export type MyRank = {
     individualRank?: number;
     schoolRank?: number;
     archeivementRank?: number;
+    avatar?: string;
 }
 
 export type LeaderboardData = {
