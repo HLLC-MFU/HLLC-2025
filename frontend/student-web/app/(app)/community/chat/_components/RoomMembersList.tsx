@@ -50,11 +50,11 @@ const RoomMembersList = ({
             className="flex flex-row items-center px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
             onClick={() => onMemberPress?.(item)}
           >
-            <Avatar size={40} name={`${item.user.name.first} ${item.user.name.last}`} />
+            <Avatar size={40} name={`${String(item.user.name.first || '')} ${String(item.user.name.last || '')}`} />
             <div className="ml-3 flex-1">
               <div className="text-base font-medium text-gray-900">
                 {item.user.name.first && item.user.name.last
-                  ? `${item.user.name.first} ${item.user.name.last}`
+                  ? `${String(item.user.name.first)} ${String(item.user.name.last)}`
                   : item.user.username || 'Unknown User'}
               </div>
               {item.user.username && (

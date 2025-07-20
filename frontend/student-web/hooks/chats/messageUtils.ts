@@ -31,16 +31,7 @@ export function createMessage(data: any, isHistory = false): Message {
     };
   }
 
-  // Debug logging for evoucher messages
-  if (data.type === 'evoucher') {
-    console.log('[DEBUG][createMessage] 🏗️  Creating evoucher message with data:', {
-      type: data.type,
-      hasPayload: !!data.payload,
-      hasEvoucherInfo: !!data.evoucherInfo,
-      dataKeys: Object.keys(data),
-      payloadKeys: data.payload ? Object.keys(data.payload) : []
-    });
-  }
+
 
   // Generate more unique ID
   const generateUniqueId = () => {
@@ -52,14 +43,17 @@ export function createMessage(data: any, isHistory = false): Message {
 
   // Ensure we have a unique ID, especially for messages from server
   let id = data.id || data._id;
+  
+  // For evoucher messages, prioritize message._id over other IDs
+  if (data.type === 'evoucher' && data.message && data.message._id) {
+    id = data.message._id;
+  } else if (data.type === 'evoucher' && data.payload && data.payload.evoucherInfo && data.payload.evoucherInfo.message && data.payload.evoucherInfo.message._id) {
+    // Fallback: check if evoucherInfo has message._id
+    id = data.payload.evoucherInfo.message._id;
+  }
+  
   if (!id || id === 'undefined' || id === 'null') {
     id = generateUniqueId();
-    console.log('[DEBUG][createMessage] Generated new ID:', id, 'for data:', {
-      hasId: !!data.id,
-      has_id: !!data._id,
-      type: data.type,
-      text: data.text || data.message
-    });
   }
   const baseMessage = {
     id,
@@ -106,13 +100,16 @@ export function createMessage(data: any, isHistory = false): Message {
   let messageContent = data.message;
   let replyTo = undefined;
   if (data.replyTo) {
+    // For evoucher replyTo, prioritize message._id
+    let replyId = data.replyTo.id;
+    if (data.replyTo.type === 'evoucher' && data.replyTo.message && data.replyTo.message._id) {
+      replyId = data.replyTo.message._id;
+    } else if (data.replyTo.message && (data.replyTo.message._id || data.replyTo.message.id)) {
+      replyId = data.replyTo.message._id || data.replyTo.message.id;
+    }
+    
     replyTo = {
-      id: String(
-        data.replyTo.id ||
-        (data.replyTo.message && (data.replyTo.message._id || data.replyTo.message.id)) ||
-        data.reply_to_id ||
-        ''
-      ),
+      id: String(replyId || data.reply_to_id || ''),
       text: String(
         data.replyTo.text ||
         (data.replyTo.message && (data.replyTo.message.message || data.replyTo.message.text)) ||
@@ -144,21 +141,12 @@ export function createMessage(data: any, isHistory = false): Message {
       evoucherInfo,
       text: messageText,
       username: data.username || data.senderName || data.user_id || data.userId || '',
+      replyTo, // Include replyTo for evoucher messages
       // Include payload if it exists for backward compatibility
       ...(data.payload && { payload: data.payload })
     };
 
-    // Debug logging for evoucher message creation
-    if (data.type === 'evoucher') {
-      console.log('[DEBUG][createMessage] ✅ Created evoucher message:', {
-        id: evoucherMessage.id,
-        hasEvoucherInfo: !!evoucherMessage.evoucherInfo,
-        evoucherInfoKeys: Object.keys(evoucherMessage.evoucherInfo || {}),
-        hasPayloadEvoucherInfo: !!(data.payload && data.payload.evoucherInfo),
-        messageText: evoucherMessage.text,
-        messageType: evoucherMessage.type
-      });
-    }
+
 
     return evoucherMessage;
   }

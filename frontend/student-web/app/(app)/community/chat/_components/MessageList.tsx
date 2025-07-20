@@ -53,28 +53,19 @@ const MessageList = ({
   }, [allMessages]);
 
   const handleReplyPreviewClick = (replyToId: string) => {
-    const flat = allMessages;
-    const index = flat.findIndex(m => m.id === replyToId);
-    if (index !== -1 && flatListRef.current) {
-      let groupIdx = 0;
-      let msgIdx = 0;
-      let count = 0;
-      for (let i = 0; i < messages.length; i++) {
-        for (let j = 0; j < messages[i].length; j++) {
-          if (messages[i][j].id === replyToId) {
-            groupIdx = i;
-            msgIdx = j;
-            break;
-          }
-          count++;
-        }
-      }
-      flatListRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Find the target message element by data-message-id
+    const targetElement = document.querySelector(`[data-message-id="${replyToId}"]`);
+    if (targetElement) {
+      // Scroll to the target message
+      targetElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
     }
   };
 
-  // Show skeleton loading if loading or no messages
-  if (loading || allMessages.length === 0) {
+  // Show skeleton loading only when loading, not when empty
+  if (loading) {
     return (
       <div
         ref={flatListRef as React.RefObject<HTMLDivElement> as any}
@@ -85,6 +76,24 @@ const MessageList = ({
         <MessageSkeleton count={5} isMyMessage={false} />
         <MessageSkeleton count={3} isMyMessage={true} />
         <MessageSkeleton count={4} isMyMessage={false} />
+      </div>
+    );
+  }
+
+  // Show empty state when no messages and not loading
+  if (allMessages.length === 0) {
+    return (
+      <div
+        ref={flatListRef as React.RefObject<HTMLDivElement> as any}
+        className="flex flex-col items-center justify-center pb-24 pt-4 overflow-y-auto h-full min-h-[60vh] scrollbar-none bg-transparent"
+        onScroll={onScroll}
+        style={{ minHeight: 200 }}
+      >
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          <div className="text-6xl mb-4">💬</div>
+          <p className="text-lg font-medium mb-2">No messages yet</p>
+          <p className="text-sm">Be the first to start the conversation!</p>
+        </div>
       </div>
     );
   }

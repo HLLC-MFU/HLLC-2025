@@ -97,9 +97,19 @@ export function onMessage(event: MessageEvent, args: any) {
             let replyTo = msg.replyTo;
             if (!replyTo && (msg.reply_to_id || msg.replyToId)) {
               const replyToId = msg.reply_to_id || msg.replyToId;
-              const originalMessage = state.messages.find(
+              // For evoucher messages, try to find by message._id first
+              let originalMessage = state.messages.find(
                 (m: Message) => m.id === replyToId,
               );
+              
+              // If not found and it might be an evoucher, try to find by message._id in evoucher messages
+              if (!originalMessage) {
+                originalMessage = state.messages.find((m: Message) => 
+                  m.type === 'evoucher' && 
+                  m.payload?.evoucherInfo?.message?._id === replyToId
+                );
+              }
+              
               if (originalMessage) {
                 replyTo = {
                   message: {
@@ -191,9 +201,19 @@ export function onMessage(event: MessageEvent, args: any) {
           let replyTo = messageData.replyTo;
           if (!replyTo && (messageData.reply_to_id || messageData.replyToId)) {
             const replyToId = messageData.reply_to_id || messageData.replyToId;
-            const originalMessage = state.messages.find(
+            // For evoucher messages, try to find by message._id first
+            let originalMessage = state.messages.find(
               (m: Message) => m.id === replyToId,
             );
+            
+            // If not found and it might be an evoucher, try to find by message._id in evoucher messages
+            if (!originalMessage) {
+              originalMessage = state.messages.find((m: Message) => 
+                m.type === 'evoucher' && 
+                m.payload?.evoucherInfo?.message?._id === replyToId
+              );
+            }
+            
             if (originalMessage) {
               replyTo = {
                 message: {
@@ -297,9 +317,19 @@ export function onMessage(event: MessageEvent, args: any) {
       let replyTo = payload.replyTo;
       if (!replyTo && (msg.reply_to_id || msg.replyToId)) {
         const replyToId = msg.reply_to_id || msg.replyToId;
-        const originalMessage = state.messages.find(
+        // For evoucher messages, try to find by message._id first
+        let originalMessage = state.messages.find(
           (m: Message) => m.id === replyToId,
         );
+        
+        // If not found and it might be an evoucher, try to find by message._id in evoucher messages
+        if (!originalMessage) {
+          originalMessage = state.messages.find((m: Message) => 
+            m.type === 'evoucher' && 
+            m.payload?.evoucherInfo?.message?._id === replyToId
+          );
+        }
+        
         if (originalMessage) {
           replyTo = {
             message: {

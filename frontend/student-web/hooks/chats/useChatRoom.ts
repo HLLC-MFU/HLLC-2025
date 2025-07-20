@@ -333,16 +333,22 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
 
   // Manage messages loading state
   useEffect(() => {
-    if (isConnected && wsMessages.length > 0) {
+    if (isConnected) {
+      // If connected, stop loading regardless of message count
+      // Empty rooms are valid and should not show loading
       setMessagesLoading(false);
-    } else if (isConnected && wsMessages.length === 0) {
-      // Still loading if connected but no messages yet
-      setMessagesLoading(true);
-    } else if (!isConnected) {
+    } else {
       // Not connected, show loading
       setMessagesLoading(true);
+      
+      // Add timeout to stop loading after 10 seconds if still not connected
+      const timeout = setTimeout(() => {
+        setMessagesLoading(false);
+      }, 10000);
+      
+      return () => clearTimeout(timeout);
     }
-  }, [isConnected, wsMessages.length]);
+  }, [isConnected]);
 
   // Debug: log isMember and roomId whenever they change
   useEffect(() => {
@@ -420,7 +426,7 @@ export const useChatRoom = ({ user }: UseChatRoomProps): UseChatRoomReturn => {
         messageText: chatState.messageText // Keep the message text on error
       });
     } else {
-      console.log(`[ChatRoom][${new Date().toISOString()}] Message sent successfully`);
+
     }
   } catch (error) {
     console.error('Error in handleSendMessage:', error);
@@ -574,7 +580,28 @@ const handleUnsendMessage = useCallback(async (message: Message) => {
     setMessageText: (text: string) => handleTextInput(text),
     setShowEmojiPicker: (show: boolean) => updateUIState({ showEmojiPicker: show }),
     setIsRoomInfoVisible: (show: boolean) => updateUIState({ isRoomInfoVisible: show }),
-    setReplyTo: (message?: Message) => updateReplyState({ replyTo: message }),
+    setReplyTo: (message?: Message) => {
+      if (!message) {
+        updateReplyState({ replyTo: undefined });
+        return;
+      }
+      
+      // Create a clean reply object with only necessary fields
+      const cleanReplyMessage = {
+        id: message.id,
+        text: message.text,
+        type: message.type,
+        timestamp: message.timestamp,
+        user: message.user,
+        stickerId: message.stickerId,
+        fileName: message.fileName,
+        fileType: message.fileType,
+        // Exclude complex objects like evoucherInfo, payload, etc.
+        // The reply preview will handle type-specific rendering
+      };
+      
+      updateReplyState({ replyTo: cleanReplyMessage as Message });
+    },
     setShowStickerPicker: (show: boolean) => updateUIState({ showStickerPicker: show }),
     isMember,
     loadMembers,

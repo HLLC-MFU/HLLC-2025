@@ -58,7 +58,7 @@ const ChatInput = ({
   const canSend = hasText && !isDisabled;
 
   // Debug log for mention suggestion
-  console.log('[DEBUG][ChatInput] isMentioning:', isMentioning, 'mentionSuggestions:', mentionSuggestions, 'messageText:', messageText);
+  
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -105,10 +105,10 @@ const ChatInput = ({
     if (user.name) {
       if (typeof user.name === 'string') return user.name;
       if (user.name.first || user.name.last) {
-        return `${user.name.first || ''} ${user.name.last || ''}`.trim();
+        return `${String(user.name.first || '')} ${String(user.name.last || '')}`.trim();
       }
     }
-    return user.username || 'user';
+    return String(user.username || 'user');
   };
 
   return (
@@ -124,13 +124,15 @@ const ChatInput = ({
               type="button"
             >
               <img
-                src={item.user.profile_image_url || 'https://www.gravatar.com/avatar/?d=mp'}
-                alt={item.user.username || 'avatar'}
+                src={String(item.user.profile_image_url || 'https://www.gravatar.com/avatar/?d=mp')}
+                alt={String(item.user.username || 'avatar')}
                 className="w-7 h-7 rounded-full mr-3 object-cover bg-gray-200"
               />
-              <span className="text-base text-gray-800 font-medium">@{item.user.username}</span>
+              <span className="text-base text-gray-800 font-medium">@{String(item.user.username || '')}</span>
               {item.user.name?.first && item.user.name?.last && (
-                <span className="ml-2 text-gray-500 text-sm">{item.user.name.first} {item.user.name.last}</span>
+                <span className="ml-2 text-gray-500 text-sm">
+                  {String(item.user.name.first || '')} {String(item.user.name.last || '')}
+                </span>
               )}
             </button>
           ))}
@@ -144,11 +146,30 @@ const ChatInput = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
               </svg>
               <span className="bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
-                Replying to {replyTo.user?._id === user?._id ? 'yourself' : getDisplayName(replyTo.user)}
+                Replying to {String(replyTo.user?._id) === String(user?._id) ? 'yourself' : getDisplayName(replyTo.user)}
               </span>
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 truncate pl-6 font-medium">
-              {replyTo.text || (
+              {typeof replyTo.text === 'string' && replyTo.text.trim() !== '' ? (
+                replyTo.text
+              ) : replyTo.type === 'evoucher' ? (
+                <span className="flex items-center text-amber-600 dark:text-amber-400">
+                  <span className="mr-1">🎁</span>
+                  E-Voucher
+                </span>
+              ) : replyTo.type === 'sticker' ? (
+                <span className="flex items-center text-purple-600 dark:text-purple-400">
+                  <span className="mr-1">😀</span>
+                  Sticker
+                </span>
+              ) : replyTo.type === 'file' ? (
+                <span className="flex items-center text-gray-500 dark:text-gray-400">
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Image or file
+                </span>
+              ) : (
                 <span className="flex items-center text-gray-500 dark:text-gray-400">
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />

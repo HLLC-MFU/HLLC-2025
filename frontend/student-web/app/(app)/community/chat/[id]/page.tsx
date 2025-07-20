@@ -17,7 +17,7 @@ import { Users, Info, Loader, ChevronLeft } from 'lucide-react';
 
 export default function ChatRoomPage() {
   const params = useParams();
-  console.log('[ChatRoomPage] MOUNT', params);
+
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const flatListRef = useRef<HTMLDivElement | null>(null);
@@ -89,11 +89,11 @@ export default function ChatRoomPage() {
 
   // Debug log for membership and connection state
   useEffect(() => {
-    console.log('[ChatRoomPage] isMember:', isMember, 'isConnected:', isConnected, 'room:', room, 'userId:', userId);
+
   }, [isMember, isConnected, room, userId]);
 
   useEffect(() => {
-    console.log('[ChatRoomPage] useEffect params', params);
+
     if (room && !loading) {
       loadMembers(1, false);
     }
@@ -170,8 +170,8 @@ export default function ChatRoomPage() {
   return (
     <div className="fixed inset-0 flex flex-col w-full h-full min-h-screen from-blue-100 via-blue-100 to-blue-200 overflow-hidden">
       <div className="w-full h-full flex justify-center items-center p-2 sm:p-4">
-        <div className="w-full max-w-4xl h-[90vh] max-h-[900px] bg-white/50 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/30 flex flex-col">
-          <div className="flex items-center p-4 border-b border-white/30 bg-white/50">
+        <div className="w-full max-w-4xl h-[90vh] max-h-[900px] bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/30 flex flex-col">
+          <div className="flex items-center p-4 border-b border-white/30 bg-white/80">
           <button
             className="mr-4 p-2 rounded hover:bg-white/30"
             onClick={() => router.replace('/community/chat')}
@@ -209,12 +209,12 @@ export default function ChatRoomPage() {
               <span className="text-xs text-blue-500">{room?.members_count || 0} {t('members')}</span>
             </div>
           </div>
-          <button
-            className="ml-4 p-2 rounded hover:bg-white/30"
-            onClick={() => setIsRoomInfoVisible(true)}
-          >
-            <Info color="#0A84FF" size={20} />
-          </button>
+                        <button
+                className="ml-4 p-2 rounded hover:bg-white/30"
+                onClick={() => setIsRoomInfoVisible(true)}
+              >
+                <Info color="#0A84FF" size={20} />
+              </button>
         </div>
 
         {/* Connection status indicator */}
@@ -249,7 +249,7 @@ export default function ChatRoomPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs font-medium text-blue-600">
-                          Replying to {replyTo.user?._id === userId ? 'yourself' : getDisplayName(replyTo.user)}
+                          Replying to {String(replyTo.user?._id) === String(userId) ? 'yourself' : getDisplayName(replyTo.user)}
                         </span>
                         <button 
                           onClick={() => setReplyTo(undefined)}
@@ -262,7 +262,16 @@ export default function ChatRoomPage() {
                         </button>
                       </div>
                       <p className="text-sm text-gray-700 line-clamp-2">
-                        {replyTo.text || 'Photo or file'}
+                        {typeof replyTo.text === 'string' 
+                          ? replyTo.text 
+                          : replyTo.type === 'evoucher' 
+                            ? 'E-Voucher' 
+                            : replyTo.type === 'sticker' 
+                              ? 'Sticker' 
+                              : replyTo.type === 'file' 
+                                ? 'File' 
+                                : 'Photo or file'
+                        }
                       </p>
                     </div>
                   </div>
@@ -300,7 +309,7 @@ export default function ChatRoomPage() {
         </div>
 
 
-        <div className="border-t border-white/30 bg-white/50 backdrop-blur-lg p-4">
+        <div className="border-t border-white/30 bg-white/80 backdrop-blur-lg p-4">
           <div className="max-w-2xl mx-auto">
             <ChatInput
                 messageText={messageText}
@@ -313,11 +322,9 @@ export default function ChatRoomPage() {
                 showStickerPicker={showStickerPicker}
                 replyTo={replyTo}
                 setReplyTo={setReplyTo}
-                // Pass mention props
                 mentionSuggestions={mentionSuggestions}
                 isMentioning={isMentioning}
                 handleMentionSelect={handleMentionSelect}
-                // Pass room prop for validation
                 room={room}
               />
             </div>
@@ -338,12 +345,15 @@ export default function ChatRoomPage() {
                   id: member.user_id || member.user._id,
                   name:
                     member.user_id === userId
-                      ? t('chat.you')
+                      ? t('Yourself')
                       : member.user.name
-                      ? `${member.user.name.first || ''} ${member.user.name.last || ''}`.trim() || member.user.username || t('chat.unknownUser')
-                      : member.user.username || t('chat.unknownUser'),
+                      ? `${member.user.name.first || ''} ${member.user.name.last || ''}`.trim() || member.user.username || t('?')
+                      : member.user.username || t('?'),
                 }))
-              : []
+              : isMember ? [{
+                  id: userId,
+                  name: t('Yourself')
+                }] : []
           }
           loading={!room}
         />

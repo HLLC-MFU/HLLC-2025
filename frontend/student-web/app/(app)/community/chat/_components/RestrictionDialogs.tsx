@@ -6,6 +6,18 @@ import { Ban, MicOff, AlertTriangle, CheckCircle, XCircle, Clock, UserX } from "
 import { RoomMember } from '@/types/chat';
 import { useRestriction } from '@/hooks/useRestriction';
 
+// Utility function to safely get display name
+const getDisplayName = (user: any) => {
+  if (!user) return 'user';
+  if (user.name) {
+    if (typeof user.name === 'string') return user.name;
+    if (user.name.first || user.name.last) {
+      return `${String(user.name.first || '')} ${String(user.name.last || '')}`.trim();
+    }
+  }
+  return String(user.username || 'user');
+};
+
 interface RestrictionAction {
   userId: string;
   roomId: string;
@@ -61,17 +73,6 @@ export function BanDialog({ isOpen, onClose, member, roomId, onSuccess }: Restri
     } else {
       alert(result.error || 'Failed to ban user');
     }
-  };
-
-  const getDisplayName = (user: any) => {
-    if (!user) return 'user';
-    if (user.name) {
-      if (typeof user.name === 'string') return user.name;
-      if (user.name.first || user.name.last) {
-        return `${user.name.first || ''} ${user.name.last || ''}`.trim();
-      }
-    }
-    return user.username || 'user';
   };
 
   return (

@@ -15,28 +15,21 @@ export const useChatRooms = () => {
   const { user } = useProfile();
 
   const loadRooms = useCallback(async () => {
-    console.group('[useChatRooms] loadRooms');
     try {
       if (typeof window === 'undefined') {
-        console.warn('[useChatRooms] getToken called on server');
         setError('getToken called on server');
         setLoading(false);
         setRefreshing(false);
-        console.groupEnd();
         return;
       }
-      console.log('Start loading rooms...');
       setLoading(true);
       setError(null);
-      console.log('user:', user);
       const [myRoomsData, discoverRoomsData] = await Promise.all([
         chatService.getMyRoomsByApi(),
         chatService.getAllRoomsForUser(),
       ]);
       setMyRooms(myRoomsData);
       setDiscoverRooms(discoverRoomsData);
-      console.log('myRoomsData:', myRoomsData);
-      console.log('discoverRoomsData:', discoverRoomsData);
     } catch (err) {
       console.error('[useChatRooms] Error loading rooms:', err);
       setError('Failed to load chat rooms');
@@ -45,24 +38,11 @@ export const useChatRooms = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
-      console.log('Loading complete. loading:', loading, 'refreshing:', refreshing, 'error:', error);
-      console.groupEnd();
     }
   }, [user]);
 
   const filteredRooms = useMemo(() => {
     const baseRooms = activeTab === 'my' ? myRooms : discoverRooms;
-    
-    console.log('[DEBUG] Filtering rooms:', {
-      selectedCategory,
-      totalRooms: baseRooms.length,
-      roomTypes: baseRooms.map(r => ({ 
-        id: r.id, 
-        type: r.type, 
-        metadata: r.metadata,
-        category: r.category 
-      }))
-    });
     
     return baseRooms.filter(room => {
       if (selectedCategory === 'All') {

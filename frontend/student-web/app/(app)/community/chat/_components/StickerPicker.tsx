@@ -81,27 +81,27 @@ export default function StickerPicker({ onSelectSticker, onClose }: StickerPicke
         <div className="grid grid-cols-4 gap-4 pb-4">
           {stickers && stickers.length > 0 ? (
             stickers.map((item, index) => (
-              <button
-                key={item.id}
+            <button
+              key={item.id}
                 className={`flex flex-col items-center p-2 rounded-xl border transition-all duration-200 ${
                   pressedIndex === index 
                     ? 'bg-blue-100 border-blue-400 shadow-md' 
                     : 'bg-gray-100 border-transparent hover:bg-gray-200 hover:border-gray-300'
                 }`}
-                onClick={() => onSelectSticker(item.id)}
-                onMouseDown={() => setPressedIndex(index)}
-                onMouseUp={() => setPressedIndex(null)}
-                onMouseLeave={() => setPressedIndex(null)}
-                type="button"
-              >
-                <img
-                  src={getStickerImageUrl(item.image)}
-                  alt={item.name.th}
+              onClick={() => onSelectSticker(item.id)}
+              onMouseDown={() => setPressedIndex(index)}
+              onMouseUp={() => setPressedIndex(null)}
+              onMouseLeave={() => setPressedIndex(null)}
+              type="button"
+            >
+              <img
+                src={getStickerImageUrl(item.image)}
+                alt={item.name.th}
                   className="w-14 h-14 rounded mb-1 bg-gray-200 transition-transform duration-200"
-                  style={{ objectFit: 'contain' }}
-                />
-                <span className="text-xs text-gray-700 truncate w-full text-center">{item.name.th}</span>
-              </button>
+                style={{ objectFit: 'contain' }}
+              />
+              <span className="text-xs text-gray-700 truncate w-full text-center">{item.name.th}</span>
+            </button>
             ))
           ) : (
             // Empty state when no stickers available

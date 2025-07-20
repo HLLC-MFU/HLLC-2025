@@ -26,7 +26,7 @@ const MentionSuggestions = ({ suggestions, onSelect }: MentionSuggestionsProps) 
             {item.user_id === 'all'
               ? 'แจ้งทุกคน'
               : item.user.name && item.user.name.first && item.user.name.last
-                ? `${item.user.name.first} ${item.user.name.last}`.trim()
+                ? `${String(item.user.name.first || '')} ${String(item.user.name.last || '')}`.trim()
                 : item.user.username || 'Unknown User'}
           </span>
         </button>

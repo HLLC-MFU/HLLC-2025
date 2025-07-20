@@ -5,20 +5,27 @@ interface ReplyPreviewProps {
   replyTo: Message & { notFound?: boolean };
   isMyMessage: boolean;
   currentUsername: string;
+  currentUserId: string;
   onReplyPreviewClick: (replyToId: string) => void;
   getDisplayName: (user?: any) => string;
-  renderWithMentions: (text: string, currentUsername: string) => React.ReactNode;
+  renderWithMentions: (text: string, currentUsername: string) => React.ReactNode | null;
 }
 
 const ReplyPreview = ({ 
   replyTo, 
   isMyMessage, 
   currentUsername, 
+  currentUserId,
   onReplyPreviewClick, 
   getDisplayName,
   renderWithMentions 
 }: ReplyPreviewProps) => {
-  const isReplyingToSelf = replyTo.user?._id === replyTo.user?._id;
+  // Safety check to ensure replyTo is valid
+  if (!replyTo || typeof replyTo !== 'object') {
+    return null;
+  }
+  
+  const isReplyingToSelf = String(replyTo.user?._id) === String(currentUserId);
 
   return (
     <div 
@@ -93,9 +100,34 @@ const ReplyPreview = ({
                     {replyTo.fileName || 'File'}
                   </span>
                 </div>
+              ) : replyTo.type === 'evoucher' ? (
+                <div className="flex items-center">
+                  <span className={`inline-flex items-center justify-center w-4 h-4 mr-2 ${
+                    isMyMessage ? 'text-amber-400' : 'text-amber-500'
+                  }`}>
+                    🎁
+                  </span>
+                  <span className="text-sm truncate">
+                    E-Voucher
+                  </span>
+                </div>
+              ) : replyTo.type === 'sticker' || replyTo.stickerId ? (
+                <div className="flex items-center">
+                  <span className={`inline-flex items-center justify-center w-4 h-4 mr-2 ${
+                    isMyMessage ? 'text-purple-400' : 'text-purple-500'
+                  }`}>
+                    😀
+                  </span>
+                  <span className="text-sm truncate">
+                    Sticker
+                  </span>
+                </div>
               ) : (
                 <span className="text-sm line-clamp-2">
-                  {renderWithMentions(replyTo.text || '', currentUsername) || 'Empty message'}
+                  {typeof replyTo.text === 'string' && replyTo.text.trim() !== ''
+                    ? (renderWithMentions(replyTo.text, currentUsername) || 'Empty message')
+                    : 'Empty message'
+                  }
                 </span>
               )}
             </div>

@@ -35,6 +35,7 @@ export interface Message {
     message: {
       th: string;
       en: string;
+      _id?: string;
     };
     claimUrl: string;
     sponsorImage?: string;
@@ -45,6 +46,7 @@ export interface Message {
       message: {
         th: string;
         en: string;
+        _id?: string;
       };
       claimUrl: string;
       sponsorImage?: string;

@@ -4,6 +4,7 @@ import { MessageBubbleProps } from '@/types/chat';
 import { CHAT_BASE_URL, API_BASE_URL, IMAGE_BASE_URL } from '@/configs/chats/chatConfig';
 import { formatTime } from '@/utils/chats/timeUtils';
 import ImagePreviewModal from './ImagePreviewModal';
+import { useResponsiveText } from '@/hooks/useResponsiveText';
 
 interface MessageBubbleEnrichedProps extends MessageBubbleProps {
   allMessages?: any[];
@@ -23,6 +24,7 @@ const MessageBubble = memo(({
   onUnsend,
   stickers = [], // <-- default empty
 }: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'> & { onUnsend?: (message: any) => void, stickers?: any[] }) => {
+  const { splitTextIntoChunks } = useResponsiveText();
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState('');
   const [claimed, setClaimed] = useState<{ [id: string]: boolean }>({});
@@ -90,39 +92,49 @@ const MessageBubble = memo(({
   ), [isMyMessage]);
 
   const renderWithMentions = useCallback((text: string, currentUsername: string) => {
-    if (!text) return null;
-    const regex = /(@\w+)/g;
-    const parts = text.split(regex);
-    return parts.map((part, i) => {
-      if (regex.test(part)) {
-        const mention = part.slice(1);
-        const isMatch = mention === currentUsername;
-        if (isMatch) {
-          // Highlight current user mention with better contrast for my-message
-          return (
-            <span key={i} className={`font-semibold px-1.5 py-0.5 rounded-md ${
-              isMyMessage 
-                ? 'text-yellow-200 bg-yellow-600/30 border' 
-                : 'text-blue-400 bg-blue-100 dark:bg-blue-900'
-            }`}>
-              {part}
-            </span>
-          );
-        }
-        // Other mentions with better contrast for my-message
-        return (
-          <span key={i} className={`font-medium px-1 py-0.5 rounded ${
-            isMyMessage 
-              ? 'text-cyan-200 bg-cyan-600/30' 
-              : 'text-blue-500'
-          }`}>
-            {part}
-          </span>
-        );
-      }
-      return <span key={i}>{part}</span>;
+    if (!text || typeof text !== 'string') return null;
+    
+    const textChunks = splitTextIntoChunks(text);
+    
+    return textChunks.map((chunk, chunkIndex) => {
+      const regex = /(@\w+)/g;
+      const parts = chunk.split(regex);
+      
+              return (
+          <div key={chunkIndex} className="block mb-1 last:mb-0">
+            {parts.map((part, i) => {
+            if (regex.test(part)) {
+              const mention = part.slice(1);
+              const isMatch = mention === currentUsername;
+              if (isMatch) {
+                // Highlight current user mention with better contrast for my-message
+                return (
+                  <span key={i} className={`inline font-semibold px-1.5 py-0.5 rounded-md ${
+                    isMyMessage 
+                      ? 'text-yellow-200 bg-yellow-600/30 border' 
+                      : 'text-blue-400 bg-blue-100 dark:bg-blue-900'
+                  }`}>
+                    {part}
+                  </span>
+                );
+              }
+              // Other mentions with better contrast for my-message
+              return (
+                <span key={i} className={`inline font-medium px-1 py-0.5 rounded ${
+                  isMyMessage 
+                    ? 'text-cyan-200 bg-cyan-600/30' 
+                    : 'text-blue-500'
+                }`}>
+                  {part}
+                </span>
+              );
+            }
+            return <span key={i} className="inline">{part}</span>;
+          })}
+        </div>
+      );
     });
-  }, [isMyMessage]);
+  }, [isMyMessage, splitTextIntoChunks]);
 
   // Always resolve sticker image from message or stickers list
   const stickerImageUrl = useMemo(() => {
@@ -233,9 +245,6 @@ const MessageBubble = memo(({
                 <h3 className="font-bold text-xl text-amber-800 dark:text-amber-200 leading-tight break-words mb-1">
                   {(evoucherInfo as any).message?.[displayLang] || 'E-Voucher'}
                 </h3>
-                <p className="text-sm text-amber-600 dark:text-amber-300">
-                  จากผู้สนับสนุน
-                </p>
               </div>
 
               {/* E-Voucher Details */}
@@ -359,8 +368,11 @@ const MessageBubble = memo(({
     }
     
     return (
-      <div className={getMessageTextStyle()}>
-        {renderWithMentions(message.text || '', currentUsername)}
+      <div className={`${getMessageTextStyle()} whitespace-pre-wrap leading-relaxed max-w-full`} style={{ wordBreak: 'keep-all' }}>
+        {message.text && typeof message.text === 'string' 
+          ? renderWithMentions(message.text, currentUsername) 
+          : null
+        }
       </div>
     );
   }, [message, claimed, claiming, handleOpenImagePreview, handleUnsend, stickerImageUrl, getMessageTextStyle, renderWithMentions, currentUsername, stickers, getStickerImageUrl, showDialog]);
@@ -388,13 +400,13 @@ const MessageBubble = memo(({
 
   const getDisplayName = useCallback((user?: { name?: { first?: string; last?: string } }) => {
     if (!user || !user.name) return '';
-    return `${user.name.first || ''} ${user.name.last || ''}`.trim();
+    return `${String(user.name.first || '')} ${String(user.name.last || '')}`.trim();
   }, []);
 
   const renderReplyPreview = useCallback(() => {
     if (!enrichedReplyTo) return null;
     
-    const isReplyingToSelf = enrichedReplyTo.user?._id === message.user?._id;
+    const isReplyingToSelf = String(enrichedReplyTo.user?._id) === String(message.user?._id);
     
     return (
       <div 
@@ -469,9 +481,34 @@ const MessageBubble = memo(({
                       {enrichedReplyTo.fileName || 'File'}
                     </span>
                   </div>
+                ) : enrichedReplyTo.type === 'evoucher' ? (
+                  <div className="flex items-center">
+                    <span className={`inline-flex items-center justify-center w-4 h-4 mr-2 ${
+                      isMyMessage ? 'text-amber-400' : 'text-amber-500'
+                    }`}>
+                      🎁
+                    </span>
+                    <span className="text-sm truncate">
+                      E-Voucher
+                    </span>
+                  </div>
+                ) : enrichedReplyTo.type === 'sticker' || enrichedReplyTo.stickerId ? (
+                  <div className="flex items-center">
+                    <span className={`inline-flex items-center justify-center w-4 h-4 mr-2 ${
+                      isMyMessage ? 'text-purple-400' : 'text-purple-500'
+                    }`}>
+                      😀
+                    </span>
+                    <span className="text-sm truncate">
+                      Sticker
+                    </span>
+                  </div>
                 ) : (
                   <span className="text-sm line-clamp-2">
-                    {renderWithMentions(enrichedReplyTo.text || '', currentUsername) || 'Empty message'}
+                    {typeof enrichedReplyTo.text === 'string' 
+                      ? (renderWithMentions(enrichedReplyTo.text, currentUsername) || 'Empty message')
+                      : 'Empty message'
+                    }
                   </span>
                 )}
               </div>
@@ -487,6 +524,7 @@ const MessageBubble = memo(({
       className={`w-full flex flex-col ${isMyMessage ? 'items-end ml-12' : 'items-start mr-12'} mb-2 relative group`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      data-message-id={message.id}
     >
       {/* Reply Preview - Show above the message bubble */}
       {renderReplyPreview()}
@@ -545,7 +583,7 @@ const MessageBubble = memo(({
                   : 'bg-white text-gray-900 shadow border border-gray-100 rounded-bl-sm') +
                 ' hover:shadow-md hover:-translate-y-0.5'
               }
-              style={{ wordBreak: 'break-word' }}
+              style={{ wordBreak: 'keep-all' }}
             >
               {/* Render message content */}
               {renderContent()}

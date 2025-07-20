@@ -101,9 +101,6 @@ const EvoucherCard = ({ evoucherInfo, messageId, onSuccess }: EvoucherCardProps)
             <h3 className="font-bold text-xl text-amber-800 dark:text-amber-200 leading-tight break-words mb-1">
               {evoucherInfo.message?.[displayLang] || 'E-Voucher'}
             </h3>
-            <p className="text-sm text-amber-600 dark:text-amber-300">
-              จากผู้สนับสนุน
-            </p>
           </div>
 
           {/* E-Voucher Details */}

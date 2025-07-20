@@ -30,7 +30,28 @@ export function createMessage(data: any, isHistory = false): Message {
       username: ''
     };
   }
-  const id = data.id || data._id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  // Generate more unique ID
+  const generateUniqueId = () => {
+    const timestamp = Date.now();
+    const random1 = Math.random().toString(36).substring(2, 15);
+    const random2 = Math.random().toString(36).substring(2, 9);
+    return `msg-${timestamp}-${random1}-${random2}`;
+  };
+
+  // Ensure we have a unique ID, especially for messages from server
+  let id = data.id || data._id;
+  
+  // For evoucher messages, prioritize message._id over other IDs
+  if (data.type === 'evoucher' && data.message && data.message._id) {
+    id = data.message._id;
+  } else if (data.type === 'evoucher' && data.payload && data.payload.evoucherInfo && data.payload.evoucherInfo.message && data.payload.evoucherInfo.message._id) {
+    // Fallback: check if evoucherInfo has message._id
+    id = data.payload.evoucherInfo.message._id;
+  }
+  
+  if (!id || id === 'undefined' || id === 'null') {
+    id = generateUniqueId();
+  }
   const baseMessage = {
     id,
     user: safeUser(data.user),
@@ -63,13 +84,16 @@ export function createMessage(data: any, isHistory = false): Message {
   let messageContent = data.message;
   let replyTo = undefined;
   if (data.replyTo) {
+    // For evoucher replyTo, prioritize message._id
+    let replyId = data.replyTo.id;
+    if (data.replyTo.type === 'evoucher' && data.replyTo.message && data.replyTo.message._id) {
+      replyId = data.replyTo.message._id;
+    } else if (data.replyTo.message && (data.replyTo.message._id || data.replyTo.message.id)) {
+      replyId = data.replyTo.message._id || data.replyTo.message.id;
+    }
+    
     replyTo = {
-      id: String(
-        data.replyTo.id ||
-        (data.replyTo.message && (data.replyTo.message._id || data.replyTo.message.id)) ||
-        data.reply_to_id ||
-        ''
-      ),
+      id: String(replyId || data.reply_to_id || ''),
       text: String(
         data.replyTo.text ||
         (data.replyTo.message && (data.replyTo.message.message || data.replyTo.message.text)) ||
