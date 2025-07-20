@@ -9,6 +9,8 @@ export default () => {
     MONGO_URI: process.env.MONGO_URI || 'mongodb://localhost:27017/hllc-2025',
     REDIS_URI: process.env.REDIS_URI || 'redis://localhost:6379',
     JWT_SECRET: process.env.JWT_SECRET || 'pngwpeonhgperpongp',
+    JWT_SECRET_FRESHER: process.env.JWT_SECRET_FRESHER || 'pngwpeonhgperpongp',
+    JWT_SECRET_ADMIN: process.env.JWT_SECRET_ADMIN || 'pngwpeonhgperpongp',
     JWT_EXPIRATION: process.env.JWT_EXPIRATION || '1d',
     JWT_REFRESH_SECRET:
       process.env.JWT_REFRESH_SECRET || 'pngwpeonhgperpongp-refresh',
