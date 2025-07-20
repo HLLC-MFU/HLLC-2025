@@ -192,6 +192,10 @@ export default function useCoinHunting() {
 
   const handleAlert = (type: "already-collected" | "no-evoucher" | "too-far" | "cooldown", remainingCooldownMs?: number) => {
     setState(s => ({ ...s, alertType: type, modal: 'alert', remainingCooldownMs }));
+    // Trigger refresh when evoucher is exhausted to update collected coins
+    if (type === 'no-evoucher') {
+      setRefreshKey(k => k + 1);
+    }
   };
 
   const closeModal = () => setState(s => ({ ...s, modal: null }));
