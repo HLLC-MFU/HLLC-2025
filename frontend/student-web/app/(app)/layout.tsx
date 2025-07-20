@@ -67,7 +67,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (hasPretestAnswers === false) {
+    if (hasPretestAnswers === false && prepostQuestion.length > 0) {
       openPretestModal();
     }
   }, [hasPretestAnswers]);

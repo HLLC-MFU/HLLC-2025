@@ -25,14 +25,14 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col justify-between h-full pt-4">
-      <div className="flex justify-between">
+      <div className="flex justify-between z-50">
         <Button
           onPress={() => router.replace('/')}
           className="bg-black/10 border rounded-full text-white"
         >
           Back
         </Button>
-        <div className="flex flex-col self-end gap-2 z-50">
+        <div className="flex flex-col self-end gap-2">
           <Button
             className="bg-black/10 border rounded-full"
             size="lg"
@@ -108,7 +108,7 @@ export default function ProfilePage() {
           top: 0,
           left: 0,
           zIndex: 1,
-          position: "absolute",
+          position: "fixed",
         }}
         onCreated={() => {
           THREE.ColorManagement.enabled = true;
