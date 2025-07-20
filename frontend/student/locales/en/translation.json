@@ -312,6 +312,7 @@
         "noNotifications": "No notifications yet",
         "noNotificationsSubtext": "We'll notify you when something arrives",
         "markAllAsRead": "Mark all as read",
+        "markingAsRead": "Marking as read...",
         "read": "Read",
         "unread": "Unread"
     }
