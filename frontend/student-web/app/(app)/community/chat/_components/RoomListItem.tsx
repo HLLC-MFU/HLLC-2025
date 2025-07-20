@@ -45,8 +45,8 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
       
       {/* Enhanced info container */}
       <div className="flex-1 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="text-lg font-bold text-white/95 drop-shadow-lg truncate leading-tight">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-lg font-bold text-white/95 drop-shadow-lg truncate leading-tight flex-1 min-w-0">
             {language === 'th' ? room.name?.th || 'Unnamed' : room.name?.en || 'Unnamed'}
           </div>
           

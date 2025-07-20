@@ -21,10 +21,15 @@ export default function CategoryFilter({
           style={{ 
             left: `${selectedIndex * pillWidth}%`,
             width: `${pillWidth}%`,
+            borderRadius: selectedIndex === 0 
+              ? '12px 0 0 12px' 
+              : selectedIndex === Categories.length - 1 
+              ? '0 12px 12px 0' 
+              : '0',
           }}
         />
         
-        <div className="grid grid-cols-5 gap-1 sm:gap-2 relative z-10">
+        <div className="grid grid-cols-5 relative z-10">
           {Categories.map(({ name }) => (
             <button
               key={name}

@@ -43,17 +43,17 @@ export const RoomDetailModal = ({ visible, room, language, onClose }: RoomDetail
   const imageUrl = room.image_url || room.image ? `${CHAT_BASE_URL}/uploads/${room.image_url || room.image}` : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="backdrop-blur-md bg-slate-800/90 rounded-2xl p-8 w-[340px] flex flex-col items-center shadow-xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="backdrop-blur-md bg-slate-800/90 rounded-2xl p-6 w-full max-w-sm flex flex-col items-center shadow-xl relative">
         {imageUrl && (
           <img
             src={imageUrl}
             alt={room.name?.th || room.name?.en || 'Room'}
-            className="w-32 h-20 rounded-xl object-cover mb-4"
+            className="w-24 h-16 rounded-lg object-cover mb-3"
             onError={e => { (e.target as HTMLImageElement).src = 'https://www.gravatar.com/avatar/?d=mp'; }}
           />
         )}
-        <span className="text-lg font-bold text-white mb-2">
+        <span className="text-base font-bold text-white mb-2 text-center">
           {language === 'th' ? room.name?.th || 'Unnamed' : room.name?.en || 'Unnamed'}
         </span>
         {room.category && (
@@ -61,7 +61,7 @@ export const RoomDetailModal = ({ visible, room, language, onClose }: RoomDetail
             {room.category}
           </span>
         )}
-        <span className="text-white text-base mt-4 mb-2">สมาชิกในห้อง ({members.length})</span>
+        <span className="text-white text-sm mt-3 mb-2">สมาชิกในห้อง ({members.length})</span>
         <div className="w-full max-h-32 overflow-y-auto flex flex-col items-center">
           {loading ? (
             <span className="text-blue-400 text-lg">🔄 กำลังโหลด...</span>
@@ -82,7 +82,7 @@ export const RoomDetailModal = ({ visible, room, language, onClose }: RoomDetail
         </div>
         <button
           onClick={onClose}
-          className="mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded px-6 py-2 transition"
+          className="mt-4 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded px-4 py-2 transition text-sm"
           type="button"
         >
           Close
