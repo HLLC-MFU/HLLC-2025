@@ -25,16 +25,17 @@ const handleSubmit = async (id?: string, activityIds?: string[]) => {
   const activitiesToSend = activityIds ?? selectedActivityId;
 
   if (activitiesToSend.length === 0) {
-    return addToast({
+    addToast({
       title: 'No select Activities',
       description: 'Please select activities before checkin.',
       color: 'warning',
     });
+     return
   }
 
   const result = await createCheckin({
     user: sid,
-    activities: activitiesToSend, // Always send as array
+    activities: activitiesToSend,
   });
 
   if (result) {
