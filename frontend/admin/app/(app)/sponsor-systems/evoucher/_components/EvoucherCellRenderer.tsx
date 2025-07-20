@@ -42,14 +42,6 @@ export default function EvoucherCellRenderer({
         minute: "2-digit"
     } as const;
 
-    if (!evoucher.photo.home || imgError) {
-        return (
-            <div className="flex justify-center items-center h-20 w-20 border border-default-300 rounded">
-                <ImageIcon className="text-gray-500" />
-            </div>
-        );
-    }
-
     switch (columnKey) {
         case "sponsors":
             return (
@@ -110,32 +102,40 @@ export default function EvoucherCellRenderer({
             );
         case "photo":
             return (
-                <div className='flex gap-1'>
-                    <Image
-                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.front}`}
-                        alt={evoucher.name.en}
-                        className="rounded border border-default-300"
-                        height={64}
-                        width={64}
-                        onError={() => setImgError(true)}
-                    />
-                    <Image
-                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.back}`}
-                        alt={evoucher.name.en}
-                        className="rounded border border-default-300"
-                        height={64}
-                        width={64}
-                        onError={() => setImgError(true)}
-                    />
-                    <Image
-                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.home}`}
-                        alt={evoucher.name.en}
-                        className="rounded border border-default-300"
-                        height={64}
-                        width={64}
-                        onError={() => setImgError(true)}
-                    />
-                </div>
+                !evoucher.photo.home || imgError ? (
+                    <div className="flex justify-center items-center h-20 w-20 border border-default-300 rounded">
+                        <ImageIcon className="text-gray-500" />
+                    </div>
+                ) : (
+                    <>
+                        <div className='flex gap-1'>
+                            <Image
+                                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.front}`}
+                                alt={evoucher.name.en}
+                                className="rounded border border-default-300"
+                                height={64}
+                                width={64}
+                                onError={() => setImgError(true)}
+                            />
+                            <Image
+                                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.back}`}
+                                alt={evoucher.name.en}
+                                className="rounded border border-default-300"
+                                height={64}
+                                width={64}
+                                onError={() => setImgError(true)}
+                            />
+                            <Image
+                                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.home}`}
+                                alt={evoucher.name.en}
+                                className="rounded border border-default-300"
+                                height={64}
+                                width={64}
+                                onError={() => setImgError(true)}
+                            />
+                        </div>
+                    </>
+                )
             );
         case "amount":
             return evoucher.amount;

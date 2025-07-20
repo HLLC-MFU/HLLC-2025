@@ -70,7 +70,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
     <>
       <Modal
         isOpen={isOpen}
-        onClose={onClose}
+        onClose={handleClose}
         placement="center"
         className="flex items-center justify-center bg-black/40 backdrop-blur-sm z-50"
       >

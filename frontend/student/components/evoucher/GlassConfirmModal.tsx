@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   },
   confirmMessage: {
     fontSize: 15,
-    color: '#444',
+    color: '#fff',
     marginBottom: 24,
     textAlign: 'center',
   },
