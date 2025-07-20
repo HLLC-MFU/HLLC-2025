@@ -41,7 +41,7 @@ export const RoomDetailModal = ({ visible, room, language, onClose }: RoomDetail
   }, [visible, room?.id]);
 
   if (!room) return null;
-  const imageUrl = room.image_url || room.image ? `${CHAT_BASE_URL}/uploads/${room.image_url || room.image}` : null;
+  const imageUrl = room.image_url || room.image ? `${CHAT_BASE_URL}/api/uploads/${room.image_url || room.image}` : null;
 
   return (
     <Modal visible={visible} transparent animationType="fade">

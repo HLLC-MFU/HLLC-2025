@@ -88,7 +88,6 @@ export default function ChatRoomPage() {
     handleSendMessage,
     handleImageUpload,
     handleSendSticker,
-    handleTyping,
     handleMentionSelect,
     handleTextInput,
     initializeRoom,
@@ -184,7 +183,7 @@ export default function ChatRoomPage() {
                   <Users size={14} color="#0A84FF" />
                   <Text style={chatStyles.memberCount}>
                     {room?.members_count}{' '}
-                    {t('chat.members')}
+                    {t('member')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -259,7 +258,7 @@ export default function ChatRoomPage() {
                     flatListRef.current?.scrollToEnd({ animated: true })
                   }
                 >
-                  <Text style={{ color: '#fff', fontSize: 16 }}>{t('chat.scrollToBottom')}</Text>
+                  <Text style={{ color: '#fff', fontSize: 16 }}></Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -306,7 +305,6 @@ export default function ChatRoomPage() {
                 handleTextInput={handleTextInput}
                 handleSendMessage={handleSendMessageWithScroll}
                 handleImageUpload={handleImageUpload}
-                handleTyping={handleTyping}
                 isMember={isMember}
                 isConnected={isConnected}
                 inputRef={inputRef}
