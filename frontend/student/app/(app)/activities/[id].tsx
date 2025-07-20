@@ -2,7 +2,7 @@
 
 import { router } from "expo-router"
 import { useActivityStore } from "@/stores/activityStore"
-import { Linking, ScrollView, Text, TouchableOpacity, View } from "react-native"
+import { Linking, ScrollView, Text, TouchableOpacity, View, Platform } from "react-native"
 import { Image } from "expo-image"
 import { Button, Separator, Input } from "tamagui"
 import { ArrowLeft, Compass, Clock, QrCode, CheckCircle, FileText } from "@tamagui/lucide-icons"
@@ -58,7 +58,7 @@ export default function ActivityDetailPage() {
   if (!activity) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text style={{ fontSize: 16, color: "#999" }}>No activity data found.</Text>
+        <Text style={{ fontSize: 16, color: "#999" }}>{t("activity.noActivityData")}</Text>
       </View>
     )
   }
@@ -130,101 +130,120 @@ export default function ActivityDetailPage() {
 
       {/* Tab Content */}
       {selectedTab === "details" && (
-        <View style={{ padding: 20, gap: 20 }}>
-          {/* Title & Info */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 12,
-              width: "100%",
-            }}
-          >
-            {/* Top section: text info */}
-            <View style={{ gap: 6, flex: 1, flexShrink: 1 }}>
-              <Text style={{ fontSize: 13, color: "#888", textTransform: "uppercase" }}>{t("activity.activity")}</Text>
-              <Text
-                style={{
-                  fontSize: 24,
-                  fontWeight: "700",
-                  color: "#222",
-                  flexShrink: 1,
-                }}
-              >
-                {activity.name[language] || activity.name.en}
-              </Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Clock color="#666" size={16} />
-                <Text style={{ fontSize: 15, color: "#666" }}>
-                  {new Date(activity.metadata.startAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  })}
-                  {" - "}
-                  {new Date(activity.metadata.endAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  })}
+        <ScrollView
+          style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 72, marginBottom: 0 }}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}
+          scrollEventThrottle={16}
+          bounces={true}
+          overScrollMode="always"
+        >
+          <View style={{ gap: 20 }}>
+            {/* Title & Info */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 12,
+                width: "100%",
+              }}
+            >
+              {/* Top section: text info */}
+              <View style={{ gap: 6, flex: 1, flexShrink: 1 }}>
+                <Text style={{ fontSize: 13, color: "#888", textTransform: "uppercase" }}>{t("activity.activity")}</Text>
+                <Text
+                  style={{
+                    fontSize: 24,
+                    fontWeight: "700",
+                    color: "#222",
+                    flexShrink: 1,
+                  }}
+                >
+                  {activity.name[language] || activity.name.en}
                 </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Clock color="#666" size={16} />
+                  <Text style={{ fontSize: 15, color: "#666" }}>
+                    {new Date(activity.metadata.startAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    })}
+                    {" - "}
+                    {new Date(activity.metadata.endAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    })}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <MapPin color="#666" size={16} />
+                  <Text style={{ fontSize: 15, color: "#666" }}>{activity.location[language] || activity.location.en}</Text>
+                </View>
+                {/* Status Badge */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignSelf: "flex-start",
+                    alignItems: "center",
+                    backgroundColor: color,
+                    borderRadius: 16,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    gap: 6,
+                  }}
+                >
+                  <Icon color="white" size={14} />
+                  <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>{label}</Text>
+                </View>
               </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <MapPin color="#666" size={16} />
-                <Text style={{ fontSize: 15, color: "#666" }}>{activity.location[language] || activity.location.en}</Text>
-              </View>
-              {/* Status Badge */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignSelf: "flex-start",
-                  alignItems: "center",
-                  backgroundColor: color,
-                  borderRadius: 16,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  gap: 6,
-                }}
-              >
-                <Icon color="white" size={14} />
-                <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>{label}</Text>
+
+              {/* Bottom section: DateBadge */}
+              <View>
+                <DateBadge date={activity.metadata.startAt} />
               </View>
             </View>
 
-            {/* Bottom section: DateBadge */}
+            <Separator />
+            {/* Description */}
             <View>
-              <DateBadge date={activity.metadata.startAt} />
+              <Text style={{ 
+                fontSize: Platform.OS === 'android' ? 14 : 16, 
+                lineHeight: Platform.OS === 'android' ? 20 : 24, 
+                color: "#444", 
+                textAlign: "justify" 
+              }}>
+                {activity.fullDetails[language] || activity.fullDetails.en}
+              </Text>
             </View>
+            <Separator />
+            {/* Action Button */}
+            <Button
+              onPress={() => Linking.openURL(activity.location.mapUrl)}
+              icon={Compass}
+              style={{
+                borderRadius: 12,
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                marginBottom: Platform.OS === 'android' ? 30 : 10,
+              }}
+            >
+              {t("activity.getDirection")}
+            </Button>
           </View>
-
-          <Separator />
-          {/* Description */}
-          <View>
-            <Text style={{ fontSize: 16, lineHeight: 24, color: "#444", textAlign: "justify" }}>
-              {activity.fullDetails[language] || activity.fullDetails.en}
-            </Text>
-          </View>
-          <Separator />
-          {/* Action Button */}
-          <Button
-            onPress={() => Linking.openURL(activity.location.mapUrl)}
-            icon={Compass}
-            style={{
-              borderRadius: 12,
-              paddingVertical: 10,
-              paddingHorizontal: 20,
-            }}
-          >
-            Get Direction
-          </Button>
-        </View>
+        </ScrollView>
       )}
 
       {selectedTab === "timeline" && (
         <ScrollView
           style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 72, marginBottom: 0 }}
           showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}
+          scrollEventThrottle={16}
+          bounces={true}
+          overScrollMode="always"
         >
           {/* Timeline Header */}
           <View style={{ marginBottom: 24 }}>
@@ -293,7 +312,7 @@ export default function ActivityDetailPage() {
                   completed={activity.checkinStatus >= 2}
                   error={activity.checkinStatus < 0}
                   disabled={activity.checkinStatus === 0}
-                  description={activity.checkinStatus === 1 ? "Scan the QR code at the event location or visit the designated check-in point to confirm your attendance." : undefined}
+                  description={activity.checkinStatus === 1 ? t('activity.timeline.assessmentCheckinDescription') : undefined}
                 >
                   {activity.checkinStatus === 1 && (
                     <Button
@@ -305,7 +324,7 @@ export default function ActivityDetailPage() {
                       onPress={() => router.replace(`/qrcode`)}
                       icon={QrCode}
                     >
-                      Open QR Scanner
+                      {t("activity.openQrScanner")}
                     </Button>
                   )}
                 </StepperItem>
@@ -328,7 +347,7 @@ export default function ActivityDetailPage() {
                     hour12: false,
                   })
                 }            
-              )}` : "Successfully Checked In"}
+              )}` : t("activity.successfullyCheckedIn")}
                   active={activity.checkinStatus === 2}
                   completed={activity.checkinStatus === 3}
                   error={activity.checkinStatus < 0}
@@ -336,7 +355,7 @@ export default function ActivityDetailPage() {
                   description={
                     activity.checkinStatus < 0 ? undefined :
                       activity.checkinStatus === 3 && !activity.hasAnsweredAssessment
-                        ? "Congratulations! You've completed the activity. Please take a moment to share your feedback through the assessment."
+                        ? t('activity.timeline.assessmentCompletedDescription')
                         : undefined
                   }
                 />
@@ -353,7 +372,7 @@ export default function ActivityDetailPage() {
               error={!activity.hasAnsweredAssessment && activity.checkinStatus === 3}
               disabled={activity.checkinStatus < 3}
               isLast
-              description={!activity.hasAnsweredAssessment ? "Help us improve by sharing your experience and feedback about this activity." : undefined}
+              description={!activity.hasAnsweredAssessment ? t('activity.timeline.assessmentPrompt') : undefined}
             >
               <View
                 style={{
@@ -365,7 +384,7 @@ export default function ActivityDetailPage() {
                 }}
               >
                 <Text style={{ color: "#1e40af", fontSize: 14, lineHeight: 20, marginBottom: 8 }}>
-                  💭 Your feedback is valuable and helps us create better experiences for everyone.
+                  {t('activity.timeline.assessmentEncouragement')}
                 </Text>
                 {!activity.hasAnsweredAssessment && activity.checkinStatus === 3 && (
                   <Button
@@ -376,7 +395,7 @@ export default function ActivityDetailPage() {
                     onPress={() => setShowAssessmentModal(true)}
                     icon={FileText}
                   >
-                    Complete Assessment
+                    {t('activity.timeline.assessmentButton')}
                   </Button>
                 )}
               </View>
