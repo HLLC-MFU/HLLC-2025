@@ -95,7 +95,12 @@ export default function EvoucherScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <YStack padding="$4" gap="$4" flex={1}>
+      <YStack 
+        padding="$4" 
+        gap="$4" 
+        flex={1}
+        paddingTop={Platform.OS === 'android' ? '$0' : '$4'}
+      >
         <Text style={styles.headerTitle}>{t('evoucher.title')}</Text>
 
         <SearchInput
@@ -110,7 +115,7 @@ export default function EvoucherScreen() {
           numColumns={2}
           style={{ width: '100%', height: '100%' }}
           columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 10 }}
-          contentContainerStyle={{ paddingBottom: 30, paddingTop: 10 }}
+          contentContainerStyle={{ paddingBottom: Platform.OS === 'android' ? 60 : 30, paddingTop: 10 }}
           renderItem={({ item }) => {
             const evoucherCodes = getEvoucherCodesBySponsor(item._id);
             const unusedCount = evoucherCodes.filter(code => code.isUsed === false).length;
@@ -156,6 +161,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'left',
     marginTop: Platform.select({ ios: 16, default: 0 }),
+    marginBottom: Platform.select({ ios: 0, default: -10 }),
   },
   headerTitlePadded: {
     textAlign: 'left',
