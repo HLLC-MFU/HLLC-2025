@@ -9,7 +9,7 @@ import {
   Button,
   Image
 } from "@heroui/react";
-import { Bell, Check, ArrowDown, Clock, X } from "lucide-react";
+import { Bell, Check, ArrowDown, Clock } from "lucide-react";
 import { useNotification } from "@/hooks/useNotification";
 import type { NotificationItem } from "@/types/notification";
 
@@ -106,9 +106,6 @@ export default function NotificationsPage({ isOpen, onClose }: NotificationsProp
                 </span>
               )}
             </div>
-            <button onClick={onClose}>
-              <X className="w-5 h-5 text-gray-400 hover:text-gray-600" />
-            </button>
           </ModalHeader>
 
           <div className="flex justify-center mt-3 mb-2">
