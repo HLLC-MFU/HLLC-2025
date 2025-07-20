@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiRequest } from '@/utils/api';
 import { IEvoucher, IEvoucherCode, IEvoucherCodeResponse, IEvoucherResponse } from '@/types/evoucher';
 import * as SecureStore from 'expo-secure-store';
@@ -83,7 +83,7 @@ export function useEvoucher() {
   };
 
   // Fetch my evoucher codes (user's claimed evouchers)
-  const fetchMyEvoucherCodes = async () => {
+  const fetchMyEvoucherCodes = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -108,7 +108,7 @@ export function useEvoucher() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Get evoucher codes for a specific sponsor
   const getEvoucherCodesBySponsor = (sponsorId: string) => {

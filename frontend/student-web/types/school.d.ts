@@ -11,6 +11,7 @@ export type School = {
 };
 
 export type Photo = {
+    avatar: string;
     first: string;
     second: string;
     third: string;

@@ -12,7 +12,6 @@ import { Bell, X, Check, ArrowDown, Clock } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { use, useEffect, useMemo, useState } from "react";
 import { useNotification } from "@/hooks/notifications/useNotification";
-import { useApi } from "@/hooks/useApi";
 import { NotificationItem } from "@/types/notification";
 
 import tinycolor from "tinycolor2";
@@ -37,14 +36,20 @@ interface UserWithTheme {
 
 export default function NotificationModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const { notifications = [], loading } = useNotification();
+  const { notifications: originalNotifications = [], loading, markAsRead, markAllAsRead } = useNotification();
   const { user } = useProfile();
-  const { request } = useApi();
   const {language} = useLanguage();
   const [showing, setShowing] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
   const [markingAsRead, setMarkingAsRead] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [showUnread, setShowUnread] = useState(true);
+
+  // Update local notifications when original notifications change
+  useEffect(() => {
+    setNotifications(originalNotifications);
+  }, [originalNotifications]);
 
   // เปิด Modal ทันทีเมื่อ visible = true
   useEffect(() => {
@@ -58,8 +63,17 @@ export default function NotificationModal({ visible, onClose }: Props) {
   }, [visible]);
 
   const unreadCount = useMemo(
-    () => notifications.filter((n: NotificationItem) => !n.isRead && !n.read).length,
+    () => notifications.filter((n: NotificationItem) => !n.isRead).length,
     [notifications]
+  );
+
+  // กรองรายการ notification ตามสถานะที่เลือก
+  const filteredNotifications = useMemo(
+    () =>
+      notifications.filter((n) =>
+        showUnread ? !n.isRead : n.isRead
+      ),
+    [notifications, showUnread]
   );
 
   const handleClose = () => {
@@ -71,31 +85,31 @@ export default function NotificationModal({ visible, onClose }: Props) {
     
     setMarkingAsRead(true);
     try {
-      // Get all unread notification IDs
-      const unreadIds = notifications
-        .filter((n: NotificationItem) => !n.isRead && !n.read)
-        .map((n: NotificationItem) => n._id);
-      
-      if (unreadIds.length > 0) {
-        // Mark each notification as read
-        for (const id of unreadIds) {
-          await request(`/notifications/read`, "POST", {
-            notificationId: id,
-          });
-        }
-        
-        // Refetch notifications to update the UI
-        const res = await request(`/notifications/me`, "GET");
-        if (res) {
-          // The useNotification hook will handle the state update
-          console.log('Successfully marked all notifications as read');
-        }
-      }
+      const success = await markAllAsRead();
     } catch (error) {
-      console.error('Error marking notifications as read:', error);
+      // Handle error silently
     } finally {
       setMarkingAsRead(false);
     }
+  };
+
+  const handleMarkAsRead = async (notification: NotificationItem) => {
+    if (!notification._id || notification.isRead) return;
+    
+    try {
+      const success = await markAsRead(notification._id);
+    } catch (error) {
+      // Handle error silently
+    }
+  };
+
+  // Function to handle notification click
+  const handleNotificationClick = async (notification: NotificationItem) => {
+    // Mark as read when clicked
+    await handleMarkAsRead(notification);
+    
+    // Set selected notification for detail view
+    setSelectedNotification(notification);
   };
 
   // Function to get icon component based on icon name
@@ -170,9 +184,28 @@ export default function NotificationModal({ visible, onClose }: Props) {
                   <X size={16} color="#6b7280" />
                 </TouchableOpacity>
               </View>
+              {/* Tab toggle for unread/read */}
+              <View style={styles.tabRow}>
+                <TouchableOpacity
+                  style={[styles.tabButton, showUnread && styles.tabButtonActive]}
+                  onPress={() => setShowUnread(true)}
+                >
+                  <Text style={[styles.tabText, showUnread && styles.tabTextActive]}>
+                    {t("notification.unread")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.tabButton, !showUnread && styles.tabButtonActive]}
+                  onPress={() => setShowUnread(false)}
+                >
+                  <Text style={[styles.tabText, !showUnread && styles.tabTextActive]}>
+                    {t("notification.read")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               <View style={styles.divider} />
               <FlatList
-                data={notifications}
+                data={filteredNotifications}
                 keyExtractor={(item: NotificationItem) => item._id}
                 contentContainerStyle={styles.scrollContent}
                 style={styles.scrollView}
@@ -186,12 +219,12 @@ export default function NotificationModal({ visible, onClose }: Props) {
                   </View>
                 )}
                 renderItem={({ item: n }: { item: NotificationItem }) => {
-                  const isUnread = !n.isRead && !n.read;
+                  const isUnread = !n.isRead;
                   return (
                     <TouchableOpacity
                       style={styles.card}
                       activeOpacity={0.85}
-                      onPress={() => setSelectedNotification(n)}
+                      onPress={() => handleNotificationClick(n)}
                     >
                       <View style={styles.cardHeader}>
                         <View style={styles.iconWrap}>{getIconComponent(n.icon)}</View>
@@ -221,7 +254,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
                   );
                 }}
               />
-              {notifications.length > 0 && unreadCount > 0 && (
+              {notifications.length > 0 && unreadCount > 0 && showUnread && (
                 <>
                   <View style={styles.divider} />
                   <TouchableOpacity 
@@ -238,7 +271,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
                         },
                       ]}
                     >
-                      {markingAsRead ? t("notification.markAllAsRead") : t("notification.markAllAsRead")}
+                      {markingAsRead ? t("notification.markingAsRead") : t("notification.markAllAsRead")}
                     </Text>
                   </TouchableOpacity>
                 </>
@@ -616,5 +649,28 @@ const styles = StyleSheet.create({
     marginTop: 8,
     backgroundColor: '#f3f4f6',
     alignSelf: 'center',
+  },
+  tabRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  tabButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    backgroundColor: "#f3f4f6",
+    marginHorizontal: 4,
+  },
+  tabButtonActive: {
+    backgroundColor: "#3b82f6",
+  },
+  tabText: {
+    color: "#6b7280",
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  tabTextActive: {
+    color: "#fff",
   },
 });

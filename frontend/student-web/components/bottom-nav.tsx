@@ -11,11 +11,11 @@ const siteConfig = {
   navMenuItems: [
     {
       items: [
-        { label: 'Home', asset: 'home', href: '/', icon: Home },
-        { label: 'Activity', asset: 'activities', href: '/activities', icon: Book },
-        { label: 'QRCode', asset: 'qrcode', href: '/qrcode', icon: QrCode },
-        { label: 'Evoucher', asset: 'evoucher', href: '/evouchers', icon: Ticket },
-        { label: 'Community', asset: 'community', href: '/community', icon: Globe },
+        { label: 'HOME', asset: 'home', href: '/', icon: Home },
+        { label: 'ACTIVITY', asset: 'activities', href: '/activities', icon: Book },
+        { label: 'QR CODE', asset: 'qrcode', href: '/qrcode', icon: QrCode },
+        { label: 'E-VOUCHER', asset: 'evoucher', href: '/evouchers', icon: Ticket },
+        { label: 'COMMUNITY', asset: 'community', href: '/community', icon: Globe },
       ],
     },
   ],
@@ -42,7 +42,7 @@ export default function BottomNav() {
               key={item.href}
               type="button"
               onClick={() => router.push(item.href)}
-              className="relative flex flex-col items-center text-xs transition-all duration-300 z-10 flex-1 py-1"
+              className="relative flex flex-col items-center text-[10px] transition-all duration-300 z-10 flex-1 py-1"
               transition={{ duration: 0.3 }}
               initial={false}
               animate={{
@@ -56,10 +56,8 @@ export default function BottomNav() {
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 />
               )}
-              <motion.div
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              <div
                 className="flex flex-col items-center relative z-20"
-                animate={{ scale: isActive ? 1.1 : 1 }}
               >
                 {asset ? (
                   <Image
@@ -77,8 +75,8 @@ export default function BottomNav() {
                     )}
                   />
                 )}
-                <p className="text-xs">{item.label}</p>
-              </motion.div>
+                <p className="text-[10px]">{item.label}</p>
+              </div>
             </motion.button>
           );
         })}

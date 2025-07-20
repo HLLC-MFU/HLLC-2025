@@ -10,7 +10,8 @@ export async function middleware(req: NextRequest) {
   if (
     pathname === `/login` ||
     pathname === `/register` ||
-    pathname === `/forgot-password`
+    pathname === `/forgot-password` ||
+    pathname.startsWith(`/download`) 
   ) {
     return NextResponse.next();
   }
@@ -79,5 +80,7 @@ function isTokenExpired(token: string): boolean {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|images|favicon.ico|signin|data).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|images|.*\\.(?:apk|png|jpg|jpeg|svg|js|css|woff|woff2|ttf|eot)).*)',
+  ],
 };

@@ -213,7 +213,6 @@ export function useNotification() {
   const maxReconnectAttempts = 10; // เพิ่มจำนวนครั้งให้มากขึ้น
   const hasInitialFetchRef = useRef(false); // เพิ่ม flag เพื่อป้องกัน fetch ซ้ำ
   
-  
   // Helper function to safely get timestamp
   const getTimestamp = (notification: NotificationItem): number => {
     const timestamp = notification.createdAt || notification.timestamp;
@@ -222,6 +221,86 @@ export function useNotification() {
       return isNaN(parsed) ? Date.now() : parsed;
     }
     return Date.now();
+  };
+
+  // Function to mark a single notification as read
+  const markAsRead = async (notificationId: string): Promise<boolean> => {
+    try {
+      const token = await getToken('accessToken');
+      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${baseUrl}/notifications/${notificationId}/read`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      if (!response.ok) {
+        return false;
+      }
+      
+      const responseData = await response.json();
+      
+      // Update local state
+      setNotifications((prev: NotificationItem[]) => 
+        prev.map((n: NotificationItem) => 
+          n._id === notificationId 
+            ? { ...n, isRead: true }
+            : n
+        )
+      );
+      
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // Function to mark all unread notifications as read
+  const markAllAsRead = async (): Promise<boolean> => {
+    try {
+      const unreadIds = notifications
+        .filter((n: NotificationItem) => !n.isRead)
+        .map((n: NotificationItem) => n._id);
+      
+      if (unreadIds.length === 0) {
+        return true;
+      }
+      
+      const token = await getToken('accessToken');
+      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+      
+      // Mark each notification as read
+      for (const id of unreadIds) {
+        const response = await fetch(`${baseUrl}/notifications/${id}/read`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        
+        if (!response.ok) {
+          return false; // Stop processing if one fails
+        }
+        
+        const responseData = await response.json();
+      }
+      
+      // Update local state
+      setNotifications((prev: NotificationItem[]) => 
+        prev.map((notification: NotificationItem) => ({
+          ...notification,
+          isRead: true
+        }))
+      );
+      
+      return true;
+    } catch (error) {
+      return false;
+    }
   };
   
   // Initial fetch of notifications (only once)
@@ -250,7 +329,6 @@ export function useNotification() {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
-        
         
         if (!response.ok) {
           return;
@@ -289,7 +367,7 @@ export function useNotification() {
             ...notification,
             id: notification._id || notification.id, // Ensure id field exists
             timestamp: notification.createdAt || notification.timestamp, // Use createdAt as timestamp
-            read: notification.isRead !== undefined ? notification.isRead : notification.read, // Handle both read and isRead
+            isRead: notification.isRead, 
           };
         });
         
@@ -300,8 +378,8 @@ export function useNotification() {
         );
 
         // Separate unread and read notifications
-        const unread = sortedByTimestamp.filter((n) => !n.read);
-        const read = sortedByTimestamp.filter((n) => n.read);
+        const unread = sortedByTimestamp.filter((n) => !n.isRead);
+        const read = sortedByTimestamp.filter((n) => n.isRead);
 
         
         // Combine them, with unread appearing before read
@@ -360,7 +438,7 @@ export function useNotification() {
                   ...notification,
                   id: notification._id || notification.id,
                   timestamp: notification.createdAt || notification.timestamp,
-                  read: notification.isRead !== undefined ? notification.isRead : notification.read,
+                  isRead: notification.isRead !== undefined ? notification.isRead : notification.read,
                 };
                 
                 // Check if notification already exists
@@ -395,6 +473,7 @@ export function useNotification() {
                   
                   if (response.ok) {
                     const responseText = await response.text();
+                    
                     const notificationsData: NotificationItem[] | NotificationApiResponse = JSON.parse(responseText);
                     
                     let notificationsArray: RawNotificationData[];
@@ -411,15 +490,15 @@ export function useNotification() {
                         ...notification,
                         id: notification._id || notification.id,
                         timestamp: notification.createdAt || notification.timestamp,
-                        read: notification.isRead !== undefined ? notification.isRead : notification.read,
+                        isRead: notification.isRead !== undefined ? notification.isRead : notification.read,
                       }));
                       
                       const sortedByTimestamp = [...transformedNotifications].sort(
                         (a, b) => getTimestamp(b) - getTimestamp(a)
                       );
                       
-                      const unread = sortedByTimestamp.filter((n) => !n.read);
-                      const read = sortedByTimestamp.filter((n) => n.read);
+                      const unread = sortedByTimestamp.filter((n) => !n.isRead);
+                      const read = sortedByTimestamp.filter((n) => n.isRead);
                       
                       setNotifications([...unread, ...read]);
                     }
@@ -436,7 +515,7 @@ export function useNotification() {
         };
 
         eventSource.onerror = (event: EventSourceEvent) => {
-        
+          
           // Increment reconnect attempts
           reconnectAttemptsRef.current++;
           
@@ -483,5 +562,7 @@ export function useNotification() {
     notifications,
     loading,
     // error, // Do not return error to suppress error propagation to UI
+    markAsRead,
+    markAllAsRead,
   };
 }
