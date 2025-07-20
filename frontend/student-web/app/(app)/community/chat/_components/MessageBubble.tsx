@@ -91,45 +91,49 @@ const MessageBubble = memo(({
     `text-[15.5px] leading-[1.5] ${!isMyMessage ? 'text-gray-900 dark:text-gray-100' : 'text-white'}`
   ), [isMyMessage]);
 
-  const renderWithMentions = useCallback((text: string, currentUsername: string) => {
+  const renderWithMentions = useCallback((text: string, currentUsername: string, isReplyPreview = false) => {
     if (!text || typeof text !== 'string') return null;
     
     const textChunks = splitTextIntoChunks(text);
     
     return textChunks.map((chunk, chunkIndex) => {
-      const regex = /(@\w+)/g;
+    const regex = /(@\w+)/g;
       const parts = chunk.split(regex);
       
               return (
           <div key={chunkIndex} className="block mb-1 last:mb-0">
             {parts.map((part, i) => {
-            if (regex.test(part)) {
-              const mention = part.slice(1);
-              const isMatch = mention === currentUsername;
-              if (isMatch) {
-                // Highlight current user mention with better contrast for my-message
-                return (
-                  <span key={i} className={`inline font-semibold px-1.5 py-0.5 rounded-md ${
-                    isMyMessage 
-                      ? 'text-yellow-200 bg-yellow-600/30 border' 
-                      : 'text-blue-400 bg-blue-100 dark:bg-blue-900'
-                  }`}>
-                    {part}
-                  </span>
-                );
-              }
-              // Other mentions with better contrast for my-message
-              return (
-                <span key={i} className={`inline font-medium px-1 py-0.5 rounded ${
-                  isMyMessage 
-                    ? 'text-cyan-200 bg-cyan-600/30' 
-                    : 'text-blue-500'
-                }`}>
-                  {part}
-                </span>
-              );
-            }
-            return <span key={i} className="inline">{part}</span>;
+      if (regex.test(part)) {
+        const mention = part.slice(1);
+        const isMatch = mention === currentUsername;
+        if (isMatch) {
+          // Highlight current user mention with better contrast for my-message
+          return (
+            <span key={i} className={`inline font-semibold px-1.5 py-0.5 rounded-md ${
+              isReplyPreview 
+                ? 'text-blue-400' 
+                : isMyMessage 
+                ? 'text-yellow-200 bg-yellow-600/30' 
+                : 'text-blue-400'
+            }`}>
+              {part}
+            </span>
+          );
+        }
+        // Other mentions with better contrast for my-message
+        return (
+          <span key={i} className={`inline font-medium px-1 py-0.5 rounded ${
+            isReplyPreview 
+              ? 'text-blue-500' 
+              : isMyMessage 
+              ? 'text-cyan-200 bg-cyan-600/30' 
+              : 'text-blue-500'
+          }`}>
+            {part}
+          </span>
+        );
+      }
+      return <span key={i} className="inline">{part}</span>;
           })}
         </div>
       );
@@ -506,7 +510,7 @@ const MessageBubble = memo(({
                 ) : (
                   <span className="text-sm line-clamp-2">
                     {typeof enrichedReplyTo.text === 'string' 
-                      ? (renderWithMentions(enrichedReplyTo.text, currentUsername) || 'Empty message')
+                      ? (renderWithMentions(enrichedReplyTo.text, currentUsername, true) || 'Empty message')
                       : 'Empty message'
                     }
                   </span>
