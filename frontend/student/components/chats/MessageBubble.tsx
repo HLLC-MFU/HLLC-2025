@@ -223,8 +223,8 @@ const MessageBubble = memo(({
             >
               <Text style={styles.evoucherButtonText}>
                 {isClaiming
-                  ? t('evoucher.claiming', 'กำลังเคลม...')
-                  : t('evoucher.claim', 'กดเพื่อรับ E-Voucher')}
+                  ? t('evoucher.claiming', 'Claiming...')
+                  : t('evoucher.claim', 'Claim')}
               </Text>
             </TouchableOpacity>
           )}

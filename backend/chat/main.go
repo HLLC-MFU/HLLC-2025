@@ -239,7 +239,7 @@ func setupMiddleware(app *fiber.App) {
 
 	// CORS middleware with cookie support
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000,http://localhost:8080", // ระบุ domain ที่อนุญาต
+		AllowOrigins:     "http://localhost:3000,http://localhost:8080,http://localhost:3001", // ระบุ domain ที่อนุญาต
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Requested-With, Cookie",
 		AllowCredentials: true, // สำคัญ! ต้องเป็น true เพื่อให้ส่ง cookies ได้
