@@ -36,6 +36,7 @@ type SimpleRoom struct {
 	ID     string
 	NameTh string
 	NameEn string
+	Image  string
 }
 
 func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService *userService.RoleService) *NotificationService {
@@ -138,7 +139,7 @@ func (ns *NotificationService) createAndSendNotification(ctx context.Context, re
 	log.Printf("[NotificationService] Creating %s notification for receiver %s", messageType, receiverID)
 
 	// สร้างส่วนประกอบ notification
-	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn)
+	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn, room.Image)
 	notificationSender := chatModel.CreateNotificationSender(sender.ID, sender.Username, sender.FirstName, sender.LastName, role)
 	notificationMessage := chatModel.CreateNotificationMessage(message.ID.Hex(), message.Message, messageType, message.Timestamp)
 
@@ -155,10 +156,12 @@ func (ns *NotificationService) createAndSendNotification(ctx context.Context, re
 		payload = ns.createMentionNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
 	case chatModel.MessageTypeReply:
 		payload = ns.createReplyNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
-	case chatModel.MessageTypeRestriction:
-		payload = ns.createRestrictionNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
 	case chatModel.MessageTypeUnsend:
 		payload = ns.createUnsendNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
+	case chatModel.MessageTypeRestriction:
+		// Determine specific restriction type from message content
+		restrictionType := ns.determineRestrictionType(message)
+		payload = ns.createSpecificRestrictionNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID, restrictionType)
 	default:
 		payload = ns.createTextNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
 	}
@@ -485,8 +488,9 @@ func (ns *NotificationService) getRoomById(ctx context.Context, roomID string) (
 
 	roomCollection := ns.collection.Database().Collection("rooms")
 	var room struct {
-		ID   primitive.ObjectID `bson:"_id"`
-		Name map[string]string  `bson:"name"`
+		ID    primitive.ObjectID `bson:"_id"`
+		Name  map[string]string  `bson:"name"`
+		Image string             `bson:"image"`
 	}
 
 	err = roomCollection.FindOne(ctx, bson.M{"_id": roomObjID}).Decode(&room)
@@ -498,6 +502,7 @@ func (ns *NotificationService) getRoomById(ctx context.Context, roomID string) (
 		ID:     room.ID.Hex(),
 		NameTh: room.Name["th"],
 		NameEn: room.Name["en"],
+		Image:  room.Image,
 	}, nil
 }
 
@@ -552,7 +557,7 @@ func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Contex
 	}
 
 	// Create notification components
-	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn)
+	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn, room.Image)
 	notificationSender := chatModel.CreateNotificationSender(sender.ID, sender.Username, sender.FirstName, sender.LastName, nil)
 	notificationMessage := chatModel.CreateNotificationMessage(message.ID.Hex(), message.Message, chatModel.MessageTypeMention, message.Timestamp)
 
@@ -568,4 +573,47 @@ func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Contex
 	ns.sendNotificationToKafka(ctx, receiverID, payload)
 
 	log.Printf("[NotificationService] ✅ Sent mention notification to user %s", receiverID)
+}
+
+func (ns *NotificationService) createSpecificRestrictionNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string, restrictionType string) chatModel.NotificationPayload {
+	// Set the specific restriction type in the message
+	message.Type = restrictionType
+
+	// Create specific notification based on restriction type
+	switch restrictionType {
+	case chatModel.MessageTypeRestrictionBan:
+		return chatModel.NewRestrictionBanNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionUnban:
+		return chatModel.NewRestrictionUnbanNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionMute:
+		return chatModel.NewRestrictionMuteNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionUnmute:
+		return chatModel.NewRestrictionUnmuteNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionKick:
+		return chatModel.NewRestrictionKickNotification(room, sender, message, receiverID)
+	default:
+		// Fallback to generic restriction notification
+		return chatModel.NewRestrictionNotification(room, sender, message, receiverID)
+	}
+}
+
+// determineRestrictionType determines the specific restriction type from message content
+func (ns *NotificationService) determineRestrictionType(message *model.ChatMessage) string {
+	// Check message content to determine restriction type
+	msgContent := strings.ToLower(message.Message)
+
+	if strings.Contains(msgContent, "banned") {
+		return chatModel.MessageTypeRestrictionBan
+	} else if strings.Contains(msgContent, "unbanned") {
+		return chatModel.MessageTypeRestrictionUnban
+	} else if strings.Contains(msgContent, "muted") {
+		return chatModel.MessageTypeRestrictionMute
+	} else if strings.Contains(msgContent, "unmuted") {
+		return chatModel.MessageTypeRestrictionUnmute
+	} else if strings.Contains(msgContent, "kicked") {
+		return chatModel.MessageTypeRestrictionKick
+	}
+
+	// Default fallback
+	return chatModel.MessageTypeRestriction
 }
