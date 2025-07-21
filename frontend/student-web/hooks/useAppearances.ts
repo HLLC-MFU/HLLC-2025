@@ -19,10 +19,6 @@ export function useAppearances() {
             setAssets(res.data.data[0].assets);
         } catch (err) {
             const message = err instanceof Error ? err.message : "Unexpected error";
-            addToast({
-                title: "Failed To Fetch",
-                description: message,
-            })
         }
     };
 

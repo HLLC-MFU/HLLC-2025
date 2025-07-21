@@ -84,7 +84,7 @@ export default function HomePage() {
   return (
     <div className="relative flex flex-col max-h-full w-full bg-cover bg-center bg-no-repeat text-white pt-4 md:pt-10 pb-28">
       <div
-        className={`fixed inset-0 transition-all duration-500 ${isMenuOpen && 'backdrop-blur'}`}
+        className={`fixed inset-0 transition-all duration-500 ${isMenuOpen && 'backdrop-blur bg-black/20'}`}
         onClick={() => setIsMenuOpen(false)}
       />
 
@@ -93,7 +93,7 @@ export default function HomePage() {
           <GlassButton
             iconOnly
             onClick={toggleMenu}
-            className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20"
+            className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-black/10"
           >
             {assets && assets.menu ? (
               <Image
@@ -114,7 +114,10 @@ export default function HomePage() {
                 variants={itemVariants}
                 initial="hidden"
                 animate={isMenuOpen ? "visible" : "exit"}
-                className="flex items-center justify-center gap-2 px-4 bg-white/40 w-60 h-14 sm:h-16 md:h-20 rounded-full border border-white/30 shadow-lg text-[14px] text-center tracking-[1px] font-semibold z-50"
+                className="flex items-center justify-center gap-2 px-4 bg-white/30 
+                  w-60 h-14 sm:h-16 md:h-20 rounded-full border border-white/40 
+                  shadow-lg text-[14px] text-center tracking-[1px] font-semibold 
+                  z-50 transition-all hover:bg-white/10 active:scale-95"
                 onClick={sub.onPress}
               >
                 {sub.icon}
