@@ -421,7 +421,6 @@ export function useNotification() {
           try {
             const sseData: SSEData = JSON.parse(event.data || '{}');
             if (
-              sseData.type === 'NEW_NOTIFICATION' ||
               sseData.type === 'REFETCH_NOTIFICATIONS'
             ) {
               // Always fetch new notifications from backend

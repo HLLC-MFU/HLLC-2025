@@ -125,7 +125,7 @@ export class CoinCollectionsService {
   }
 
   async getLeaderboard(query: Record<string, string>) {
-    const limit = Number(query.limit) || 5;
+    const limit = Number(query.limit) || 1000;
     const collections = await this.coinCollectionModel.find({})
       .populate({
         path: 'user',
