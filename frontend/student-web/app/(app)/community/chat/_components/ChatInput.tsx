@@ -41,24 +41,21 @@ const ChatInput = ({
   const { user } = useProfile();
   const [isFocused, setIsFocused] = useState(false);
   const hasText = messageText.trim().length > 0;
-  
+
   // Check if user has Administrator role
   const isAdministrator = user?.role?.name === 'Administrator';
-  
+
   // Check if room is read-only
   const isReadOnlyRoom = room?.type === 'readonly';
-  
+
   // Check if room is inactive
   const isInactiveRoom = room?.status === 'inactive';
-  
+
   // Determine if input should be disabled
   const isDisabled = !isMember || !isConnected || isInactiveRoom || (isReadOnlyRoom && !isAdministrator);
-  
+
   // Determine if user can send messages
   const canSend = hasText && !isDisabled;
-
-  // Debug log for mention suggestion
-  
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -81,7 +78,7 @@ const ChatInput = ({
       return 'This room is inactive';
     }
     if (isReadOnlyRoom && !isAdministrator) {
-      return 'This room is read-only';
+      return 'Read-only Room';
     }
     if (!isMember) {
       return 'Join the room to send messages';
@@ -91,6 +88,19 @@ const ChatInput = ({
     }
     return 'Type a message...';
   };
+
+  // Debug log for mention suggestion
+  console.log('ChatInput Debug:', {
+    room,
+    isReadOnlyRoom,
+    isInactiveRoom,
+    isAdministrator,
+    isMember,
+    isConnected,
+    isDisabled,
+    userRole: user?.role?.name,
+    placeholderText: getPlaceholderText()
+  });
 
   // const handleKeyPress = (e: React.KeyboardEvent) => {
   //   if (e.key === 'Enter' && !e.shiftKey) {
@@ -196,14 +206,12 @@ const ChatInput = ({
         </div>
       )}
 
-      <div className={`relative flex items-center rounded-3xl p-1.5 min-h-[56px] border-2 transition-all duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg hover:shadow-xl ${
-        isFocused 
-          ? 'border-blue-400 dark:border-blue-500 shadow-blue-500/20 bg-white/90 dark:bg-gray-800/90' 
-          : 'border-gray-200/50 dark:border-gray-600/50'
-      } ${replyTo ? 'rounded-tl-none rounded-tr-none' : ''} ${
-        isDisabled ? 'opacity-60' : ''
-      }`}>
-        
+      <div className={`relative flex items-center rounded-3xl p-1.5 min-h-[56px] border-2 transition-all duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg hover:shadow-xl ${isFocused
+        ? 'border-blue-400 dark:border-blue-500 shadow-blue-500/20 bg-white/90 dark:bg-gray-800/90'
+        : 'border-gray-200/50 dark:border-gray-600/50'
+        } ${replyTo ? 'rounded-tl-none rounded-tr-none' : ''} ${isDisabled ? 'opacity-60' : ''
+        }`}>
+
         {!isConnected && (
           <div className="absolute -top-1 -right-1 z-10">
             <div className="relative">
@@ -224,9 +232,8 @@ const ChatInput = ({
               onFocus={handleFocus}
               onBlur={handleBlur}
               placeholder={getPlaceholderText()}
-              className={`w-full bg-transparent text-gray-900 dark:text-gray-100 text-[15px] py-2.5 min-h-[40px] outline-none font-medium placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed ${
-                isDisabled ? 'cursor-not-allowed' : ''
-              }`}
+              className={`w-full bg-transparent text-gray-900 dark:text-gray-100 text-[15px] py-2.5 min-h-[40px] outline-none font-medium placeholder:text-gray-500 placeholder:opacity-100 leading-relaxed ${isDisabled ? 'cursor-not-allowed placeholder:text-gray-400' : ''
+                }`}
               style={{
                 wordBreak: 'keep-all',
                 whiteSpace: 'nowrap',
@@ -236,11 +243,10 @@ const ChatInput = ({
               disabled={isDisabled}
               maxLength={1000}
             />
-            
+
             {messageText.length > 800 && (
-              <div className={`absolute bottom-0 right-16 text-xs font-medium ${
-                messageText.length > 950 ? 'text-red-500' : 'text-yellow-500'
-              }`}>
+              <div className={`absolute bottom-0 right-16 text-xs font-medium ${messageText.length > 950 ? 'text-red-500' : 'text-yellow-500'
+                }`}>
                 {messageText.length}/1000
               </div>
             )}
@@ -248,11 +254,10 @@ const ChatInput = ({
 
           <div className="flex items-center space-x-1">
             <button
-              className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
-                showStickerPicker 
-                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 scale-110' 
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:scale-110'
-              } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow-md'}`}
+              className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${showStickerPicker
+                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 scale-110'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:scale-110'
+                } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow-md'}`}
               onClick={() => setShowStickerPicker(!showStickerPicker)}
               disabled={isDisabled}
               type="button"
@@ -263,11 +268,10 @@ const ChatInput = ({
             </button>
 
             <button
-              className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
-                canSend 
-                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl shadow-blue-500/25 hover:scale-110 text-white'
-                  : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-              }`}
+              className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${canSend
+                ? 'bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl shadow-blue-500/25 hover:scale-110 text-white'
+                : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                }`}
               onClick={handleSend}
               disabled={!canSend}
               type="submit"
@@ -285,11 +289,11 @@ const ChatInput = ({
 
         {isDisabled && (
           <div className="text-xs text-red-500 dark:text-red-400 font-medium bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded-full shadow-sm">
-            {!isConnected ? 'Connection problem' : 
-             !isMember ? 'Please join the group first' : 
-             isInactiveRoom ? 'Room is inactive' : 
-             isReadOnlyRoom && !isAdministrator ? 'Read only' : 
-             'Cannot send message'}
+            {!isConnected ? 'Connection problem' :
+              !isMember ? 'Please join the group first' :
+                isInactiveRoom ? 'Room is inactive' :
+                  isReadOnlyRoom && !isAdministrator ? 'Read only' :
+                    'Cannot send message'}
           </div>
         )}
       </div>

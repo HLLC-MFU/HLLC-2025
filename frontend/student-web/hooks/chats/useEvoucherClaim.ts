@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
+import { getToken } from '@/utils/storage';
 
 interface EvoucherClaimResponse {
   success: boolean;
   message?: string;
   data?: any;
+  alreadyClaimed?: boolean; // เพิ่มเพื่อระบุว่าเคยรับไปแล้ว
 }
 
 interface UseEvoucherClaimReturn {
@@ -30,16 +32,23 @@ export const useEvoucherClaim = (): UseEvoucherClaimReturn => {
     setError(null);
 
     try {
+      // Get the access token for authentication
+      const accessToken = getToken('accessToken');
+
+      if (!accessToken) {
+        const errorMsg = 'ไม่พบ Token สำหรับการยืนยันตัวตน กรุณาเข้าสู่ระบบใหม่';
+        setError(errorMsg);
+        return { success: false, message: errorMsg };
+      }
+
       const response = await fetch(claimUrl, {
         method: 'POST',
         credentials: 'include', // Include cookies
         headers: {
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({
-          messageId: messageId,
-          timestamp: new Date().toISOString()
-        })
+        // ส่ง empty string เป็น body เพื่อหลีกเลี่ยง error
+        body: '',
       });
 
       const result = await response.json();
@@ -47,8 +56,30 @@ export const useEvoucherClaim = (): UseEvoucherClaimReturn => {
       if (response.ok) {
         setIsClaimed(true);
         console.log('🎉 E-Voucher claimed successfully:', result);
-        return { success: true, message: 'รับ E-Voucher สำเร็จ!', data: result };
+        return {
+          success: true,
+          message: result.message || 'รับ E-Voucher สำเร็จ!',
+          data: result
+        };
       } else {
+        console.log('🔥 [DEBUG] Response not OK. Status:', response.status);
+        console.log('🔥 [DEBUG] Result object:', result);
+        console.log('🔥 [DEBUG] result.message:', result.message);
+        console.log('🔥 [DEBUG] result.error:', result.error);
+        console.log('🔥 [DEBUG] result.statusCode:', result.statusCode);
+        
+        // ตรวจสอบว่าเป็น error ที่เคยรับไปแล้วหรือไม่
+        if (response.status === 400 && result.message === 'You have already claimed this evoucher') {
+          console.log('🔥 [DEBUG] Already claimed condition matched!');
+          return {
+            success: false,
+            message: 'You already claimed this evoucher',
+            alreadyClaimed: true
+          };
+        }
+
+        console.log('🔥 [DEBUG] Not already claimed, treating as other error');
+        // กรณี error อื่นๆ
         const errorMsg = result.message || `HTTP ${response.status}: ${response.statusText}`;
         setError(errorMsg);
         return { success: false, message: errorMsg };

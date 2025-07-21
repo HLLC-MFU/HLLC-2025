@@ -28,8 +28,6 @@ const EvoucherCard = ({ evoucherInfo, messageId, onSuccess }: EvoucherCardProps)
     setClaimDialogMessage(message);
     setClaimDialogType(type);
     setShowClaimDialog(true);
-    // Auto hide after 3 seconds
-    setTimeout(() => setShowClaimDialog(false), 3000);
   }, []);
 
   const handleClaim = async () => {
@@ -60,7 +58,12 @@ const EvoucherCard = ({ evoucherInfo, messageId, onSuccess }: EvoucherCardProps)
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.message || 'ไม่สามารถรับ E-Voucher ได้';
-        showDialog(`❌ ${errorMessage}`, 'error');
+        // เช็คข้อความ error
+        if (errorMessage.toLowerCase().includes('already claimed')) {
+          showDialog('คุณเคยรับ E-Voucher นี้ไปแล้ว', 'info');
+        } else {
+          showDialog(`❌ ${errorMessage}`, 'error');
+        }
       }
     } catch (error) {
       console.error('❌ Error claiming E-Voucher:', error);
