@@ -19,7 +19,7 @@ export default function TopContent({
                 <Input
                     isClearable
                     className="w-full sm:max-w-[44%]"
-                    placeholder="Search evoucher"
+                    placeholder="Search user"
                     startContent={<SearchIcon />}
                     value={filterValue}
                     onClear={onClear}

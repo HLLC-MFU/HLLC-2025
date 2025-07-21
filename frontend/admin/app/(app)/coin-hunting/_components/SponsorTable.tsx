@@ -1,10 +1,10 @@
-import { Leaderboard } from "@/types/coin-hunting";
+
 import { SortDescriptor, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import { Key, useCallback, useMemo, useState } from "react";
-import LeaderBoardCellRenderer from "./LeaderBoardCellRenderer";
-
-import TopContent from "./TopContent";
 import BottomContent from "./BottomContent";
+import { Landmark, Sponsorboard } from "@/types/coin-hunting";
+import SponsorBoardCellRenderer from "./SponsorBoardCellRenderer";
+import TopContentSponsor from "./TopContentSponsor";
 
 const COLUMNS = [
     { name: "RANK", uid: "rank", allowsSorting: true },
@@ -14,11 +14,14 @@ const COLUMNS = [
     { name: "LASTESTCOLLECTEDAT", uid: "latestCollectedAt", allowsSorting: true },
 ]
 
-type LeaderBoardTableProps = {
-    leaderboards: Leaderboard[];
+type SponsorBoardTableProps = {
+    sponsorboards: Sponsorboard[];
+    landmark: Landmark[];
+    selectedLandmarkId: string | null;
+    onLandmarkChange: (id: string) => void;
 };
 
-export default function LeaderBoardTable({ leaderboards }: LeaderBoardTableProps) {
+export default function SponsorBoardTable({ sponsorboards, landmark, selectedLandmarkId, onLandmarkChange }: SponsorBoardTableProps) {
     const [filterValue, setFilterValue] = useState("");
     const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
         column: "rank",
@@ -38,23 +41,23 @@ export default function LeaderBoardTable({ leaderboards }: LeaderBoardTableProps
     };
 
     const filteredItems = useMemo(() => {
-        let filteredLeaderboard = [...(leaderboards ?? [])]
+        let filteredSponsorboard = [...(sponsorboards ?? [])]
         const query = filterValue.toLowerCase();
 
         if (!!filterValue) {
-            filteredLeaderboard = leaderboards.filter(
-                (leaderboard) =>
-                    leaderboard.name.first?.toLowerCase().includes(query) ||
-                    leaderboard.name.middle?.toLowerCase().includes(query) ||
-                    leaderboard.name.last?.toLowerCase().includes(query) ||
-                    leaderboard.username?.toLowerCase().includes(query) ||
-                    leaderboard.rank.toString().toLowerCase().includes(query)
+            filteredSponsorboard = sponsorboards.filter(
+                (sponsorboard) =>
+                    sponsorboard.name.first?.toLowerCase().includes(query) ||
+                    sponsorboard.name.middle?.toLowerCase().includes(query) ||
+                    sponsorboard.name.last?.toLowerCase().includes(query) ||
+                    sponsorboard.username?.toLowerCase().includes(query) ||
+                    sponsorboard.rank.toString().toLowerCase().includes(query)
             );
         }
-        return filteredLeaderboard;
-    }, [leaderboards, filterValue]);
+        return filteredSponsorboard;
+    }, [sponsorboards, filterValue]);
 
-    const leaderboardItems = useMemo(() => {
+    const sponsorboardItems = useMemo(() => {
         const sortedItems = [...filteredItems];
 
         if (sortDescriptor.column && sortDescriptor.direction) {
@@ -88,15 +91,15 @@ export default function LeaderBoardTable({ leaderboards }: LeaderBoardTableProps
 
 
     const renderCell = useCallback(
-        (leaderboard: Leaderboard, columnKey: Key) => {
+        (sponsorboard: Sponsorboard, columnKey: Key) => {
             return (
-                <LeaderBoardCellRenderer
-                    leaderboard={leaderboard}
+                <SponsorBoardCellRenderer
+                    sponsorboard={sponsorboard}
                     columnKey={columnKey}
                 />
             );
         },
-        [leaderboards]
+        [sponsorboards]
     );
     return (
         <Table
@@ -106,10 +109,13 @@ export default function LeaderBoardTable({ leaderboards }: LeaderBoardTableProps
             onSortChange={setSortDescriptor}
             topContentPlacement="outside"
             topContent={
-                <TopContent
+                <TopContentSponsor
                     filterValue={filterValue}
                     onClear={handleClear}
                     onSearchChange={handleSearch}
+                    selectedLandmarkId={selectedLandmarkId}
+                    landmark={landmark}
+                    onLandmarkChange={onLandmarkChange}
                 />
             }
             bottomContentPlacement="outside"
@@ -139,16 +145,16 @@ export default function LeaderBoardTable({ leaderboards }: LeaderBoardTableProps
                         <span className="text-default-400">No user found</span>
                     </div>
                 }
-                items={[...leaderboardItems]}
+                items={[...sponsorboardItems]}
             >
-                {(leaderboard: Leaderboard) => (
+                {(sponsorboard: Sponsorboard) => (
                     <TableRow
-                        key={leaderboard.userId}
+                        key={sponsorboard.userId}
                         className="hover:bg-default-50 transition-colors"
                     >
                         {(columnKey) => (
                             <TableCell className={`${columnKey.toString()} py-4`}>
-                                {renderCell(leaderboard, columnKey)}
+                                {renderCell(sponsorboard, columnKey)}
                             </TableCell>
                         )}
                     </TableRow>
