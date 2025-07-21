@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, ComponentType } from "react";
 import {
   Modal,
   ModalHeader,
@@ -9,7 +9,7 @@ import {
   Button,
   Image
 } from "@heroui/react";
-import { Bell, Check, ArrowDown, Clock } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { useNotification } from "@/hooks/useNotification";
 import type { NotificationItem } from "@/types/notification";
 
@@ -59,15 +59,20 @@ export default function NotificationsPage({ isOpen, onClose }: NotificationsProp
     }
   };
 
-  const getIcon = (icon?: string) => {
-    switch (icon) {
-      case "AArrowDownIcon":
-        return <ArrowDown size={16} />;
-      case "AlarmClockPlusIcon":
-        return <Clock size={16} />;
-      default:
-        return <Check size={16} />;
-    }
+  const allLucideIcons = useMemo(() => {
+    return Object.keys(LucideIcons).map(iconName => ({
+      value: iconName,
+      label: iconName,
+      icon: LucideIcons[iconName as keyof typeof LucideIcons] as ComponentType<LucideIcons.LucideProps>,
+    }));
+  }, []);
+
+  const renderIcon = (iconName?: string, size = 20) => {
+    if (!iconName) return;
+    const iconObj = allLucideIcons.find(icon => icon.value === iconName);
+    if (!iconObj) return;
+    const IconComponent = iconObj.icon;
+    return <IconComponent size={size} />;
   };
 
   function formatTimeAgo(dateString: string) {
@@ -128,7 +133,7 @@ export default function NotificationsPage({ isOpen, onClose }: NotificationsProp
           <ModalBody className="max-h-[420px] overflow-y-auto p-2">
             {filtered.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
-                <Bell size={36} className="mx-auto mb-2" />
+                <LucideIcons.Bell size={36} className="mx-auto mb-2" />
                 <p className="font-semibold text-base">No notifications</p>
                 <p className="text-sm text-gray-400">We'll notify you when something arrives.</p>
               </div>
@@ -145,7 +150,7 @@ export default function NotificationsPage({ isOpen, onClose }: NotificationsProp
                     </span>
                   )}
                   <div className="flex items-start gap-3">
-                    <div className="pt-1">{getIcon(n.icon)}</div>
+                    <div className="pt-1">{renderIcon(n.icon)}</div>
                     <div className="flex-1">
                       <p className="text-base font-bold text-gray-900">{n.title?.en || "Untitled"}</p>
                       <p className="text-sm text-gray-600">{n.subtitle?.en || "No detail"}</p>
@@ -195,7 +200,7 @@ export default function NotificationsPage({ isOpen, onClose }: NotificationsProp
           <ModalContent className="max-w-md w-full bg-white p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-2">
-                {getIcon(selected.icon)}
+                {renderIcon(selected.icon)}
                 <p className="font-semibold text-lg">{selected.title?.en}</p>
               </div>
             </div>
