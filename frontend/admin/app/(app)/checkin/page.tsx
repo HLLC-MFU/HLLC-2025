@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { QrCodeScanner } from './_components/QrCodeScanner';
 import Selectdropdown from './_components/SelectDropdown';
 import { PageHeader } from '@/components/ui/page-header';
@@ -7,36 +7,42 @@ import { useActivities } from '@/hooks/useActivities';
 import Input from './_components/Input';
 import { useCheckin } from '@/hooks/useCheckin';
 import { Button } from '@heroui/button';
-import { addToast } from '@heroui/react';
-import { UserRound } from 'lucide-react';
+import { addToast, Switch } from '@heroui/react';
+import { UserRound, Volume2, VolumeOff } from 'lucide-react';
 
 export default function CheckinPage() {
   const [selectedActivityId, setSelectedActivityId] = useState<string[]>([]);
   const { activities } = useActivities({ autoFetch: true, useCanCheckin: true });
   const [activeTab, setActiveTab] = useState<'scan' | 'typing'>('scan');
   const [studentId, setStudentId] = useState('');
-  const { createCheckin } = useCheckin();
+  const { createCheckin } = useCheckin(null);
+  const [onSound, setOnSound] = useState(false)
 
-const handleSubmit = async (id?: string) => {
-  const sid = id ?? studentId;
+  useEffect(() => {
+  }, [selectedActivityId]);
 
-  if (selectedActivityId.length === 0) {
-    return addToast({
-      title: 'No select Activities',
-      description: 'Please select activities before checkin.',
-      color: 'warning',
+  const handleSubmit = async (id?: string, activityIds?: string[]) => {
+    const sid = id ?? studentId;
+    const activitiesToSend = activityIds ?? selectedActivityId;
+
+    if (activitiesToSend.length === 0) {
+      addToast({
+        title: 'No select Activities',
+        description: 'Please select activities before checkin.',
+        color: 'warning',
+      });
+      return
+    }
+
+    const result = await createCheckin({
+      user: sid,
+      activities: activitiesToSend,
     });
-  }
 
-  const result = await createCheckin({
-    user: sid,
-    activities: selectedActivityId,
-  });
-
-  if (result) {
-    setStudentId('');
-  }
-};
+    if (result) {
+      setStudentId('');
+    }
+  };
 
 
   return (
@@ -70,10 +76,26 @@ const handleSubmit = async (id?: string) => {
           </div>
         </div>
         {activeTab === 'scan' ? (
-          <QrCodeScanner
-            selectedActivityId={selectedActivityId}
-            onCheckin={handleSubmit}
-          />
+          <>
+            <Switch
+              isSelected={onSound}
+              onValueChange={(value) => setOnSound(value)}
+              color="success"
+              size="lg"
+              thumbIcon={({ isSelected, className }) =>
+                isSelected ? (
+                  <Volume2 className={className} size={15} />
+                ) : (
+                  <VolumeOff className={className} size={15} />
+                )
+              } />
+            <QrCodeScanner
+              key={`scanner-${onSound}`}
+              selectedActivityId={selectedActivityId}
+              onCheckin={(studentId, selectedActivityId) => handleSubmit(studentId, selectedActivityId)}
+              sound={onSound}
+            />
+          </>
         ) : (
           <Input
             onSubmit={() => handleSubmit()}
