@@ -9,8 +9,8 @@ import TableContent from "./TableContent";
 import { RestrictionAction } from "./RestrictionAction";
 import { RestrictionStatusBadge } from "./RestrictionStatusBadge";
 import { MemberActions } from "./MemberActions";
-
 import { RoomMember } from "@/types/room";
+import { addToast } from "@heroui/react";
 
 type ModalProps = {
   restriction: boolean;
@@ -32,6 +32,7 @@ export default function MemberTable({
   initialVisibleColumns,
   pagination,
   onPageChange,
+  currentUserId,
 }: {
   roomId: string;
   members: RoomMember[];
@@ -47,13 +48,11 @@ export default function MemberTable({
     totalPages: number;
   } | null;
   onPageChange?: (page: number) => void;
+  currentUserId: string;
 }) {
   const [selectedMember, setSelectedMember] = useState<RoomMember | null>(null);
   const [restrictionAction, setRestrictionAction] = useState<'ban' | 'mute' | 'unban' | 'unmute' | 'kick'>('ban');
   const [filterValue, setFilterValue] = useState("");
-  const [selectedKeys, setSelectedKeys] = useState<"all" | Set<string | number>>(
-    new Set([])
-  );
   const [visibleColumns, setVisibleColumns] = useState(
     new Set(initialVisibleColumns)
   );
@@ -172,6 +171,7 @@ export default function MemberTable({
               <MemberActions 
                 member={item} 
                 onAction={handleRestrictionAction} 
+                currentUserId={currentUserId}
               />
             </div>
           );
@@ -196,10 +196,8 @@ export default function MemberTable({
         page={pagination ? pagination.page : page}
         pages={pages}
         renderCell={renderCell}
-        selectedKeys={selectedKeys}
         setModal={setModal}
         setPage={setPage}
-        setSelectedKeys={setSelectedKeys}
         setSortDescriptor={setSortDescriptor}
         setVisibleColumns={setVisibleColumns}
         sortDescriptor={sortDescriptor}
@@ -238,6 +236,7 @@ export default function MemberTable({
         roomId={roomId}
         onClose={() => setModal(prev => ({ ...prev, restriction: false }))}
         onSuccess={handleActionSuccess}
+        currentUserId={currentUserId}
       />
     </div>
   );

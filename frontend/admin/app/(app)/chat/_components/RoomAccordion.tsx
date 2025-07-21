@@ -4,6 +4,7 @@ import { Accordion, AccordionItem, Button, Input, Spinner, Pagination } from "@h
 import { PlusIcon, SearchIcon, MessageSquare, Lock, Building2, GraduationCap } from "lucide-react";
 import { useState, useMemo } from "react";
 import { RoomCard } from "./RoomCard";
+ import { RoomSkeleton } from "./RoomSkeleton";
 import type { Room, RoomType } from "@/types/room";
 
 type RoomAccordionProps = {
@@ -54,8 +55,10 @@ export default function RoomAccordion({
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-8">
-                <Spinner size="lg" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                    <RoomSkeleton key={i} />
+                ))}
             </div>
         );
     }
@@ -245,7 +248,7 @@ const RoomSection = ({
                                     size="sm"
                                     classNames={{
                                         wrapper: "gap-1 overflow-visible h-8",
-                                        item: "w-8 h-8 text-small rounded-md bg-white border border-gray-200 hover:bg-gray-50",
+                                        item: "w-8 h-8 text-small bg-white border border-gray-200 hover:bg-gray-50",
                                         cursor: "bg-primary text-white font-medium border-primary"
                                     }}
                                 />

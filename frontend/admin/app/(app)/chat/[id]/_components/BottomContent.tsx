@@ -2,7 +2,6 @@ import { Button, Pagination } from "@heroui/react";
 import { RoomMember } from "@/types/room";
 
 type BottomContentProps = {
-    selectedKeys: "all" | Set<unknown>;
     filteredItems: RoomMember[];
     pages: number;
     page: number;
@@ -16,12 +15,10 @@ type BottomContentProps = {
         totalPages: number;
     } | null;
     onPageChange?: (page: number) => void;
-    showSelectionInfo?: boolean;
     showNavigationButtons?: boolean;
 };
 
 export default function BottomContent({
-    selectedKeys,
     filteredItems,
     pages,
     page,
@@ -30,18 +27,10 @@ export default function BottomContent({
     onNextPage,
     pagination,
     onPageChange,
-    showSelectionInfo = true,
     showNavigationButtons = true,
 }: BottomContentProps) {
     return (
         <div className="py-2 px-2 flex justify-between items-center">
-            {showSelectionInfo && (
-                <span className="w-[30%] text-small text-default-400">
-                    {selectedKeys === "all"
-                        ? "All items selected"
-                        : `${selectedKeys.size} of ${filteredItems.length} selected`}
-                </span>
-            )}
             
             {pagination && onPageChange ? (
                 <Pagination

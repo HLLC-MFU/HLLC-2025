@@ -97,6 +97,12 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		roomStatus = model.RoomStatusActive
 	}
 
+	// Set capacity from DTO, default to 0 (unlimited) if not provided
+	capacity := createDto.Capacity
+	if capacity < 0 {
+		capacity = 0 // unlimited capacity
+	}
+
 	createdBy := primitive.ObjectID{}
 	if createDto.CreatedBy != "" {
 		createdBy, _ = primitive.ObjectIDFromHex(createDto.CreatedBy)
@@ -117,7 +123,7 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		Name:      createDto.Name,
 		Type:      roomType,
 		Status:    roomStatus,
-		Capacity:  0, // unlimited capacity
+		Capacity:  capacity, // ใช้ capacity จาก DTO
 		CreatedBy: createdBy,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),

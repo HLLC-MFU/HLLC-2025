@@ -5,11 +5,13 @@ import { RoomMember } from "@/types/room";
 type MemberActionsProps = {
     member: RoomMember;
     onAction: (member: RoomMember, action: 'ban' | 'mute' | 'unban' | 'unmute' | 'kick') => void;
+    currentUserId: string;
 };
 
-export function MemberActions({ member, onAction }: MemberActionsProps) {
+export function MemberActions({ member, onAction, currentUserId }: MemberActionsProps) {
     const isBanned = member.restrictionStatus?.isBanned;
     const isMuted = member.restrictionStatus?.isMuted;
+    if (member.user._id === currentUserId) return null;
 
     return (
         <div className="flex items-center gap-2">
