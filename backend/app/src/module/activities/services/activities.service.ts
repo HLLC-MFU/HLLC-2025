@@ -163,16 +163,6 @@ export class ActivitiesService {
       }
     }
 
-    const effectiveSchools = [
-      ...roleSchool,
-      ...(userMajorSchoolId ? [userMajorSchoolId] : []),
-    ];
-
-    const effectiveMajors = [
-      ...roleMajor,
-      ...(userMajorId ? [userMajorId] : []),
-    ];
-
     if (roleUser.includes('*')) {
       const activities = await this.activitiesModel
         .find({ 'metadata.isOpen': true, 'metadata.isVisible': true })
@@ -198,16 +188,15 @@ export class ActivitiesService {
       'metadata.checkinStartAt': { $lte: currentDate },
       'metadata.endAt': { $gte: currentDate },
       $or: [
-        { 'metadata.scope.user': { $in: roleUser.length ? roleUser : [] } },
+        { 'metadata.scope.user': { $in: roleUser } },
+        { 'metadata.scope.major': { $in: roleMajor } },
+        { 'metadata.scope.school': { $in: roleSchool } },
         {
-          'metadata.scope.major': {
-            $in: effectiveMajors.length ? effectiveMajors : [],
-          },
-        },
-        {
-          'metadata.scope.school': {
-            $in: effectiveSchools.length ? effectiveSchools : [],
-          },
+          $and: [
+            { 'metadata.scope.user': { $size: 0 } },
+            { 'metadata.scope.major': { $size: 0 } },
+            { 'metadata.scope.school': { $size: 0 } },
+          ],
         },
       ],
     };
