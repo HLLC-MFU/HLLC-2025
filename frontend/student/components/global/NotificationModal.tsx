@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { use, useEffect, useMemo, useState } from "react";
 import { useNotification } from "@/hooks/notifications/useNotification";
 import { NotificationItem } from "@/types/notification";
+import { Linking } from "react-native";
 
 import tinycolor from "tinycolor2";
 import { AnimatePresence, MotiView } from "moti";
@@ -307,6 +308,17 @@ export default function NotificationModal({ visible, onClose }: Props) {
                       style={styles.detailImage}
                       resizeMode="contain"
                     />
+                  )}
+                  {/* ปุ่มลิงก์ */}
+                  {selectedNotification.redirectButton && selectedNotification.redirectButton.url && (
+                    <TouchableOpacity
+                      style={styles.detailLinkButton}
+                      onPress={() => selectedNotification.redirectButton?.url && Linking.openURL(selectedNotification.redirectButton.url)}
+                    >
+                      <Text style={styles.detailLinkButtonText}>
+                        {selectedNotification.redirectButton?.label?.[language] || t("notification.openLink")}
+                      </Text>
+                    </TouchableOpacity>
                   )}
                 </>
               )}
@@ -672,5 +684,18 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: "#fff",
+  },
+  detailLinkButton: {
+    marginTop: 16,
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    alignSelf: 'center',
+  },
+  detailLinkButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
