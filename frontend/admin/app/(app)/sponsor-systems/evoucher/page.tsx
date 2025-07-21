@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo, useState } from "react";
-import { Accordion, AccordionItem, addToast, Button, modal, Skeleton } from "@heroui/react";
+import { useState } from "react";
+import { Accordion, AccordionItem, addToast, Button, Skeleton } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import { Evoucher } from "@/types/evoucher";
-import { ArrowLeft, Globe, Ticket, User } from "lucide-react";
+import { ArrowLeft, Ticket } from "lucide-react";
 import EvoucherTable from "./_components/EvoucherTable";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { EvoucherModal } from "./_components/EvoucherModal";
