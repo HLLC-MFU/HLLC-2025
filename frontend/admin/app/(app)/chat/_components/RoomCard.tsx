@@ -107,7 +107,17 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                                 <h3 className="font-semibold text-base truncate">{room.name.en}</h3>
-                                <div className={`w-2.5 h-2.5 rounded-full ${room.status === "active" ? "bg-green-500" : "bg-red-500"}`} />
+                                {/* Enhanced Status Badge */}
+                                <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                    room.status === 'active' 
+                                        ? 'bg-green-100 text-green-700 border border-green-200' 
+                                        : 'bg-red-100 text-red-700 border border-red-200'
+                                }`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${
+                                        room.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+                                    }`}></div>
+                                    {room.status === 'active' ? 'Active' : 'Inactive'}
+                                </div>
                             </div>
                             <p className="text-sm text-gray-500 truncate mb-2">{room.name.th}</p>
                             
