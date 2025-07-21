@@ -55,6 +55,13 @@ export class EvouchersService {
       await this.validateSponsorExists(updateDto.sponsor);
     }
 
+    if (updateDto.photo) {
+      updateDto.photo = {
+        ...originEvoucher.photo,
+        ...updateDto.photo,
+      }
+    }
+
     const updatedEvoucher = await this.evoucherModel.findByIdAndUpdate(
       id,
       { $set: updateDto },

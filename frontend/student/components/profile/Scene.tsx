@@ -128,7 +128,7 @@ export async function onContextCreate(
 
         // Center model
         const box = new Box3().setFromObject(characterScene);
-        const center = new Vector3();
+        const center = new Vector3(0, -1, 0);
         box.getCenter(center);
         characterScene.position.sub(center);
 

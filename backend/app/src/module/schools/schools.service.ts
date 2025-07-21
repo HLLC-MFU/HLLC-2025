@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -54,7 +54,24 @@ export class SchoolsService {
   }
 
   async update(id: string, updateSchoolDto: UpdateSchoolDto) {
-    return queryUpdateOne<School>(this.schoolModel, id, updateSchoolDto);
+    const originSchool = await this.schoolModel.findById(id).lean();
+    if (!originSchool) throw new NotFoundException('School not found');
+
+    if (updateSchoolDto.photos) {
+      updateSchoolDto.photos = {
+        ...originSchool.photos,
+        ...updateSchoolDto.photos,
+      }
+    }
+
+    const updatedSchool = await this.schoolModel.findByIdAndUpdate(
+      id,
+      { $set: updateSchoolDto },
+      { new: true },
+    );
+    if (!updatedSchool) throw new NotFoundException('Updated school not found')
+
+    return updatedSchool;
   }
 
   async remove(id: string) {
