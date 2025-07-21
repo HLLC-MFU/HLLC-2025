@@ -3,6 +3,7 @@ import { NotificationItem } from "@/types/notification";
 import { useApi } from "@/hooks/useApi";
 import useProfile from "../useProfile";
 import { getToken } from "@/utils/storage";
+import { useNotificationStore } from '@/stores/notificationStore';
 
 // Define proper types for EventSource polyfill
 interface EventSourceOptions {
@@ -48,7 +49,6 @@ class EventSourcePolyfill {
 
   private async connect() {
     if (this.readyState === 2) return; // CLOSED
-
     try {
       this.readyState = 0; // CONNECTING
       
@@ -205,7 +205,10 @@ interface RawNotificationData {
 
 export function useNotification() {
   const { data, loading, error, request } = useApi<NotificationItem[]>();
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const notifications = useNotificationStore((s) => s.notifications);
+  const setNotifications = useNotificationStore((s) => s.setNotifications);
+  const markAsReadStore = useNotificationStore((s) => s.markAsRead);
+  const markAllAsReadStore = useNotificationStore((s) => s.markAllAsRead);
   const { user } = useProfile();
   const eventSourceRef = useRef<EventSourcePolyfill | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
@@ -241,16 +244,10 @@ export function useNotification() {
         return false;
       }
       
-      const responseData = await response.json();
+      // const responseData = await response.json();
       
-      // Update local state
-      setNotifications((prev: NotificationItem[]) => 
-        prev.map((n: NotificationItem) => 
-          n._id === notificationId 
-            ? { ...n, isRead: true }
-            : n
-        )
-      );
+      // Update zustand store
+      markAsReadStore(notificationId);
       
       return true;
     } catch (error) {
@@ -286,16 +283,11 @@ export function useNotification() {
           return false; // Stop processing if one fails
         }
         
-        const responseData = await response.json();
+        // const responseData = await response.json();
       }
       
-      // Update local state
-      setNotifications((prev: NotificationItem[]) => 
-        prev.map((notification: NotificationItem) => ({
-          ...notification,
-          isRead: true
-        }))
-      );
+      // Update zustand store
+      markAllAsReadStore();
       
       return true;
     } catch (error) {
@@ -428,40 +420,18 @@ export function useNotification() {
         eventSource.onmessage = (event: EventSourceEvent) => {
           try {
             const sseData: SSEData = JSON.parse(event.data || '{}');
-            
-            if (sseData.type === 'NEW_NOTIFICATION' && sseData.notification) {
-              // Handle new notification directly
-              const notification = sseData.notification;
-              
-              setNotifications(prev => {
-                const newNotification: NotificationItem = {
-                  ...notification,
-                  id: notification._id || notification.id,
-                  timestamp: notification.createdAt || notification.timestamp,
-                  isRead: notification.isRead !== undefined ? notification.isRead : notification.read,
-                };
-                
-                // Check if notification already exists
-                const exists = prev.some(n => n.id === newNotification.id);
-                if (exists) {
-                  return prev;
-                }
-                
-                return [newNotification, ...prev];
-              });
-            } else if (sseData.type === 'REFETCH_NOTIFICATIONS') {
-              // Handle refetch event - trigger a fresh fetch
-              
+            if (
+              sseData.type === 'NEW_NOTIFICATION' ||
+              sseData.type === 'REFETCH_NOTIFICATIONS'
+            ) {
+              // Always fetch new notifications from backend
               // Reset the flag to allow fresh fetch
               hasInitialFetchRef.current = false;
-              
-              // Trigger fresh fetch
               const fetchNotifications = async () => {
                 try {
                   const token = await getToken('accessToken');
                   const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
                   const url = `${baseUrl}/notifications/me`;
-                  
                   const response = await fetch(url, {
                     method: 'GET',
                     headers: {
@@ -470,12 +440,9 @@ export function useNotification() {
                       ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     },
                   });
-                  
                   if (response.ok) {
                     const responseText = await response.text();
-                    
                     const notificationsData: NotificationItem[] | NotificationApiResponse = JSON.parse(responseText);
-                    
                     let notificationsArray: RawNotificationData[];
                     if (Array.isArray(notificationsData)) {
                       notificationsArray = notificationsData as RawNotificationData[];
@@ -484,7 +451,6 @@ export function useNotification() {
                     } else {
                       return;
                     }
-                    
                     if (notificationsArray.length > 0) {
                       const transformedNotifications: NotificationItem[] = notificationsArray.map((notification: RawNotificationData) => ({
                         ...notification,
@@ -492,30 +458,27 @@ export function useNotification() {
                         timestamp: notification.createdAt || notification.timestamp,
                         isRead: notification.isRead !== undefined ? notification.isRead : notification.read,
                       }));
-                      
                       const sortedByTimestamp = [...transformedNotifications].sort(
                         (a, b) => getTimestamp(b) - getTimestamp(a)
                       );
-                      
                       const unread = sortedByTimestamp.filter((n) => !n.isRead);
                       const read = sortedByTimestamp.filter((n) => n.isRead);
-                      
                       setNotifications([...unread, ...read]);
+                    } else {
+                      setNotifications([]);
                     }
+                  } else {
                   }
                 } catch (error) {
                 }
               };
-              
               fetchNotifications();
-            } else {
             }
           } catch (error) {
           }
         };
 
         eventSource.onerror = (event: EventSourceEvent) => {
-          
           // Increment reconnect attempts
           reconnectAttemptsRef.current++;
           
@@ -539,7 +502,6 @@ export function useNotification() {
         eventSource.start();
         
       } catch (error) {
-      
       }
     };
 
