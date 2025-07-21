@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo, useState } from "react";
-import { Accordion, AccordionItem, addToast, Button, modal, Skeleton } from "@heroui/react";
+import { useState } from "react";
+import { Accordion, AccordionItem, addToast, Button, Skeleton } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import { Evoucher } from "@/types/evoucher";
-import { ArrowLeft, Globe, Ticket, User } from "lucide-react";
+import { ArrowLeft, Ticket } from "lucide-react";
 import EvoucherTable from "./_components/EvoucherTable";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { EvoucherModal } from "./_components/EvoucherModal";
@@ -31,19 +31,6 @@ export default function EvoucherPage() {
   const { sponsors, loading: sponsorsLoading } = useSponsors();
 
   const isLoading = evoucherLoading || sponsorsLoading;
-
-  const groupedEvoucher = useMemo(() => {
-    const groups: Record<string, Evoucher[]> = {};
-
-    evouchers.forEach((evoucher) => {
-      const evoucherType = (evoucher as Evoucher)?.metadata?.type ? 'global' : 'individual';
-
-      if (!groups[evoucherType]) groups[evoucherType] = [];
-      groups[evoucherType].push(evoucher);
-    });
-
-    return groups;
-  }, [evouchers]);
 
   const handleAdd = () => {
     setModalMode('add');
@@ -70,8 +57,6 @@ export default function EvoucherPage() {
     } else if (modalMode === 'edit' && selectedEvoucher?._id) {
       response = await updateEvoucher(selectedEvoucher._id, sponsorsData);
     }
-
-    console.log(response)
 
     if (response) {
       await fetchEvouchers();
@@ -116,48 +101,40 @@ export default function EvoucherPage() {
       <div className="flex flex-col gap-6">
         <Accordion className="p-0" variant="splitted">
           {isLoading ? (
-            Array(3)
-              .fill(0)
-              .map((_, index) => (
-                <AccordionItem
-                  key={`skeleton-${index}`}
-                  aria-label={`Loading ${index}`}
-                  title={
-                    <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
-                  }
-                >
-                  <Skeleton className="h-[100px] w-full bg-gray-100 rounded-md" />
-                </AccordionItem>
-              ))
+            Array.from({ length: 3 }).map((_, index) => (
+              <AccordionItem
+                key={`skeleton-${index}`}
+                aria-label={`Loading ${index}`}
+                title={
+                  <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
+                }
+              >
+                <Skeleton className="h-[100px] w-full bg-gray-100 rounded-md" />
+              </AccordionItem>
+            ))
           ) : (
-            Object.entries(groupedEvoucher)
-              .map(([type, evouchers]) => {
-                return (
-                  <AccordionItem
-                    key={type}
-                    aria-label={type}
-                    title={<span className="capitalize">{type}</span>}
-                    subtitle={
-                      <p className="flex">
-                        Total {type} evouchers:{' '}
-                        <span className="text-primary ml-1">{evouchers.length}</span>
-                      </p>
-                    }
-                    startContent={
-                      <div className="p-3 rounded-xl bg-gradient-to-r bg-gray-200 border">
-                        <span className="text-gray-500">{type === 'global' ? <Globe /> : <User />}</span>
-                      </div>
-                    }
-                  >
-                    <EvoucherTable
-                      evouchers={evouchers}
-                      onAdd={handleAdd}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  </AccordionItem>
-                )
-              })
+            <AccordionItem
+              aria-label="Evouchers"
+              title={<span className="capitalize">Evouchers</span>}
+              subtitle={
+                <p className="flex gap-2">
+                  <p>Total evouchers:</p>
+                  <span className="text-primary ml-1">{evouchers.length}</span>
+                </p>
+              }
+              startContent={
+                <div className="p-3 rounded-xl bg-gradient-to-r bg-gray-200 border">
+                  <span className="text-gray-500">{<Ticket />}</span>
+                </div>
+              }
+            >
+              <EvoucherTable
+                evouchers={evouchers}
+                onAdd={handleAdd}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </AccordionItem>
           )}
         </Accordion>
 

@@ -1,4 +1,3 @@
-import { Badge } from "@heroui/react";
 import { Ban, MicOff } from "lucide-react";
 import { RestrictionStatus } from "@/types/room";
 
@@ -15,38 +14,28 @@ export function RestrictionStatusBadge({ restrictionStatus, showExpiry = false }
     if (!isBanned && !isMuted) return null;
 
     return (
-        <div className="flex flex-wrap gap-1 mt-1">
+        <div className="flex gap-2 mt-1 justify-start text-center">
             {isBanned && (
-                <Badge 
-                    color="danger" 
-                    size="sm" 
-                    variant="flat"
-                    className="text-xs"
-                >
-                    <Ban size={10} className="mr-1" />
+                <div className="inline-flex items-center gap-1 px-2 py-1 rounded text-red-700 text-xs">
+                    <Ban size={10}/>
                     Banned
                     {showExpiry && banExpiry && (
-                        <span className="ml-1 text-xs opacity-75">
+                        <div className="text-center">
                             ({new Date(banExpiry).toLocaleDateString()})
-                        </span>
+                        </div>
                     )}
-                </Badge>
+                </div>
             )}
             {isMuted && (
-                <Badge 
-                    color="warning" 
-                    size="sm" 
-                    variant="flat"
-                    className="text-xs"
-                >
-                    <MicOff size={10} className="mr-1" />
+                <div className="inline-flex items-center gap-1 px-2 py-1 rounded text-yellow-700 text-xs">
+                    <MicOff size={10} />
                     Muted
                     {showExpiry && muteExpiry && (
-                        <span className="ml-1 text-xs opacity-75">
+                        <div className="text-center">
                             ({new Date(muteExpiry).toLocaleDateString()})
-                        </span>
+                        </div>
                     )}
-                </Badge>
+                </div>
             )}
         </div>
     );

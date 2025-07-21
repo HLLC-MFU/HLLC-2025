@@ -3,6 +3,7 @@ import { NotificationItem } from "@/types/notification";
 import { useApi } from "@/hooks/useApi";
 import useProfile from "../useProfile";
 import { getToken } from "@/utils/storage";
+import { useNotificationStore } from '@/stores/notificationStore';
 
 // Define proper types for EventSource polyfill
 interface EventSourceOptions {
@@ -48,7 +49,6 @@ class EventSourcePolyfill {
 
   private async connect() {
     if (this.readyState === 2) return; // CLOSED
-
     try {
       this.readyState = 0; // CONNECTING
       
@@ -205,14 +205,16 @@ interface RawNotificationData {
 
 export function useNotification() {
   const { data, loading, error, request } = useApi<NotificationItem[]>();
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const notifications = useNotificationStore((s) => s.notifications);
+  const setNotifications = useNotificationStore((s) => s.setNotifications);
+  const markAsReadStore = useNotificationStore((s) => s.markAsRead);
+  const markAllAsReadStore = useNotificationStore((s) => s.markAllAsRead);
   const { user } = useProfile();
   const eventSourceRef = useRef<EventSourcePolyfill | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 10; // เพิ่มจำนวนครั้งให้มากขึ้น
   const hasInitialFetchRef = useRef(false); // เพิ่ม flag เพื่อป้องกัน fetch ซ้ำ
-  
   
   // Helper function to safely get timestamp
   const getTimestamp = (notification: NotificationItem): number => {
@@ -222,6 +224,75 @@ export function useNotification() {
       return isNaN(parsed) ? Date.now() : parsed;
     }
     return Date.now();
+  };
+
+  // Function to mark a single notification as read
+  const markAsRead = async (notificationId: string): Promise<boolean> => {
+    try {
+      const token = await getToken('accessToken');
+      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${baseUrl}/notifications/${notificationId}/read`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      if (!response.ok) {
+        return false;
+      }
+      
+      // const responseData = await response.json();
+      
+      // Update zustand store
+      markAsReadStore(notificationId);
+      
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // Function to mark all unread notifications as read
+  const markAllAsRead = async (): Promise<boolean> => {
+    try {
+      const unreadIds = notifications
+        .filter((n: NotificationItem) => !n.isRead)
+        .map((n: NotificationItem) => n._id);
+      
+      if (unreadIds.length === 0) {
+        return true;
+      }
+      
+      const token = await getToken('accessToken');
+      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+      
+      // Mark each notification as read
+      for (const id of unreadIds) {
+        const response = await fetch(`${baseUrl}/notifications/${id}/read`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        
+        if (!response.ok) {
+          return false; // Stop processing if one fails
+        }
+        
+        // const responseData = await response.json();
+      }
+      
+      // Update zustand store
+      markAllAsReadStore();
+      
+      return true;
+    } catch (error) {
+      return false;
+    }
   };
   
   // Initial fetch of notifications (only once)
@@ -250,7 +321,6 @@ export function useNotification() {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
-        
         
         if (!response.ok) {
           return;
@@ -289,7 +359,7 @@ export function useNotification() {
             ...notification,
             id: notification._id || notification.id, // Ensure id field exists
             timestamp: notification.createdAt || notification.timestamp, // Use createdAt as timestamp
-            read: notification.isRead !== undefined ? notification.isRead : notification.read, // Handle both read and isRead
+            isRead: notification.isRead, 
           };
         });
         
@@ -300,8 +370,8 @@ export function useNotification() {
         );
 
         // Separate unread and read notifications
-        const unread = sortedByTimestamp.filter((n) => !n.read);
-        const read = sortedByTimestamp.filter((n) => n.read);
+        const unread = sortedByTimestamp.filter((n) => !n.isRead);
+        const read = sortedByTimestamp.filter((n) => n.isRead);
 
         
         // Combine them, with unread appearing before read
@@ -350,40 +420,17 @@ export function useNotification() {
         eventSource.onmessage = (event: EventSourceEvent) => {
           try {
             const sseData: SSEData = JSON.parse(event.data || '{}');
-            
-            if (sseData.type === 'NEW_NOTIFICATION' && sseData.notification) {
-              // Handle new notification directly
-              const notification = sseData.notification;
-              
-              setNotifications(prev => {
-                const newNotification: NotificationItem = {
-                  ...notification,
-                  id: notification._id || notification.id,
-                  timestamp: notification.createdAt || notification.timestamp,
-                  read: notification.isRead !== undefined ? notification.isRead : notification.read,
-                };
-                
-                // Check if notification already exists
-                const exists = prev.some(n => n.id === newNotification.id);
-                if (exists) {
-                  return prev;
-                }
-                
-                return [newNotification, ...prev];
-              });
-            } else if (sseData.type === 'REFETCH_NOTIFICATIONS') {
-              // Handle refetch event - trigger a fresh fetch
-              
+            if (
+              sseData.type === 'REFETCH_NOTIFICATIONS'
+            ) {
+              // Always fetch new notifications from backend
               // Reset the flag to allow fresh fetch
               hasInitialFetchRef.current = false;
-              
-              // Trigger fresh fetch
               const fetchNotifications = async () => {
                 try {
                   const token = await getToken('accessToken');
                   const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
                   const url = `${baseUrl}/notifications/me`;
-                  
                   const response = await fetch(url, {
                     method: 'GET',
                     headers: {
@@ -392,11 +439,9 @@ export function useNotification() {
                       ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     },
                   });
-                  
                   if (response.ok) {
                     const responseText = await response.text();
                     const notificationsData: NotificationItem[] | NotificationApiResponse = JSON.parse(responseText);
-                    
                     let notificationsArray: RawNotificationData[];
                     if (Array.isArray(notificationsData)) {
                       notificationsArray = notificationsData as RawNotificationData[];
@@ -405,38 +450,34 @@ export function useNotification() {
                     } else {
                       return;
                     }
-                    
                     if (notificationsArray.length > 0) {
                       const transformedNotifications: NotificationItem[] = notificationsArray.map((notification: RawNotificationData) => ({
                         ...notification,
                         id: notification._id || notification.id,
                         timestamp: notification.createdAt || notification.timestamp,
-                        read: notification.isRead !== undefined ? notification.isRead : notification.read,
+                        isRead: notification.isRead !== undefined ? notification.isRead : notification.read,
                       }));
-                      
                       const sortedByTimestamp = [...transformedNotifications].sort(
                         (a, b) => getTimestamp(b) - getTimestamp(a)
                       );
-                      
-                      const unread = sortedByTimestamp.filter((n) => !n.read);
-                      const read = sortedByTimestamp.filter((n) => n.read);
-                      
+                      const unread = sortedByTimestamp.filter((n) => !n.isRead);
+                      const read = sortedByTimestamp.filter((n) => n.isRead);
                       setNotifications([...unread, ...read]);
+                    } else {
+                      setNotifications([]);
                     }
+                  } else {
                   }
                 } catch (error) {
                 }
               };
-              
               fetchNotifications();
-            } else {
             }
           } catch (error) {
           }
         };
 
         eventSource.onerror = (event: EventSourceEvent) => {
-        
           // Increment reconnect attempts
           reconnectAttemptsRef.current++;
           
@@ -460,7 +501,6 @@ export function useNotification() {
         eventSource.start();
         
       } catch (error) {
-      
       }
     };
 
@@ -483,5 +523,7 @@ export function useNotification() {
     notifications,
     loading,
     // error, // Do not return error to suppress error propagation to UI
+    markAsRead,
+    markAllAsRead,
   };
 }

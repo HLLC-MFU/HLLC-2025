@@ -90,10 +90,6 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	uploadBasedPath :=cfg.Upload.BaseURL
-
-	fmt.Println("Upload Based Path:", uploadBasedPath)
-
 	// Setup logging
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 	log.SetPrefix("[SERVER] ")
@@ -149,10 +145,8 @@ func main() {
 	// Setup cookie middleware
 	cookieConfig := middleware.DefaultCookieConfig()
 	app.Use(middleware.SetCookieMiddleware(cookieConfig))
-	
 
-	// Setup static file serving for uploads
-	app.Static(uploadBasedPath, "./uploads", fiber.Static{
+	app.Static(os.Getenv("UPLOAD_BASE_PATH"), "./uploads", fiber.Static{
 		Browse:        false,  
 		MaxAge:       86400,  
 		Compress:     true,   
@@ -162,15 +156,18 @@ func main() {
 			return c.Method() != fiber.MethodGet
 		},
 	})
+
 	// Initialize services
 	chatSvc := chatService.NewChatService(db, redis, kafkaBus, cfg)
 	chatHub := chatSvc.GetHub()
+
 	// Initialize all services
 	schoolSvc := userService.NewSchoolService(db)
 	majorSvc := userService.NewMajorService(db)
 	roleSvc := userService.NewRoleService(db)
 	userSvc := userService.NewUserService(db)
 	roomSvc := roomService.NewRoomService(db, redis, cfg, chatHub)
+	
 	groupRoomSvc := groupService.NewGroupRoomService(db, redis, cfg, chatHub, roomSvc, kafkaBus)
 	stickerSvc := stickerService.NewStickerService(db)
 	chatEmitter := utils.NewChatEventEmitter(chatHub, kafkaBus, redis, db)
@@ -219,18 +216,17 @@ func main() {
 	<-c
 	log.Printf("🛑 Shutdown signal received, starting graceful shutdown...")
 
-	// **NEW: Graceful shutdown sequence**
-	// 1. Stop accepting new connections
+	// 2. Stop accepting new connections
 	log.Printf("📡 Stopping HTTP server...")
 	if err := app.Shutdown(); err != nil {
 		log.Printf("❌ Error shutting down HTTP server: %v", err)
 	}
 
-	// 2. Shutdown chat service worker pools
+	// 3. Shutdown chat service worker pools
 	log.Printf("👷 Shutting down worker pools...")
 	chatSvc.Shutdown()
 
-	// 3. Stop Kafka bus
+	// 4. Stop Kafka bus
 	log.Printf("📤 Stopping Kafka bus...")
 	kafkaBus.Stop()
 
@@ -243,7 +239,7 @@ func setupMiddleware(app *fiber.App) {
 
 	// CORS middleware with cookie support
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000,http://localhost:8080", // ระบุ domain ที่อนุญาต
+		AllowOrigins:     "http://localhost:3000,http://localhost:8080,http://localhost:3001", // ระบุ domain ที่อนุญาต
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Requested-With, Cookie",
 		AllowCredentials: true, // สำคัญ! ต้องเป็น true เพื่อให้ส่ง cookies ได้

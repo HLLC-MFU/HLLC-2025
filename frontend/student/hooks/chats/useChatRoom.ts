@@ -6,7 +6,6 @@ import { Vibration } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useWebSocket } from './useWebSocket';
-import { useTypingIndicator } from './useTypingIndicator';
 import { useMessageGrouping } from './useMessageGrouping';
 import useProfile from '@/hooks/useProfile';
 import { ChatRoom, Message } from '@/types/chatTypes';
@@ -119,7 +118,6 @@ export const useChatRoom = () => {
     addMessage
   } = useWebSocket(roomId);
 
-  const { isTyping, handleTyping: originalHandleTyping } = useTypingIndicator();
   const groupMessages = useMessageGrouping(wsMessages);
 
   // State update helpers
@@ -142,7 +140,6 @@ export const useChatRoom = () => {
   // Handle text input changes for mentions
   const handleTextInput = (text: string) => {
     updateChatState({ messageText: text });
-    originalHandleTyping(); // Trigger typing indicator
 
     // Regex to find @ at the end of the string, or after a space
     const mentionMatch = text.match(/(?:^|\s)@(\w*)$/);
@@ -206,7 +203,7 @@ export const useChatRoom = () => {
     try {
       initializationInProgress.current = true;
       updateChatState({ loading: true });
-      
+
       let roomData;
       if (params.room) {
         roomData = JSON.parse(params.room as string);
@@ -219,7 +216,7 @@ export const useChatRoom = () => {
         if (!roomData) throw new Error('Room not found');
         console.log('[DEBUG] useChatRoom roomData (from API)', roomData);
       }
-      updateChatState({ 
+      updateChatState({
         room: roomData
       });
       isInitialized.current = true;
@@ -253,13 +250,6 @@ export const useChatRoom = () => {
     await wsConnect(roomId);
   }, [chatState.room, isConnected, wsConnect, roomId]);
 
-  // Modified handleTyping to avoid triggering while mentioning
-  const handleTyping = () => {
-    if (!mentionState.isMentioning) {
-      originalHandleTyping();
-    }
-  };
-
   // Initialize room on mount - only once
   useEffect(() => {
     const setup = async () => {
@@ -267,23 +257,23 @@ export const useChatRoom = () => {
       isInitialized.current = false;
       initializationInProgress.current = false;
       membersLoaded.current = false; // reset members loaded state
-      
+
       // Reset state when room changes
       updateChatState({
         room: null,
         error: null,
         loading: true,
       });
-      
+
       // Disconnect from previous WebSocket
       if (ws && ws.readyState === WS_OPEN) {
         console.log('Disconnecting from previous WebSocket...');
         ws.close();
       }
-      
+
       // Call disconnect to clean up WebSocket state
       wsDisconnect();
-      
+
       await initializeRoom();
     };
 
@@ -312,7 +302,7 @@ export const useChatRoom = () => {
       updateChatState({ joining: true });
 
       const result = await chatService.joinRoom(roomId);
-      
+
       if (result.success && result.room) {
         updateChatState({
           room: result.room,
@@ -336,7 +326,7 @@ export const useChatRoom = () => {
     // ใช้ is_member จาก backend แทนการเช็คจาก members array
     const isMember = !!(chatState.room && chatState.room.is_member);
     if (!trimmedMessage || !isMember || !isConnected) return;
-    
+
     try {
       const myUser = user?.data[0] ? {
         _id: user.data[0]._id,
@@ -350,7 +340,7 @@ export const useChatRoom = () => {
       if (!myUser) return;
       const tempMessage = createTempMessage(trimmedMessage, myUser, replyState.replyTo);
       addMessage(tempMessage);
-      
+
       // Debug log สำหรับ reply
       console.log('[DEBUG] handleSendMessage', {
         messageText: trimmedMessage,
@@ -422,7 +412,7 @@ export const useChatRoom = () => {
         if (!myUser) return;
         const tempMessage = createFileMessage(data, myUser);
         if (tempMessage) addMessage(tempMessage);
-        
+
         if (Platform.OS === 'ios') {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }
@@ -453,7 +443,7 @@ export const useChatRoom = () => {
       if (!response.ok) throw new Error('Failed to send sticker');
 
       const data = await response.json();
-      
+
       // Add the sticker message to WebSocket state
       const myUser = user?.data[0] ? {
         _id: user.data[0]._id,
@@ -475,7 +465,7 @@ export const useChatRoom = () => {
         stickerId: data.stickerId || stickerId,
         image: data.image,
       };
-      
+
       addMessage(stickerMessage);
       updateUIState({ showStickerPicker: false });
       triggerHapticFeedback();
@@ -488,15 +478,15 @@ export const useChatRoom = () => {
   // เพิ่ม function สำหรับโหลดรายชื่อสมาชิกแบบ paginated
   const loadMembers = useCallback(async (page: number = 1, append: boolean = false) => {
     if (!roomId || membersState.loading) return;
-    
+
     // ป้องกันการโหลดซ้ำถ้าโหลดแล้ว (ยกเว้น append)
     if (!append && membersLoaded.current) return;
-    
+
     try {
       setMembersState(prev => ({ ...prev, loading: true }));
-      
+
       const result = await chatService.getRoomMembersPaginated(roomId, page, membersState.limit);
-      
+
       if (result && result.members) {
         setMembersState(prev => ({
           ...prev,
@@ -548,6 +538,30 @@ export const useChatRoom = () => {
       Alert.alert('Unsend ไม่สำเร็จ', (error as Error)?.message || 'เกิดข้อผิดพลาด');
     }
   }, [wsSendMessage, addMessage]);
+  const handleDisconnect = () => {
+    if (ws) {
+      console.log('[ChatRoom] WebSocket status before disconnect:', ws.readyState); // log before
+
+      if (ws.readyState === WS_OPEN) {
+        ws.close();
+      }
+
+      // Optional: small delay to allow closing before checking final status
+      setTimeout(() => {
+        console.log('[ChatRoom] WebSocket status after close attempt:', ws.readyState);
+      }, 100);
+    } else {
+      console.log('[ChatRoom] No WebSocket instance found');
+    }
+
+    wsDisconnect();
+    isInitialized.current = false;
+    initializationInProgress.current = false;
+    membersLoaded.current = false;
+
+    console.log('[ChatRoom] Manually disconnected WebSocket');
+  };
+
 
   // Expose state and handlers
   return {
@@ -570,7 +584,6 @@ export const useChatRoom = () => {
     handleSendMessage,
     handleImageUpload,
     handleSendSticker,
-    handleTyping,
     handleTextInput,
     handleMentionSelect,
     setMessageText: (text: string) => handleTextInput(text),
@@ -586,5 +599,6 @@ export const useChatRoom = () => {
     loadMembers,
     loadMoreMembers,
     handleUnsendMessage,
+    handleDisconnect,
   };
 }; 

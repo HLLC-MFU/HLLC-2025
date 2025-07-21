@@ -55,7 +55,6 @@ export function EvoucherModal({
         photo: { front: '', back: '', home: '' },
         amount: 0,
         sponsor: '',
-        metadata: { type: '' },
     }
     const [imageError, setImageError] = useState<Record<string, boolean>>({
         front: false,
@@ -106,11 +105,6 @@ export function EvoucherModal({
         if (!(typeof evoucherField.photo.front === 'string')) evoucherData.append('photo[front]', evoucherField.photo.front);
         if (!(typeof evoucherField.photo.back === 'string')) evoucherData.append('photo[back]', evoucherField.photo.back);
         if (!(typeof evoucherField.photo.home === 'string')) evoucherData.append('photo[home]', evoucherField.photo.home);
-        if (!evoucherField.metadata?.type) {
-            evoucherData.append('metadata[type]', '');
-        } else {
-            evoucherData.append('metadata[type]', evoucherField.metadata.type);
-        }
 
         onSuccess(evoucherData);
         onClose();
@@ -221,21 +215,6 @@ export function EvoucherModal({
                                 />
                             ))}
                         </div>
-                        <Divider />
-                        <span className='text-primary'>Optional</span>
-                        <Checkbox
-                            size="lg"
-                            isSelected={!!evoucherField.metadata?.type}
-                            onValueChange={(value) => setEvoucherField(prev => ({
-                                ...prev,
-                                metadata: ({
-                                    type: value ? 'global' : ''
-                                })
-                            }))}
-                            className='flex items-start mb-2'
-                        >
-                            Use as global type
-                        </Checkbox>
                     </ModalBody>
                     <Divider />
                     <ModalFooter className="w-full">

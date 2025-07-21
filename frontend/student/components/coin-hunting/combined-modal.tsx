@@ -1,7 +1,8 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useState, useEffect } from 'react';
 
 // Types for alert
 const ALERT_CONFIGS = {
@@ -16,12 +17,12 @@ const ALERT_CONFIGS = {
   },
   'no-evoucher': {
     icon: 'gift-off',
-    iconColor: '#6b7280',
+    iconColor: '#FFFF00',
     title: 'No Evoucher Available',
     message: 'Sorry, no new evoucher is available for you at this time.',
     backgroundColor: 'rgba(107, 114, 128, 0.1)',
-    borderColor: 'rgba(107, 114, 128, 0.3)',
-    titleColor: '#6b7280',
+    borderColor: 'rgba(209, 217, 138, 0.5)',
+    titleColor: '#FFFF00',
   },
   'too-far': {
     icon: 'map-marker-distance',
@@ -34,12 +35,12 @@ const ALERT_CONFIGS = {
   },
   'cooldown': {
     icon: 'clock-alert',
-    iconColor: '#3b82f6',
+    iconColor: '#60a5fa', 
     title: 'Landmark is in Cooldown',
     message: 'This landmark is in cooldown. Please try again later.',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-    titleColor: '#3b82f6',
+    backgroundColor: 'rgba(96, 165, 250, 0.15)', 
+    borderColor: 'rgba(96, 165, 250, 0.4)', 
+    titleColor: '#60a5fa', 
   },
   default: {
     icon: 'alert-circle',
@@ -64,6 +65,7 @@ interface CombinedModalProps {
   evoucher?: { code: string } | null;
   // For alert
   alertType?: AlertType;
+  remainingCooldownMs?: number;
 }
 
 export default function CombinedModal({
@@ -73,7 +75,34 @@ export default function CombinedModal({
   onGoToStamp,
   evoucher,
   alertType,
+  remainingCooldownMs,
 }: CombinedModalProps) {
+  const [countdown, setCountdown] = useState(remainingCooldownMs || 0);
+
+  // Reset countdown when remainingCooldownMs changes
+  useEffect(() => {
+    if (remainingCooldownMs !== undefined) {
+      setCountdown(remainingCooldownMs);
+    }
+  }, [remainingCooldownMs]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (alertType === 'cooldown' && countdown > 0 && visible) {
+      const interval = setInterval(() => {
+        setCountdown(prev => Math.max(prev - 1000, 0));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [alertType, countdown, visible]);
+
+  // Effect สำหรับปิด modal เมื่อ countdown หมด
+  useEffect(() => {
+    if (alertType === 'cooldown' && countdown <= 0 && visible) {
+      onClose();
+    }
+  }, [alertType, countdown, visible, onClose]);
+
   if (!visible) return null;
 
   // Alert config
@@ -81,6 +110,13 @@ export default function CombinedModal({
     type === 'alert' && alertType
       ? ALERT_CONFIGS[alertType] || ALERT_CONFIGS.default
       : ALERT_CONFIGS.default;
+
+  // Format countdown time
+  const formatCountdown = (ms: number) => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  };
 
   return (
     <Modal
@@ -91,7 +127,7 @@ export default function CombinedModal({
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContentWrapper}>
-          <BlurView intensity={40} tint="dark" style={styles.modalContent}>
+          <BlurView intensity={Platform.OS === 'android' ? 120 : 40} tint="dark" style={styles.modalContent}>
             <TouchableOpacity style={styles.modalClose} onPress={onClose}>
               <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff' }}>×</Text>
             </TouchableOpacity>
@@ -139,6 +175,11 @@ export default function CombinedModal({
                 </View>
                 <Text style={[styles.alertTitle, { color: config.titleColor }]}> {config.title} </Text>
                 <Text style={styles.alertMessage}> {config.message} </Text>
+                {alertType === 'cooldown' && countdown > 0 && (
+                  <Text style={[styles.alertMessage, { marginTop: 8, color: '#93c5fd', fontWeight: 'bold' }]}> {/* Light Blue 300 */}
+                    Cooldown Remaining: {formatCountdown(countdown)}
+                  </Text>
+                )}
               </View>
             )}
             {type === 'success' ? (

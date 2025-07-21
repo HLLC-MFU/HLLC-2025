@@ -5,15 +5,14 @@ export type Checkin = {
   _id: string;
   user: User;
   staff: string;
-  activities: Activity[]
+  activity: Activity;
   createdAt: string;
   updatedAt: string;
 };
 
 export type Activity = {
   _id: string;
-  fullName: Lang;
-  shortName: Lang;
+  name: Lang;
   fullDetails: Lang;
   shortDetails: Lang;
   type: string;

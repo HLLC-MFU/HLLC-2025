@@ -1,26 +1,41 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+import { useSseStore } from '@/stores/useSseStore';
 
 export default function ProgressBar({
-  progress = 88,
   avatarUrl = '/avatar.png',
   onClickAvatar,
 }: {
-  progress: number;
   avatarUrl?: string;
   onClickAvatar?: () => void;
 }) {
+  const router = useRouter();
   const [imageError, setImageError] = useState(false);
 
+  // Zustand store
+  const progress = useSseStore(state => state.progress);
+  const percentage = Math.round(progress?.progressPercentage ?? 0);
+  const fetchUserProgress = useSseStore(state => state.fetchUserProgress);
+
+  useEffect(() => {
+    fetchUserProgress();
+  }, []);
+
+  useEffect(() => {
+    if (avatarUrl) setImageError(false);
+  }, [avatarUrl]);
+
   return (
-    <div className="relative w-48 md:w-[16rem] lg:w-[24rem] max-w-full mx-4 mt-6 flex items-center gap-2">
+    <div className="relative w-48 md:w-[16rem] lg:w-[24rem] max-w-full flex items-center gap-2">
       {/* Avatar Circle */}
       <button
-        className="z-10 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-2 border-white/50 bg-gray-300/30 backdrop-blur-md overflow-hidden shadow-md flex items-center justify-center"
-        onClick={onClickAvatar}
+        className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 md:w-22 md:h-22 rounded-full border-2 border-gray-500/50 bg-gray-300/30 backdrop-blur-md overflow-hidden shadow-md flex items-center justify-center"
+        onClick={onClickAvatar ?? (() => router.push('/profile'))}
       >
         {imageError ? (
           <div className="flex items-center justify-center w-full h-full bg-gray-50">
@@ -33,26 +48,24 @@ export default function ProgressBar({
             className="object-cover"
             src={avatarUrl || '/avatar.png'}
             onError={() => setImageError(true)}
+            sizes='8px'
           />
         )}
       </button>
 
       {/* Progress Bar Container */}
-      <div className="relative flex-1 h-7 sm:h-7 md:h-10 rounded-full -ml-6 bg-white/10 backdrop-blur-md border border-white/20 shadow-inner overflow-hidden">
+      <div className="relative flex-1 h-7 sm:h-7 md:h-10 rounded-full -ml-6 bg-black/10 backdrop-blur-md border border-black/20 shadow-inner overflow-hidden">
         {/* Progress Fill */}
         <div
           className="h-full bg-gradient-to-r from-pink-400 to-pink-500 rounded-full transition-all duration-300 ease-in-out"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${percentage}%` }}
         />
 
         {/* Percentage Bubble */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm md:text-base w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 pointer-events-none transition-all duration-300"
-          style={{
-            left: `calc(max(0.5rem, min(${progress}%, 100% - 3.5rem)))`,
-          }}
+          className="absolute top-1/2 right-0 -translate-y-1/2 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm md:text-base w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 pointer-events-none transition-all duration-300"
         >
-          {progress}%
+          {percentage}%
         </div>
       </div>
     </div>

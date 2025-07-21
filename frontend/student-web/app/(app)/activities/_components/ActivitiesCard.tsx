@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserActivity } from '@/types/activities';
+import type { Activities } from '@/types/activities';
 
 import { Card } from '@heroui/react';
 import Image from 'next/image';
@@ -8,8 +8,10 @@ import { useState } from 'react';
 
 import { getStatusBadge } from '../_utils/getStatusBadge';
 
+import CheckinStatusChip from './CheckinStatusChip';
+
 interface ActivityCardProps {
-  activity: UserActivity;
+  activity: Activities;
   onClick?: () => void;
 }
 
@@ -49,7 +51,7 @@ export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
             className={`object-cover transition-opacity duration-700 ${
               loaded ? 'opacity-100' : 'opacity-0'
             }`}
-            src={`https://hllc.mfu.ac.th/api/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`}
+            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`}
             onLoadingComplete={() => setLoaded(true)}
           />
 
@@ -58,13 +60,10 @@ export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
 
           {/* Top-right status badge */}
           <div className="absolute top-0 left-0 right-0 p-6 flex justify-end">
-            <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-              style={{ backgroundColor: color }}
-            >
-              <Icon color="white" size={14} />
-              <span className="text-white text-xs font-semibold">{label}</span>
-            </div>
+            <CheckinStatusChip
+              assessmentStatus={activity.hasAnsweredAssessment}
+              status={activity.checkinStatus}
+            />
           </div>
 
           {/* Content Overlay */}

@@ -19,10 +19,10 @@ export default function GlassButton({
   return (
     <button
       className={cn(
-        'backdrop-blur-md bg-white/10 border border-white/30 shadow-md transition-all',
-        'hover:bg-white/20 active:scale-95',
+        'backdrop-blur-2xl border border-white/40 drop-shadow-lg transition-all',
+        'hover:bg-white/10 active:scale-95',
         'rounded-full',
-        iconOnly ? 'p-3 aspect-square' : 'py-2 px-4',
+        iconOnly ? 'p-2 aspect-square' : 'py-2 px-4',
         className,
       )}
       onClick={onClick}

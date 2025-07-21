@@ -43,8 +43,8 @@ export class PretestAnswersController {
   }
 
   @Get('/all/average')
-  getAverageAll() {
-    return this.pretestAnswersService.averageAllPretests();
+  getAverageAll(@Query() query: Record<string, string>) {
+    return this.pretestAnswersService.averageAllPretests(query);
   }
 
   @Get('user')

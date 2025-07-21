@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -8,7 +8,6 @@ import {
   Animated,
   Easing,
   Keyboard,
-  Dimensions,
   Text,
 } from 'react-native';
 import { Send, Plus, Smile, Reply } from 'lucide-react-native';
@@ -21,7 +20,6 @@ interface ChatInputProps {
   handleTextInput: (text: string) => void;
   handleSendMessage: () => void;
   handleImageUpload: () => void;
-  handleTyping: () => void;
   isMember: boolean;
   isConnected: boolean;
   inputRef: React.RefObject<TextInput | null>;
@@ -37,7 +35,6 @@ const ChatInput = ({
   handleTextInput,
   handleSendMessage,
   handleImageUpload,
-  handleTyping,
   isMember,
   isConnected,
   inputRef,
@@ -244,7 +241,7 @@ const styles = StyleSheet.create({
   buttonInner: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 9999,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.15)',

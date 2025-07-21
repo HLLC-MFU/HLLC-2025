@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 
 import { EvoucherSelection } from "./_components/EvoucherSelection";
+
 import { useEvoucherSend } from "@/hooks/useEvoucherSend";
 import { useGolangApi } from "@/hooks/useApi";
 import { PageHeader } from "@/components/ui/page-header";
@@ -92,7 +93,6 @@ export default function EvoucherPage() {
                 evouchers={evouchers}
                 loading={loading}
                 selectedEvoucher={selectedEvoucher}
-                onEvoucherDataChange={handleEvoucherDataChange}
                 onEvoucherSelect={handleEvoucherSelect}
                 onRefresh={handleRefresh}
             />
@@ -106,6 +106,7 @@ export default function EvoucherPage() {
                     size="lg"
                     startContent={<Send size={20} />}
                     onPress={handleSendEvoucher}
+                    className="font-semibold"
                 >
                     Send Evoucher to Room
                 </Button>

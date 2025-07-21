@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Checkin, CheckinCreate } from '@/types/checkin';
 import { apiRequest } from '@/utils/api';
 import { addToast } from '@heroui/react';
 
-export function useCheckin() {
+export function useCheckin(activityId: string | null) {
   const [checkin, setCheckin] = useState<Checkin[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,10 +66,29 @@ export function useCheckin() {
     }
   };
 
+  const fetchCheckinByActivity = async (activityId: string) => {
+    setLoading(true);
+    try {
+      const res = await apiRequest<Checkin[]>(`/checkins/users?activityId=${activityId}`, 'GET');
+      const data = res.data || [];
+      setCheckin(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activityId) {
+      fetchCheckinByActivity(activityId);
+    }
+  }, [activityId]);
+
   return {
     checkin,
     loading,
     error,
     createCheckin,
+    fetchCheckinByActivity,
   };
 }

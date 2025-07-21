@@ -6,12 +6,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  
-  if (pathname === `/login`) {
-    return NextResponse.next();
-  }
 
-  if (pathname === `/register`) {
+  if (
+    pathname === `/login` ||
+    pathname === `/register` ||
+    pathname === `/forgot-password` ||
+    pathname.startsWith(`/download`) 
+  ) {
     return NextResponse.next();
   }
 
@@ -19,7 +20,9 @@ export async function middleware(req: NextRequest) {
   const refreshToken = req.cookies.get('refreshToken')?.value;
 
   if (!accessToken) {
-    return NextResponse.redirect(new URL(`${req.nextUrl.basePath}/login`, req.url));
+    return NextResponse.redirect(
+      new URL(`${req.nextUrl.basePath}/login`, req.url),
+    );
   }
 
   if (isTokenExpired(accessToken)) {
@@ -47,10 +50,14 @@ export async function middleware(req: NextRequest) {
 
         return response;
       } else {
-        return NextResponse.redirect(new URL(`${req.nextUrl.basePath}/login`, req.url));
+        return NextResponse.redirect(
+          new URL(`${req.nextUrl.basePath}/login`, req.url),
+        );
       }
     } else {
-      return NextResponse.redirect(new URL(`${req.nextUrl.basePath}/login`, req.url));
+      return NextResponse.redirect(
+        new URL(`${req.nextUrl.basePath}/login`, req.url),
+      );
     }
   }
 
@@ -73,5 +80,7 @@ function isTokenExpired(token: string): boolean {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|images|favicon.ico|signin|data).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|images|.*\\.(?:apk|png|jpg|jpeg|svg|js|css|woff|woff2|ttf|eot)).*)',
+  ],
 };

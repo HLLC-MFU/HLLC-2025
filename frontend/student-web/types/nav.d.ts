@@ -7,6 +7,6 @@ export type NavItem = {
 };
 
 export type NavSection = {
-  section: string;
+  section?: string;
   items: NavItem[];
 };

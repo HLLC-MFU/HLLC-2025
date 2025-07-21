@@ -12,7 +12,11 @@ import { UserDocument } from '../../users/schemas/user.schema';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
 import { UpdateActivityDto } from '../dto/activities/update-activities.dto';
 import { Activities, ActivityDocument } from '../schemas/activities.schema';
-import { isUserInScope, parseScope, parseStringArray } from '../utils/scope.util';
+import {
+  isUserInScope,
+  parseScope,
+  parseStringArray,
+} from '../utils/scope.util';
 import { Checkin } from 'src/module/checkin/schema/checkin.schema';
 import { RoleDocument } from 'src/module/role/schemas/role.schema';
 import { AssessmentsService } from 'src/module/assessments/service/assessments.service';
@@ -125,16 +129,16 @@ export class ActivitiesService {
       .findById(userId)
       .populate('role')
       .exec()) as unknown as Omit<UserDocument, 'role'> & {
-      role: Omit<RoleDocument, 'metadata'> & {
-        metadata: {
-          canCheckin: {
-            user: string[];
-            major: string[];
-            school: string[];
+        role: Omit<RoleDocument, 'metadata'> & {
+          metadata: {
+            canCheckin: {
+              user: string[];
+              major: string[];
+              school: string[];
+            };
           };
         };
       };
-    };
     if (!userDoc) {
       throw new NotFoundException('User not found');
     }
@@ -158,16 +162,6 @@ export class ActivitiesService {
         userMajorSchoolId = majorDoc.school._id.toString();
       }
     }
-
-    const effectiveSchools = [
-      ...roleSchool,
-      ...(userMajorSchoolId ? [userMajorSchoolId] : []),
-    ];
-
-    const effectiveMajors = [
-      ...roleMajor,
-      ...(userMajorId ? [userMajorId] : []),
-    ];
 
     if (roleUser.includes('*')) {
       const activities = await this.activitiesModel
@@ -194,9 +188,16 @@ export class ActivitiesService {
       'metadata.checkinStartAt': { $lte: currentDate },
       'metadata.endAt': { $gte: currentDate },
       $or: [
-        { 'metadata.scope.user': { $in: roleUser.length ? roleUser : [] } },
-        { 'metadata.scope.major': { $in: effectiveMajors.length ? effectiveMajors : [] } },
-        { 'metadata.scope.school': { $in: effectiveSchools.length ? effectiveSchools : [] } },
+        { 'metadata.scope.user': { $in: roleUser } },
+        { 'metadata.scope.major': { $in: roleMajor } },
+        { 'metadata.scope.school': { $in: roleSchool } },
+        {
+          $and: [
+            { 'metadata.scope.user': { $size: 0 } },
+            { 'metadata.scope.major': { $size: 0 } },
+            { 'metadata.scope.school': { $size: 0 } },
+          ],
+        },
       ],
     };
 
@@ -267,6 +268,10 @@ export class ActivitiesService {
     const mapped = await Promise.all(
       result.data
         .filter((activity) => isUserInScope(user, activity as ActivityDocument))
+        .filter((activity) => {
+          const meta = activity.metadata;
+          return meta.isVisible !== false;
+        })
         .map(async (activity) => {
           const meta = activity.metadata;
           const activityDoc = activity as ActivityDocument;
@@ -368,11 +373,6 @@ export class ActivitiesService {
         school: convertedScope.school.map((id) => id.toString()),
         user: convertedScope.user.map((id) => id.toString()),
       };
-      if (isValidObjectId(updateActivityDto.type)) {
-        updateActivityDto.type = new Types.ObjectId(updateActivityDto.type);
-      } else {
-        throw new BadRequestException('Invalid activity type ID');
-      }
     }
     const activity = await this.activitiesModel
       .findByIdAndUpdate(id, updateActivityDto, { new: true })
@@ -401,7 +401,9 @@ export class ActivitiesService {
   }
 
   async findAllIsProgressCountActivities() {
-    return this.activitiesModel.find({ 'metadata.isProgressCount': true }).lean();
+    return this.activitiesModel
+      .find({ 'metadata.isProgressCount': true })
+      .lean();
   }
 
   // progress activities by user
@@ -417,15 +419,16 @@ export class ActivitiesService {
     }
 
     // ดึงทั้งหมดที่ isProgressCount
-    const allActivities = await this.activitiesModel.find({
-      'metadata.isProgressCount': true,
-      'metadata.isOpen': true,
-      'metadata.isVisible': true,
-    }).lean();
+    const allActivities = await this.activitiesModel
+      .find({
+        'metadata.isProgressCount': true,
+        'metadata.isOpen': true,
+      })
+      .lean();
 
     // กรองตาม scope
-    const scopedActivities = allActivities.filter(activity =>
-      isUserInScope(user.data[0] as UserDocument, activity as ActivityDocument)
+    const scopedActivities = allActivities.filter((activity) =>
+      isUserInScope(user.data[0] as UserDocument, activity as ActivityDocument),
     );
 
     // นับว่าทำ Assessment แล้วกี่อัน
@@ -433,7 +436,7 @@ export class ActivitiesService {
 
     for (const activity of scopedActivities) {
       const assessments = await this.assessmentsService.findAllByActivity(
-        String(activity._id)
+        String(activity._id),
       );
 
       let hasAnswered = false;
@@ -455,13 +458,14 @@ export class ActivitiesService {
       if (hasAnswered) answeredCount++;
     }
 
-    const percentage = scopedActivities.length > 0
-      ? (answeredCount / scopedActivities.length) * 100
-      : 0;
+    const percentage =
+      scopedActivities.length > 0
+        ? (answeredCount / scopedActivities.length) * 100
+        : 0;
 
     return {
-      userProgressCount: answeredCount,
-      progressPercentage: percentage,
+      userProgressCount: Math.round(answeredCount),
+      progressPercentage: Math.round(percentage),
       scopedActivitiesCount: scopedActivities.length,
     };
   }

@@ -1,0 +1,28 @@
+{
+  "coinHunting": {
+    "guardianCrystals": "14 ผลึกผู้พิทักษ์",
+    "specialRewards": "รางวัลพิเศษ",
+    "checkInNow": "เช็คอินเลย",
+    "collected": "เก็บเหรียญแล้ว"
+  },
+  "qrcode": {
+    "scanError": "เกิดข้อผิดพลาดระหว่างการสแกน",
+    "invalidQR": "QR นี้ไม่ใช่ของ HLLC หรือรูปแบบไม่ถูกต้อง",
+    "noUser": "ไม่พบข้อมูลผู้ใช้",
+    "noGeolocation": "เบราว์เซอร์ไม่รองรับการขอตำแหน่งที่ตั้ง",
+    "allowLocation": "กรุณาอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็คอิน",
+    "locationError": "ไม่สามารถดึงตำแหน่งที่ตั้งได้",
+    "invalidPayload": "QR code payload ไม่ถูกต้อง",
+    "checkinFailed": "เช็คอินไม่สำเร็จ",
+    "success": "สำเร็จ",
+    "scanFailed": "สแกนล้มเหลว: {{error}}",
+    "showTab": "แสดง QR Code",
+    "scanTab": "สแกน QR Code",
+    "yourName": "ชื่อของคุณ",
+    "studentId": "รหัสนักศึกษา",
+    "showBeforeJoin": "กรุณาแสดง QR Code ก่อนเข้าร่วมกิจกรรม",
+    "notFound": "ไม่พบ QR หรือกล้องมีปัญหา",
+    "result": "ผลลัพธ์",
+    "pleaseScan": "กรุณาสแกน QR Code"
+  }
+} 

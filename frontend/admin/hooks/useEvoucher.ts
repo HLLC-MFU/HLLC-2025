@@ -134,6 +134,7 @@ export function useEvoucher() {
         evouchers,
         loading,
         error,
+        fetchEvouchers,
         refreshEvouchers,
         createEvoucher,
         updateEvoucher,

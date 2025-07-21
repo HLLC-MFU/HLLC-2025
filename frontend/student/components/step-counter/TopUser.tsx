@@ -12,6 +12,7 @@ interface Name {
 interface User {
   name: Name;
   stepCount: number;
+  avatar?: string;
 }
 
 interface TopUserProps {
@@ -22,8 +23,9 @@ interface TopUserProps {
   valueLabel?: string;
 }
 
-const TopUser = ({ rank, user, isMain, crownImageSource, valueLabel = 'steps' }:TopUserProps) => {
+const TopUser = ({ rank, user, isMain, crownImageSource, valueLabel = 'steps' }: TopUserProps) => {
   const steps = user ? user.stepCount : '-';
+  console.log(user)
 
   // Style and element selection
   const outerStyle = isMain ? styles.glassProfileCircleOuterMain : styles.glassProfileCircleOuter;
@@ -43,8 +45,27 @@ const TopUser = ({ rank, user, isMain, crownImageSource, valueLabel = 'steps' }:
       )}
       <View style={{ position: 'relative' }}>
         <BlurView intensity={isMain ? 60 : 40} tint="light" style={outerStyle}>
-          <View style={innerStyle}>
-            {/* ไม่ต้อง render avatar emoji */}
+          <View style={[innerStyle, { backgroundColor: isMain ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.6)', alignItems: 'center', justifyContent: 'center' }]}>
+            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+              {user?.avatar ? (
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <View style={[styles.avatarFallback, { width: isMain ? 60 : 50, height: isMain ? 60 : 50, backgroundColor: 'transparent', flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+                  <Text style={[styles.avatarInitials, { fontSize: isMain ? 20 : 16 }]}>
+                    {(() => {
+                      const parts = (user?.name.first || '').split(' ')
+                      const firstInitial = parts[0]?.charAt(0) || ''
+                      const lastInitial = parts[1]?.charAt(0) || ''
+                      return firstInitial + lastInitial
+                    })()}
+                  </Text>
+                </View>
+              )}
+            </View>
+
           </View>
         </BlurView>
         <View style={rankCircleStyle}>

@@ -35,6 +35,7 @@ interface ProfileStore {
   error: string | null;
   fetchUser: () => Promise<void>;
   clearUser: () => void;
+  setUser: (user: User) => void;
   _fetched: boolean; // internal flag
 }
 
@@ -54,12 +55,18 @@ export const useProfile = create<ProfileStore>()(
         set({ loading: true, error: null });
 
         try {
-          const res = await apiRequest('/users/profile', 'GET');
+          const res = await apiRequest<{ data: User[]; message: string }>(
+            '/users/profile',
+            'GET',
+          );
 
-          if (res.statusCode !== 200) throw new Error('Failed to fetch profile');
+          if (res.statusCode !== 200)
+            throw new Error('Failed to fetch profile');
 
-          const data: User = res?.data?.data?.[0];
+          const data = res?.data?.data?.[0];
+
           if (!data) throw new Error('User not found');
+
 
           const majorName = data.metadata?.major?.name?.en ?? null;
           const schoolName = data.metadata?.major?.school?.name?.en ?? null;
@@ -80,7 +87,8 @@ export const useProfile = create<ProfileStore>()(
             schoolAcronym: null,
             error:
               err && typeof err === 'object' && 'message' in err
-                ? (err as { message?: string }).message || 'Failed to fetch user.'
+                ? (err as { message?: string }).message ||
+                  'Failed to fetch user.'
                 : 'Failed to fetch user.',
           });
         } finally {
@@ -97,6 +105,7 @@ export const useProfile = create<ProfileStore>()(
           error: null,
           _fetched: false,
         }),
+        setUser: (user: User) => set({ user }),
     }),
     {
       name: 'profile-store',
