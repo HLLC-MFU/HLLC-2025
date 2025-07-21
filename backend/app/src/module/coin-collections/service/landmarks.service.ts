@@ -34,6 +34,17 @@ export class LandmarksService {
     });
   }
 
+  async findAllBySponsor(query: Record<string, string>) {
+    return await queryAll<Landmark>({
+      model: this.landmarkModel,
+      query: {
+        ...query,
+        type: 'sponsor',
+      },
+      filterSchema: { type: 'string' }
+    });
+  }
+
   async findOne(id: string) {
     return await queryFindOne<Landmark>(this.landmarkModel, { _id: id },);
   }
