@@ -70,9 +70,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
+          "image": "./assets/images/hllc-splash-screen.png",
+          "resizeMode": "cover",
           "backgroundColor": "#ffffff"
         }
       ],

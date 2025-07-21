@@ -40,7 +40,7 @@ export default function MediaCard() {
           />
         </View>
       ) : (
-        <Text>{t('lamduanflower.noVideo')}</Text>
+        <Text style={{color:'#fff8'}}>{t('lamduanflower.noVideo')}</Text>
       )}
 
       <View style={styles.modalButton}>

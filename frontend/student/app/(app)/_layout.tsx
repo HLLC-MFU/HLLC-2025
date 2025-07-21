@@ -1,4 +1,4 @@
-import { View, StyleSheet, ActivityIndicator, LogBox, Animated, Platform } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, LogBox, Animated, Platform, Text } from 'react-native';
 import { router, SplashScreen, Tabs, usePathname } from 'expo-router';
 import { Redirect } from 'expo-router';
 import { BlurView } from 'expo-blur';
@@ -22,6 +22,7 @@ import PosttestModal from '@/components/prepost-modal/PosttestModal';
 import usePrePostModal from '@/hooks/usePrePostModal';
 import { useProgressStore } from '@/stores/useProgressStore';
 import { useProgress } from '@/hooks/useProgress';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 export default function AppLayout() {
   const { user, getProfile } = useProfile();
@@ -35,6 +36,8 @@ export default function AppLayout() {
   const [showPosttestModal, setShowPosttestModal] = useState(false);
   const { fetchProgress } = useProgress();
   const progress = useProgressStore((s) => s.progress);
+  const notifications = useNotificationStore((s) => s.notifications);
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
 
   const {
@@ -116,10 +119,6 @@ export default function AppLayout() {
     /^\/activities\/[^/]+$/.test(pathname);
 
 
-  LogBox.ignoreLogs([
-    'gl.pixelStorei() doesn\'t support this parameter yet',
-  ]);
-
   return (
     <View style={{ flex: 1 }}>
       <BackgroundScreen background={assets?.background ?? null}>
@@ -163,16 +162,39 @@ export default function AppLayout() {
           progress={progress?.progressPercentage ?? 0}
           onClickAvatar={() => router.push('/profile')}
         />
-        <GlassButton iconOnly onPress={() => setNotificationModalVisible(true)}>
-          {assets.notification ? (
-            <AssetImage
-              uri={`${process.env.EXPO_PUBLIC_API_URL}/uploads/${assets.notification}`}
-              style={{ width: 20, height: 20 }}
-            />
-          ) : (
-            <Bell fill={'white'} color="white" size={20} />
+        <View style={{ position: 'relative' }}>
+          <GlassButton iconOnly onPress={() => setNotificationModalVisible(true)}>
+            {assets.notification ? (
+              <AssetImage
+                uri={`${process.env.EXPO_PUBLIC_API_URL}/uploads/${assets.notification}`}
+                style={{ width: 20, height: 20 }}
+              />
+            ) : (
+              <Bell fill={'white'} color="white" size={20} />
+            )}
+          </GlassButton>
+          {unreadCount > 0 && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 2,
+                right: 2,
+                minWidth: 18,
+                height: 18,
+                borderRadius: 9,
+                backgroundColor: 'red',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+                paddingHorizontal: 4,
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </View>
           )}
-        </GlassButton>
+        </View>
       </SafeAreaView>
       <Tabs
         screenOptions={{

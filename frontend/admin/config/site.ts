@@ -17,6 +17,7 @@ import {
   Footprints,
   MessagesSquare,
   BookCheck,
+  Coins,
 } from "lucide-react";
 
 const basePath = process.env.NEXT_BASE_PATH || "";
@@ -48,7 +49,8 @@ const rawNavMenuItems: NavSection[] = [
       { label: "Checkin", href: "/checkin", icon: CircleCheckBig, permission: "checkin:read" },
       { label: "Assessment ", href: "/assessments", icon: BookCheck, permission: "assessment:read" },
       { label: "Reports", href: "/reports", icon: ShieldAlert, permission: "reports:read" },
-      { label: "Step Counters", href: "/step-counters", icon: Footprints, permission: "Stepcounters:read" },
+      { label: "Step Counters", href: "/step-counters", icon: Footprints, permission: "step-counters:read" },
+      { label: "Coin Hungting", href: "/coin-hunting", icon: Coins, permission: "coin-hunting:read" },
     ],
   },
   {
@@ -61,7 +63,7 @@ const rawNavMenuItems: NavSection[] = [
   {
     section: "Lamduan",
     items: [
-      { label: "Lamduan Flowers", href: "/lamduanflowers", icon: Flower, permission: "lamduanflowers:read" },
+      { label: "Lamduan Flowers", href: "/lamduanflowers", icon: Flower, permission: "lamduan-flowers:read" },
     ],
   },
   {

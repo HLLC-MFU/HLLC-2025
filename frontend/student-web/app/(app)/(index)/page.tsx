@@ -128,7 +128,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ลบ PretestQuestionModal และ PosttestQuestionModal ออกให้หมด */}
     </div >
   );
 }

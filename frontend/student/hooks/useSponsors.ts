@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiRequest } from '@/utils/api';
 import { ISponsor } from '@/types/sponsor';
 
@@ -47,7 +47,7 @@ export function useSponsors() {
   };
 
   // Fetch sponsors with evouchers
-  const fetchSponsorsWithEvouchers = async () => {
+  const fetchSponsorsWithEvouchers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -70,7 +70,7 @@ export function useSponsors() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return {
     sponsors,

@@ -139,7 +139,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const shouldBlur = pathname !== '/';
 
   const hideProgressSummary =
-    pathname === '/community' || pathname.startsWith('/community/coin-hunting');
+    pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
+  const hideBottomNav = pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
 
   return (
     <>
@@ -252,9 +253,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             onSubmit={() => handlePosttestSubmit()}
           />
 
-          <div className="fixed bottom-0 left-0 right-0 z-50 mx-4 pb-4 h-20">
-            <BottomNav />
-          </div>
+          {!hideBottomNav && (
+            <div className="fixed bottom-0 left-0 right-0 z-50 mx-4 pb-4 h-20">
+              <BottomNav />
+            </div>
+          )}
         </div>
       </div>
 
