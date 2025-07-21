@@ -63,12 +63,6 @@ export default function SettingsScreen() {
             <Text style={{ color: 'white' }}>{language === 'en' ? 'English' : 'ไทย'}</Text>
           </View>
         </GlassButton>
-        <GlassButton onPress={() => setShowDeleteConfirm(true)}>
-          <View style={styles.row}>
-            <Trash color="white" size={20} style={styles.icon} />
-            <Text style={{ color: 'white' }}>{t('settings.delete')}</Text>
-          </View>
-        </GlassButton>
         <GlassButton onPress={() => Alert.alert('About', 'HLLC 2025 Student App\nVersion 1.0.0')}>
           <View style={styles.row}>
             <Info color="white" size={20} style={styles.icon} />
@@ -88,6 +82,12 @@ export default function SettingsScreen() {
         <GlassButton onPress={() => router.back()}>
           <Text style={{ color: 'white' }}>{t('settings.back')}</Text>
         </GlassButton>
+        <View style={styles.bottomButtonContainer}>
+          <Pressable style={styles.row} onPress={() => setShowDeleteConfirm(true)}>
+            <Trash color="#ff0000" size={20} style={styles.icon} />
+            <Text style={{ color: '#ff0000', fontSize: 16 }}>{t('settings.delete')}</Text>
+          </Pressable>
+        </View>
       </ScrollView>
       <Modal
         visible={showPolicy}
@@ -130,14 +130,13 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: undefined, // keep as is or set if needed
+    height: '100%',
+
   },
   center: {
-    // flex: 1,
-    justifyContent: 'center',
+    flex: 1,
     alignItems: 'center',
     gap: 24,
-    paddingVertical: 48,
     minHeight: '100%',
   },
   text: {
@@ -182,5 +181,12 @@ const styles = StyleSheet.create({
   link: {
     color: '#4FC3F7',
     textDecorationLine: 'underline',
+  },
+  bottomButtonContainer: {
+    position: 'absolute',
+    bottom: 180,
+    left: 16,
+    right: 16,
+    alignItems: 'center',
   },
 }); 
