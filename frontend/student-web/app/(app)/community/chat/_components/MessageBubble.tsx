@@ -605,103 +605,103 @@ const MessageBubble = memo(({
     );
   }, [enrichedReplyTo, isMyMessage, message.user, getDisplayName, currentUsername, renderWithMentions]);
 
-  // Handle join/leave/restriction/evoucher messages as special bubbles - centered but with proper bubble structure
-  if (message.type === 'join' || message.type === 'leave' || message.type === 'restriction' || message.type === 'evoucher') {
-    return (
-      <div className="w-full flex justify-center mb-3" data-message-id={message.id}>
-        <div className="flex flex-col items-center">
-          {renderContent()}
-          {/* Date/time under bubble */}
-          <span className="text-xs font-medium text-gray-500 mt-2">{formatTime(message.timestamp)}</span>
-        </div>
-      </div>
-    );
-  }
+  const isSystemMessage = message.type === 'join' || message.type === 'leave' || message.type === 'restriction' || message.type === 'evoucher';
 
   return (
-    <div
-      className={`w-full flex flex-col ${isMyMessage ? 'items-end ml-12' : 'items-start mr-12'} mb-2 relative group`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      data-message-id={message.id}
-    >
-      {/* Reply Preview - Show above the message bubble */}
-      {renderReplyPreview()}
-
-      <div className={`flex items-end ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
-        {/* Avatar */}
-        {!isMyMessage && (
-          <Avatar
-            name={getDisplayName(message.user || { name: { first: '', last: '' } })}
-            size={36}
-          />
-        )}
-        <div className={`flex flex-col max-w-[80%] ${isMyMessage ? 'items-end' : 'items-start'} relative`}>
-          {/* Username */}
-          {!isMyMessage && (
-            <span className="text-xs font-semibold text-gray-800 mb-1 ml-1">{message.user?.username}</span>
-          )}
-
-          {/* Unsend Button - Show on hover for my messages */}
-          {isMyMessage && showUnsendButton && (
-            <div className="absolute top-1 -left-8 z-10 flex items-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg border border-gray-200/50 dark:border-gray-600/50 transition-all duration-300 animate-in slide-in-from-left-1">
-              <button
-                onClick={handleUnsend}
-                className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full p-1 transition-all duration-200 group/unsend"
-                title="Unsend message"
-              >
-                <svg className="w-3.5 h-3.5 group-hover/unsend:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
-          )}
-
-          {/* Sticker rendering (outside bubble) */}
-          {((message.type === 'sticker' || message.stickerId) && stickerImageUrl) ? (
-            <button
-              className="bg-transparent p-0 border-0 rounded-xl shadow-lg hover:scale-105 transition-transform duration-200 animate-fadein"
-              onClick={() => handleOpenImagePreview(stickerImageUrl)}
-              onContextMenu={handleUnsend}
-              style={{ animation: message.isTemp ? 'fadeIn 0.5s' : undefined }}
-            >
-              <img
-                src={stickerImageUrl}
-                alt="sticker"
-                className="w-28 h-28 object-contain rounded-xl shadow"
-                draggable={false}
-                onError={e => { (e.target as HTMLImageElement).src = 'https://www.gravatar.com/avatar/?d=mp'; }}
-              />
-            </button>
-          ) : (
-            <div
-              className={
-                `px-4 py-2.5 rounded-2xl transition-all duration-300 ease-out ` +
-                (isMyMessage
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg rounded-br-sm'
-                  : 'bg-white text-gray-900 shadow border border-gray-100 rounded-bl-sm') +
-                ' hover:shadow-md hover:-translate-y-0.5'
-              }
-              style={{ wordBreak: 'keep-all' }}
-            >
-              {/* Render message content */}
-              {renderContent()}
-            </div>
-          )}
-          {/* Date/time under bubble */}
-          <span className="text-xs font-medium text-gray-600 mt-1 ml-2">{formatTime(message.timestamp)}</span>
+    <>
+      {isSystemMessage ? (
+        <div className="w-full flex justify-center mb-3" data-message-id={message.id}>
+          <div className="flex flex-col items-center">
+            {renderContent()}
+            {/* Date/time under bubble */}
+            <span className="text-xs font-medium text-gray-500 mt-2">{formatTime(message.timestamp)}</span>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div
+          className={`w-full flex flex-col ${isMyMessage ? 'items-end ml-12' : 'items-start mr-12'} mb-2 relative group`}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          data-message-id={message.id}
+        >
+          {/* Reply Preview - Show above the message bubble */}
+          {renderReplyPreview()}
 
+          <div className={`flex items-end ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
+            {/* Avatar */}
+            {!isMyMessage && (
+              <Avatar
+                name={getDisplayName(message.user || { name: { first: '', last: '' } })}
+                size={36}
+              />
+            )}
+            <div className={`flex flex-col max-w-[80%] ${isMyMessage ? 'items-end' : 'items-start'} relative`}>
+              {/* Username */}
+              {!isMyMessage && (
+                <span className="text-xs font-semibold text-gray-800 mb-1 ml-1">{message.user?.username}</span>
+              )}
 
-      <ImagePreviewModal
-        key={previewImageUrl}
-        visible={showImagePreview}
-        imageUrl={previewImageUrl}
-        onClose={handleCloseImagePreview}
-      />
+              {/* Unsend Button - Show on hover for my messages */}
+              {isMyMessage && showUnsendButton && (
+                <div className="absolute top-1 -left-8 z-10 flex items-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg border border-gray-200/50 dark:border-gray-600/50 transition-all duration-300 animate-in slide-in-from-left-1">
+                  <button
+                    onClick={handleUnsend}
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full p-1 transition-all duration-200 group/unsend"
+                    title="Unsend message"
+                  >
+                    <svg className="w-3.5 h-3.5 group-hover/unsend:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              )}
 
-      {/* Claim Dialog */}
+              {/* Sticker rendering (outside bubble) */}
+              {((message.type === 'sticker' || message.stickerId) && stickerImageUrl) ? (
+                <button
+                  className="bg-transparent p-0 border-0 rounded-xl shadow-lg hover:scale-105 transition-transform duration-200 animate-fadein"
+                  onClick={() => handleOpenImagePreview(stickerImageUrl)}
+                  onContextMenu={handleUnsend}
+                  style={{ animation: message.isTemp ? 'fadeIn 0.5s' : undefined }}
+                >
+                  <img
+                    src={stickerImageUrl}
+                    alt="sticker"
+                    className="w-28 h-28 object-contain rounded-xl shadow"
+                    draggable={false}
+                    onError={e => { (e.target as HTMLImageElement).src = 'https://www.gravatar.com/avatar/?d=mp'; }}
+                  />
+                </button>
+              ) : (
+                <div
+                  className={
+                    `px-4 py-2.5 rounded-2xl transition-all duration-300 ease-out ` +
+                    (isMyMessage
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg rounded-br-sm'
+                      : 'bg-white text-gray-900 shadow border border-gray-100 rounded-bl-sm') +
+                    ' hover:shadow-md hover:-translate-y-0.5'
+                  }
+                  style={{ wordBreak: 'keep-all' }}
+                >
+                  {/* Render message content */}
+                  {renderContent()}
+                </div>
+              )}
+              {/* Date/time under bubble */}
+              <span className="text-xs font-medium text-gray-600 mt-1 ml-2">{formatTime(message.timestamp)}</span>
+            </div>
+          </div>
+
+          <ImagePreviewModal
+            key={previewImageUrl}
+            visible={showImagePreview}
+            imageUrl={previewImageUrl}
+            onClose={handleCloseImagePreview}
+          />
+        </div>
+      )}
+
+      {/* Always render dialog, even for system messages */}
       {showClaimDialog && (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/50 backdrop-blur-sm" onClick={(e) => {
           console.log('🔥 [DEBUG] Dialog backdrop clicked');
@@ -747,7 +747,7 @@ const MessageBubble = memo(({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 });
 
