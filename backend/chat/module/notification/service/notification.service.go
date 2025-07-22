@@ -69,6 +69,13 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 		return
 	}
 
+	// **NEW: Handle MC room notifications - skip all notifications for MC rooms**
+	if roomType == "mc" {
+		log.Printf("[NotificationService] MC Room detected: %s, skipping ALL notifications", message.RoomID.Hex())
+		log.Printf("[NotificationService] Notification summary: 0 offline users notified (room type: mc)")
+		return
+	}
+
 	log.Printf("[NotificationService] Room %s has type '%s', proceeding with notifications", message.RoomID.Hex(), roomType)
 
 	// **NEW: Check if this is an evoucher message**

@@ -20,18 +20,20 @@ import (
 )
 
 type ChatEventEmitter struct {
-	hub   *Hub
-	bus   *kafka.Bus
-	redis *redis.Client
-	mongo *mongo.Database
+	hub      *Hub
+	bus      *kafka.Bus
+	redis    *redis.Client
+	mongo    *mongo.Database
+	mcHelper *MCRoomHelper
 }
 
 func NewChatEventEmitter(hub *Hub, bus *kafka.Bus, redis *redis.Client, mongo *mongo.Database) *ChatEventEmitter {
 	return &ChatEventEmitter{
-		hub:   hub,
-		bus:   bus,
-		redis: redis,
-		mongo: mongo,
+		hub:      hub,
+		bus:      bus,
+		redis:    redis,
+		mongo:    mongo,
+		mcHelper: NewMCRoomHelper(mongo),
 	}
 }
 
@@ -426,20 +428,53 @@ func (e *ChatEventEmitter) getReplyToMessage(ctx context.Context, replyToID prim
 	}, nil
 }
 
-// emitEventStructured handles the new unified Event structure
+// emitEventStructured handles the new unified Event structure with MC room filtering
 func (e *ChatEventEmitter) emitEventStructured(ctx context.Context, msg *model.ChatMessage, event model.Event) error {
 	if msg == nil || msg.RoomID.IsZero() || msg.ID.IsZero() {
 		return fmt.Errorf("invalid message data: RoomID=%s, MessageID=%s",
 			msg.RoomID.Hex(), msg.ID.Hex())
 	}
+
 	// For WebSocket broadcasting, marshal to bytes (needed for WebSocket protocol)
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal structured event: %w", err)
 	}
 
-	// Broadcast directly to room instead of using BroadcastEvent
-	e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventBytes)
+	// Check if this is an MC room
+	if e.mcHelper.IsMCRoom(ctx, msg.RoomID) {
+		log.Printf("[ChatEventEmitter] MC Room detected: %s, applying visibility filtering", msg.RoomID.Hex())
+
+		// Get all online users in the room
+		onlineUsers := e.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
+
+		// Send message to each user based on MC room rules
+		for _, userIDStr := range onlineUsers {
+			userID, err := primitive.ObjectIDFromHex(userIDStr)
+			if err != nil {
+				log.Printf("[ChatEventEmitter] Invalid user ID: %s", userIDStr)
+				continue
+			}
+
+			// Check if this user should see this message
+			shouldShow, err := e.mcHelper.ShouldShowMessage(ctx, msg.UserID, userID, msg.RoomID)
+			if err != nil {
+				log.Printf("[ChatEventEmitter] Error checking message visibility for user %s: %v", userIDStr, err)
+				continue
+			}
+
+			if shouldShow {
+				log.Printf("[ChatEventEmitter] Sending message to user %s in MC room", userIDStr)
+				e.hub.BroadcastToUser(userIDStr, eventBytes)
+			} else {
+				log.Printf("[ChatEventEmitter] Hiding message from user %s in MC room", userIDStr)
+			}
+		}
+	} else {
+		// Regular room - broadcast to all users
+		log.Printf("[ChatEventEmitter] Regular room: %s, broadcasting to all users", msg.RoomID.Hex())
+		e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventBytes)
+	}
 
 	// For Kafka, send structured payload directly (no double marshaling)
 	roomTopic := getRoomTopic(msg.RoomID.Hex())
@@ -642,7 +677,7 @@ func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.C
 }
 
 func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, restriction *restrictionModel.UserRestriction, action string) error {
-	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s Action=%s", 
+	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s Action=%s",
 		restriction.ID.Hex(), restriction.RoomID.Hex(), action)
 
 	// Create sender info
@@ -672,7 +707,7 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 	}
 
 	messageInfo := model.MessageInfo{
-		ID: msg.ID.Hex(),
+		ID:        msg.ID.Hex(),
 		Timestamp: msg.Timestamp,
 	}
 
@@ -771,7 +806,7 @@ func (e *ChatEventEmitter) buildRoomPayload(roomInfo model.RoomInfo) map[string]
 	payload := map[string]interface{}{
 		"_id": roomInfo.ID,
 	}
-	
+
 	// Add name if available
 	if roomInfo.Name.Th != "" || roomInfo.Name.En != "" {
 		payload["name"] = map[string]interface{}{
@@ -779,22 +814,22 @@ func (e *ChatEventEmitter) buildRoomPayload(roomInfo model.RoomInfo) map[string]
 			"en": roomInfo.Name.En,
 		}
 	}
-	
+
 	// Add image if available
 	if roomInfo.Image != "" {
 		payload["image"] = roomInfo.Image
 	}
-	
+
 	return payload
 }
 
 // getRoomInfo gets room information from database including name and image
 func (e *ChatEventEmitter) getRoomInfo(ctx context.Context, roomID primitive.ObjectID) (model.RoomInfo, error) {
 	log.Printf("[DEBUG] Getting room info for ID: %s", roomID.Hex())
-	
+
 	roomService := queries.NewBaseService[roomModel.Room](e.mongo.Collection("rooms"))
 	result, err := roomService.FindOne(ctx, bson.M{"_id": roomID})
-	
+
 	if err != nil {
 		log.Printf("[WARN] Failed to query room %s: %v, using fallback", roomID.Hex(), err)
 		// Return fallback with just ID
@@ -802,7 +837,7 @@ func (e *ChatEventEmitter) getRoomInfo(ctx context.Context, roomID primitive.Obj
 			ID: roomID.Hex(),
 		}, nil
 	}
-	
+
 	if len(result.Data) == 0 {
 		log.Printf("[WARN] Room %s not found in database, using fallback", roomID.Hex())
 		return model.RoomInfo{
@@ -811,8 +846,8 @@ func (e *ChatEventEmitter) getRoomInfo(ctx context.Context, roomID primitive.Obj
 	}
 
 	room := result.Data[0]
-	
-	log.Printf("[DEBUG] Successfully retrieved room: ID=%s, Name.Th='%s', Name.En='%s', Image='%s'", 
+
+	log.Printf("[DEBUG] Successfully retrieved room: ID=%s, Name.Th='%s', Name.En='%s', Image='%s'",
 		room.ID.Hex(), room.Name.Th, room.Name.En, room.Image)
 
 	return model.RoomInfo{
