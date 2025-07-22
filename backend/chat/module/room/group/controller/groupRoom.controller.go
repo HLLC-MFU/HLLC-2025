@@ -130,6 +130,13 @@ func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 		}
 	}
 
+	// Parse members from form-data (support multiple members)
+	if form != nil {
+		if memberVals, ok := form.Value["members"]; ok && len(memberVals) > 0 {
+			groupDto.Members = memberVals
+		}
+	}
+
 	fmt.Println("DEBUG STATUS:", groupDto.Status)
 
 	// Debug: log received data

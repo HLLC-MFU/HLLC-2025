@@ -248,11 +248,6 @@ func (ns *NotificationService) createReplyNotification(room chatModel.Notificati
 	}, receiverID)
 }
 
-// createRestrictionNotification creates a restriction notification
-func (ns *NotificationService) createRestrictionNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string) chatModel.NotificationPayload {
-	return chatModel.NewRestrictionNotification(room, sender, message, receiverID)
-}
-
 // createUnsendNotification creates an unsend notification with custom message
 func (ns *NotificationService) createUnsendNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string) chatModel.NotificationPayload {
 	// Custom message for unsend

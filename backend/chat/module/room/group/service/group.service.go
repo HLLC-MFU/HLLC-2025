@@ -103,11 +103,18 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		capacity = 0 // unlimited capacity
 	}
 
+	members := []primitive.ObjectID{}
+	if len(createDto.Members) > 0 {
+		for _, m := range createDto.Members {
+			if objID, err := primitive.ObjectIDFromHex(m); err == nil {
+				members = append(members, objID)
+			}
+		}
+	}
 	createdBy := primitive.ObjectID{}
 	if createDto.CreatedBy != "" {
 		createdBy, _ = primitive.ObjectIDFromHex(createDto.CreatedBy)
 	}
-	members := []primitive.ObjectID{}
 	alreadyMember := false
 	for _, m := range members {
 		if m == createdBy {
@@ -144,11 +151,13 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 
 	created := &resp.Data[0]
 
-	addedCount, err := gs.addGroupMembersAndWait(ctx, created.ID, createDto.GroupType, createDto.GroupValue)
-	if err != nil {
-		log.Printf("[GroupService] Warning: failed to add group members: %v", err)
-	} else {
-		log.Printf("[GroupService] Added %d members to room %s", addedCount, created.ID.Hex())
+	if len(createDto.Members) == 0 {
+		addedCount, err := gs.addGroupMembersAndWait(ctx, created.ID, createDto.GroupType, createDto.GroupValue)
+		if err != nil {
+			log.Printf("[GroupService] Warning: failed to add group members: %v", err)
+		} else {
+			log.Printf("[GroupService] Added %d members to room %s", addedCount, created.ID.Hex())
+		}
 	}
 
 	finalRoom, err := gs.getFreshRoomFromDB(ctx, created.ID)

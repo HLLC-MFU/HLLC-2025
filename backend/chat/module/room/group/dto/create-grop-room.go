@@ -25,6 +25,7 @@ type (
 		Capacity   int                  `form:"capacity" validate:"optional"`          // เพิ่ม capacity field
 		CreatedBy  string               `form:"createdBy" validate:"mongoId,optional"` // Optional - will extract from JWT if not provided
 		Image      string               `form:"image" validate:"optional"`
+		Members    []string             `form:"members" json:"members" validate:"mongoId,optional"`   // เพิ่ม field นี้สำหรับ manual members
 	}
 
 	UpdateRoomDto struct {
