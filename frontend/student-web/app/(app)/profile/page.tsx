@@ -110,8 +110,14 @@ export default function ProfilePage() {
           zIndex: 1,
           position: "fixed",
         }}
-        onCreated={() => {
-          THREE.ColorManagement.enabled = true;
+        onCreated={({ gl }) => {
+          gl.outputColorSpace = THREE.LinearSRGBColorSpace;
+          gl.toneMapping = THREE.LinearToneMapping;
+          gl.toneMappingExposure = 1.00;
+          gl.shadowMap.autoUpdate = true;
+          gl.shadowMap.needsUpdate = true;
+          gl.shadowMap.autoUpdate = false;
+          gl.shadowMap.enabled = false;
         }}
       >
         {schoolAcronym ? <SceneLights /> : <ambientLight intensity={0.05} />}

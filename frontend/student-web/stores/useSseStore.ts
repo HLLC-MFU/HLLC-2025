@@ -13,6 +13,7 @@ type SseState = {
   fetchActivitiesByUser: () => Promise<void>;
   fetchNotification: () => Promise<void>;
   readNotification: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<boolean>;
   setConnected: (connected: boolean) => void;
   addNotification: (notification: NotificationItem) => void;
   fetchUserProgress: () => Promise<void>;
@@ -86,6 +87,40 @@ export const useSseStore = create<SseState>((set, get) => ({
       }
     } catch (err) {
       console.error('Error reading notification:', err);
+    }
+  },
+
+
+  markAllAsRead: async () => {
+    try {
+      const { notifications } = get();
+      const unreadIds = notifications
+        .filter(n => !n.isRead)
+        .map(n => n._id);
+
+      if (unreadIds.length === 0) {
+        return true;
+      }
+
+      for (const id of unreadIds) {
+        const res = await apiRequest(`/notifications/${id}/read`, 'POST');
+
+        if (res.statusCode !== 200 && res.statusCode !== 201) {
+          throw new Error('One or more notifications failed to mark as read');
+        }
+      }
+
+      set((state) => ({
+        notifications: state.notifications.map((notification) => ({
+          ...notification,
+          isRead: true,
+        })),
+      }));
+
+      return true;
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+      return false;
     }
   },
 

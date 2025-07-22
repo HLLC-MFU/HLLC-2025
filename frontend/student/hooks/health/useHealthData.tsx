@@ -51,6 +51,7 @@ const useHealthData = (
   useEffect(() => {
     const fetchAndValidateDevice = async () => {
       const response = await apiRequest<StepCounter[]>('/step-counters', 'GET');
+      console.log('Step counters response:', response);
       if (
         response.statusCode === 404 &&
         response.message === 'No step counters registered for this user'
@@ -63,7 +64,7 @@ const useHealthData = (
         const matchFound = response.data.some(
           (record) => record.deviceId === uniqueId
         );
-                if (!matchFound) {
+        if (!matchFound) {
           setDeviceMismatch(true);
           try {
             await updateDevice();
