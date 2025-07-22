@@ -219,19 +219,6 @@ export function SettingLamduanFlowers({
       <div className="flex flex-col md:flex-row gap-4">
         <Textarea
           isRequired
-          label="คำอธิบาย (TH)"
-          labelPlacement="outside"
-          placeholder="อธิบายกิจกรรมเป็นภาษาไทย"
-          value={descriptionTh}
-          onChange={(e) => {
-            setDescriptionTh(e.target.value);
-            clearError("description");
-          }}
-          isInvalid={!!errors.description}
-          className="w-full h-50 resize-none"
-        />
-        <Textarea
-          isRequired
           label="Description (EN)"
           labelPlacement="outside"
           placeholder="Describe activity in English"
@@ -243,6 +230,19 @@ export function SettingLamduanFlowers({
           isInvalid={!!errors.description}
           className="w-full h-50 resize-none"
         />
+          <Textarea
+            isRequired
+            label="คำอธิบาย (TH)"
+            labelPlacement="outside"
+            placeholder="อธิบายกิจกรรมเป็นภาษาไทย"
+            value={descriptionTh}
+            onChange={(e) => {
+              setDescriptionTh(e.target.value);
+              clearError("description");
+            }}
+            isInvalid={!!errors.description}
+            className="w-full h-50 resize-none"
+          />
       </div>
 
       {errors.description && (
