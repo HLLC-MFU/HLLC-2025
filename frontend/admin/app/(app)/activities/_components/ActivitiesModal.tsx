@@ -196,7 +196,7 @@ export default function ActivitiesModal({
     };
 
     return (
-        <Modal isOpen={isOpen} size="3xl" onClose={onClose}>
+        <Modal isOpen={isOpen} size="3xl" onClose={onClose} isDismissable={false}>
             <ModalContent>
                 <Form onSubmit={handleSubmit}>
                     <ModalHeader>{mode === "add" ? "Add New Activity" : "Edit Activity"}</ModalHeader>
@@ -317,21 +317,21 @@ export default function ActivitiesModal({
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <Input
                                         type="datetime-local"
-                                        label="Start Date & Time"
+                                        placeholder="Start Date & Time"
                                         value={startAt}
                                         onChange={(e) => setStartAt(e.target.value)}
                                         variant="bordered"
                                     />
                                     <Input
                                         type="datetime-local"
-                                        label="Check-in Start"
+                                        placeholder="Check-in Start"
                                         value={checkinStartAt}
                                         onChange={(e) => setCheckinStartAt(e.target.value)}
                                         variant="bordered"
                                     />
                                     <Input
                                         type="datetime-local"
-                                        label="End Date & Time"
+                                        placeholder="End Date & Time"
                                         value={endAt}
                                         onChange={(e) => setEndAt(e.target.value)}
                                         variant="bordered"
