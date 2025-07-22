@@ -1,4 +1,4 @@
-import { SafeAreaView, View, Text, StyleSheet, Alert, useWindowDimensions } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Alert, useWindowDimensions, Platform } from 'react-native';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 
@@ -13,10 +13,11 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import { useLanguage } from '@/context/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { MaterialIcons } from '@expo/vector-icons';
+import Barcode from '@/components/qrcode/barcode';
 
 export default function QRCodeScreen() {
   const { user, getProfile } = useProfile();
-  const {t} = useTranslation();
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
   const initialTab = params.tab === 'scan' ? 'scan' : 'qr';
   const [selectedTab, setSelectedTab] = useState<'qr' | 'scan'>(initialTab);
@@ -43,7 +44,7 @@ export default function QRCodeScreen() {
       setSelectedTab('scan');
       setShowScanner(true);
     }
-  }, [params.tab]);
+  }, [params.tab, params.t]);
 
   // ปิดกล้องเมื่อออกจากหน้า qrcode (เช็ค pathname)
   useEffect(() => {
@@ -107,7 +108,7 @@ export default function QRCodeScreen() {
   const goToCoinHuntingModal = (params: Record<string, any>) => {
     resetScanner();
     setTimeout(() => {
-      router.replace({ pathname: '/coin-hunting', params });
+      router.replace({ pathname: '/community/coin-hunting', params });
     }, 100);
   };
 
@@ -170,7 +171,12 @@ export default function QRCodeScreen() {
         } else if (res.statusCode === 403 || (res.message && res.message.toLowerCase().includes('too far'))) {
           goToCoinHuntingModal({ modal: 'alert', type: 'too-far' });
         } else if (res.statusCode === 429 || (res.message && res.message.toLowerCase().includes('cooldown'))) {
-          goToCoinHuntingModal({ modal: 'alert', type: 'cooldown' });
+          const remainingCooldownMs = res.remainingCooldownMs || 0;
+          goToCoinHuntingModal({ 
+            modal: 'alert', 
+            type: 'cooldown',
+            remainingCooldownMs
+          });
         } else {
           showErrorAlert(res.message || 'Check in failed', resetScanner);
         }
@@ -184,9 +190,7 @@ export default function QRCodeScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'center'  }}
-    >
+    <SafeAreaView style={{ flex: 1, justifyContent: 'center', top: -72 }}>
       {/* Animated Segmented Toggle (fixed at top) */}
       <View style={styles.tabBarWrapper}>
         <BlurView intensity={30} tint="light" style={styles.tabBarBlur}>
@@ -227,102 +231,104 @@ export default function QRCodeScreen() {
       </View>
 
       {/* แสดง QR หรือ Scanner ตาม state */}
-      {selectedTab === 'qr' && (
-        <BlurView
-          intensity={40}
-          tint="light"
-          style={{
-            borderRadius: 20,
-            padding: 24,
-            overflow: "hidden",
-            backgroundColor: "rgba(255,255,255,0.1)",
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.2)",
-            width: '90%',
-            maxWidth: 400,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <View style={{ alignItems: 'center', width: '100%' }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 8 }}>
-              {user?.data[0].name.first}  {user?.data[0].name.last}
-            </Text>
-            <Text style={{color: '#fff', textAlign: 'center', marginBottom: 4}}>{t("qrCode.studentId")}: {user?.data[0].username}</Text>
-            <Text style={{color: '#fff', marginBottom: 24, textAlign: 'center'}}>{t("qrCode.schoolOf")}{user?.data[0].metadata?.major?.school?.name[language] ?? "-"}</Text>
-            
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <QRCodeGenerator username={user?.data[0].username ?? 'defaultUsername'} />
-            </View>
-          </View>
-        </BlurView>
-      )}
-
-      {selectedTab === 'scan' && (
-        <BlurView
-          intensity={40}
-          tint="light"
-          style={{
-            borderRadius: 20,
-            padding: 18,
-            alignItems: 'center',
-            shadowColor: '#000',
-            shadowOpacity: 0.15,
-            shadowRadius: 12,
-            elevation: 8,
-            position: 'relative',
-            overflow: 'hidden',
-            width: 320,
-            maxWidth: '90%',
-          }}
-        >
-          {/* Camera Switch Button */}
-          <TouchableOpacity
+      <View style={{ alignItems: 'center', justifyContent: 'flex-start' }}>
+        {selectedTab === 'qr' && (
+          <BlurView
+            intensity={40}
+            tint="light"
             style={{
-              position: 'absolute',
-              top: 12,
-              right: 12,
-              zIndex: 10,
-              backgroundColor: 'rgba(255,255,255,0.18)',
-              borderRadius: 24,
-              padding: 8,
+              borderRadius: 20,
+              padding: 24,
+              overflow: "hidden",
+              backgroundColor: Platform.OS === "ios" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.3)",
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.3)',
-              shadowColor: '#000',
-              shadowOpacity: 0.12,
-              shadowRadius: 4,
+              borderColor: Platform.OS === "ios" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)",
+              width: '90%',
+              maxWidth: 400,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-            onPress={() => setFacing(facing === 'back' ? 'front' : 'back')}
-            activeOpacity={0.8}
           >
-            <MaterialIcons name="flip-camera-ios" size={28} color="#fff" />
-          </TouchableOpacity>
-          <View style={{ width: 260, height: 260, borderRadius: 16, overflow: 'hidden', marginBottom: 18, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center' }}>
-            {!permission ? (
-              <Text style={{ color: '#fff', textAlign: 'center' }}>Requesting camera permission...</Text>
-            ) : !permission.granted ? (
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: '#fff', textAlign: 'center', marginBottom: 12 }}>No access to camera</Text>
-                <TouchableOpacity 
-                  style={{ backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
-                  onPress={requestPermission}
-                >
-                  <Text style={{ color: '#333', fontWeight: 'bold' }}>Grant Permission</Text>
-                </TouchableOpacity>
+            <View style={{ alignItems: 'center', width: '100%' }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 8 }}>
+                {user?.data[0].name.first}  {user?.data[0].name.last}
+              </Text>
+              <Text style={{ color: '#fff', textAlign: 'center', marginBottom: 4 }}>{t("qrCode.studentId")}: {user?.data[0].username}</Text>
+              <Text style={{ color: '#fff', marginBottom: 24, textAlign: 'center' }}>{t("qrCode.schoolOf")}{user?.data[0].metadata?.major?.school?.name[language] ?? "-"}</Text>
+
+              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <QRCodeGenerator username={user?.data[0].username ?? 'defaultUsername'} />
+                <Barcode value={user?.data[0].username ?? 'defaultUsername'} />
               </View>
-            ) : (
-              <View style={{ width: '100%', height: '100%', borderRadius: 16, overflow: 'hidden' }}>
-                <CameraView
-                  style={{ width: '100%', height: '100%' }}
-                  facing={facing}
-                  onBarcodeScanned={scanning ? undefined : handleBarcodeScanned}
-                />
-              </View>
-            )}
-          </View>
-          <Text style={{ color: '#fff', fontSize: 16, marginBottom: 8 }}>Scan QR Code to Check In</Text>
-        </BlurView>
-      )}
+            </View>
+          </BlurView>
+        )}
+
+        {selectedTab === 'scan' && (
+          <BlurView
+            intensity={40}
+            tint="light"
+            style={{
+              borderRadius: 20,
+              padding: 18,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              position: 'relative',
+              overflow: 'hidden',
+              width: 320,
+              maxWidth: '90%',
+            }}
+          >
+            {/* Camera Switch Button */}
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                zIndex: 10,
+                backgroundColor: 'rgba(255,255,255,0.18)',
+                borderRadius: 24,
+                padding: 8,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.3)',
+                shadowColor: '#000',
+                shadowOpacity: 0.12,
+                shadowRadius: 4,
+              }}
+              onPress={() => setFacing(facing === 'back' ? 'front' : 'back')}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="flip-camera-ios" size={28} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ width: 260, height: 260, borderRadius: 16, overflow: 'hidden', marginBottom: 18, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center' }}>
+              {!permission ? (
+                <Text style={{ color: '#fff', textAlign: 'center' }}>Requesting camera permission...</Text>
+              ) : !permission.granted ? (
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ color: '#fff', textAlign: 'center', marginBottom: 12 }}>No access to camera</Text>
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
+                    onPress={requestPermission}
+                  >
+                    <Text style={{ color: '#333', fontWeight: 'bold' }}>Grant Permission</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ width: '100%', height: '100%', borderRadius: 16, overflow: 'hidden' }}>
+                  <CameraView
+                    style={{ width: '100%', height: '100%' }}
+                    facing={facing}
+                    onBarcodeScanned={scanning ? undefined : handleBarcodeScanned}
+                  />
+                </View>
+              )}
+            </View>
+            <Text style={{ color: '#fff', fontSize: 16, marginBottom: 8 }}>Scan QR Code to Check In</Text>
+          </BlurView>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -330,19 +336,17 @@ export default function QRCodeScreen() {
 const styles = StyleSheet.create({
   tabBarWrapper: {
     marginHorizontal: 64,
-    marginTop: 84,
-    marginBottom: 72,
+    marginVertical: 16,
     borderRadius: 99,
     overflow: 'hidden',
     shadowColor: '#a5b4fc',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.10,
     shadowRadius: 8,
-    elevation: 2,
     alignSelf: 'stretch',
   },
   tabBarBlur: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: Platform.OS === "ios" ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
     borderRadius: 99,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.25)',
@@ -359,8 +363,7 @@ const styles = StyleSheet.create({
   focusPill: {
     position: 'absolute',
     left: 0,
-    top: 4,
-    height: 44,
+    height: 34,
     borderRadius: 99,
     overflow: 'hidden',
     zIndex: 0,
@@ -370,7 +373,7 @@ const styles = StyleSheet.create({
   },
   blurInsidePill: {
     flex: 1,
-    backgroundColor: 'rgba(214, 214, 224, 0.18)',
+    backgroundColor: Platform.OS === "ios" ? 'rgba(214, 214, 224, 0.18)' : 'rgba(0, 0, 0, 0.18)',
   },
   tabBtn: {
     flex: 1,
@@ -381,11 +384,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-    paddingVertical: 13,
-    paddingHorizontal: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 5,
   },
   tabBtnText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#ffffff70',
   },

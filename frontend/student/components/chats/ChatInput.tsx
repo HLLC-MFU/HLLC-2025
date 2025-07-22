@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -8,7 +8,6 @@ import {
   Animated,
   Easing,
   Keyboard,
-  Dimensions,
   Text,
 } from 'react-native';
 import { Send, Plus, Smile, Reply } from 'lucide-react-native';
@@ -21,7 +20,6 @@ interface ChatInputProps {
   handleTextInput: (text: string) => void;
   handleSendMessage: () => void;
   handleImageUpload: () => void;
-  handleTyping: () => void;
   isMember: boolean;
   isConnected: boolean;
   inputRef: React.RefObject<TextInput | null>;
@@ -37,7 +35,6 @@ const ChatInput = ({
   handleTextInput,
   handleSendMessage,
   handleImageUpload,
-  handleTyping,
   isMember,
   isConnected,
   inputRef,
@@ -164,6 +161,20 @@ const ChatInput = ({
           textAlignVertical="center"
           selectionColor="#667eea"
         />
+        <TouchableOpacity
+          style={[styles.button, showStickerPicker && styles.activeSticker, isDisabled && styles.disabled]}
+          onPress={() => setShowStickerPicker(!showStickerPicker)}
+          disabled={isDisabled}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.buttonInner, showStickerPicker && styles.activeStickerInner]}>
+            <Smile
+              size={20}
+              color={showStickerPicker ? '#FFD700' : isDisabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.8)'}
+              strokeWidth={2}
+            />
+          </View>
+        </TouchableOpacity>
 
         {hasText && (
           <TouchableOpacity
@@ -183,20 +194,7 @@ const ChatInput = ({
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
-          style={[styles.button, showStickerPicker && styles.activeSticker, isDisabled && styles.disabled]}
-          onPress={() => setShowStickerPicker(!showStickerPicker)}
-          disabled={isDisabled}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.buttonInner, showStickerPicker && styles.activeStickerInner]}>
-            <Smile
-              size={20}
-              color={showStickerPicker ? '#FFD700' : isDisabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.8)'}
-              strokeWidth={2}
-            />
-          </View>
-        </TouchableOpacity>
+
       </Animated.View>
 
       {!isConnected && (
@@ -209,10 +207,10 @@ const ChatInput = ({
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    position: 'relative', 
-    marginBottom: 20, 
-    marginLeft: 10, 
+  container: {
+    position: 'relative',
+    marginBottom: 20,
+    marginLeft: 10,
     marginRight: 10,
     paddingBottom: Platform.OS === 'ios' ? 0 : 0,
   },
@@ -226,7 +224,6 @@ const styles = StyleSheet.create({
     shadowColor: '#667eea',
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
-    elevation: 8,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -244,7 +241,7 @@ const styles = StyleSheet.create({
   buttonInner: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 9999,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
@@ -265,7 +262,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
-    elevation: 6,
   },
   activeSticker: {},
   activeStickerInner: {

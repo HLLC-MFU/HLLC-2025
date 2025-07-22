@@ -7,6 +7,7 @@ import { Buffer } from 'buffer';
 import { createMessage, safeUser } from './messageUtils';
 import { useStateUtils, ConnectionState, WebSocketState } from './stateUtils';
 import { onMessage as baseOnMessage, onOpen, onClose, attemptReconnect } from './websocketHandlers';
+import { AppState } from 'react-native';
 
 const MAX_MESSAGES = 100;
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -197,6 +198,15 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       updateConnectionState({ hasAttemptedConnection: true });
       connect(roomId);
     }
+
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        console.log('[WebSocket] AppState changed to', nextAppState, '- disconnecting websocket...');
+        disconnect();
+      }
+    };
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
     return () => {
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
@@ -213,6 +223,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       }
       updateState({ connectedUsers: [], isConnected: false, error: null });
       updateConnectionState({ isConnecting: false, hasAttemptedConnection: false });
+      subscription.remove();
     };
   }, [roomId, userId]);
 

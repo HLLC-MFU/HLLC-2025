@@ -1,7 +1,7 @@
 import { RoomSkeleton } from "./RoomSkeleton";
 import { RoomCard } from "./RoomCard";
 
-import { Room } from "@/types/chat";
+import type { Room } from "@/types/room";
 
 type RoomListProps = {
     rooms?: Room[];

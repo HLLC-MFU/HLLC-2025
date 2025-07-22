@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Subject } from 'rxjs';
-import { SsePayload } from 'src/pkg/types/sse.type';
+import { ServerResponse } from 'http';
+import { SsePayload } from 'src/pkg/types/sse';
 
 /**
  * SseService
@@ -9,20 +9,40 @@ import { SsePayload } from 'src/pkg/types/sse.type';
  */
 @Injectable()
 export class SseService {
-  private readonly _eventSubject = new Subject<SsePayload>();
+  private readonly connections = new Map<string, ServerResponse>();
 
   /**
-   * Observable stream that clients subscribe to for SSE events.
+   * Register new SSE connection for a user.
    */
-  get eventStream() {
-    return this._eventSubject.asObservable();
+  register(userId: string, res: ServerResponse): void {
+    this.connections.set(userId.toString(), res);
   }
 
   /**
-   * Emit a new SSE event to connected clients.
-   * @param payload The data to send to clients
+   * Remove user connection when disconnected.
    */
-  notify(payload: SsePayload): void {
-    this._eventSubject.next(payload);
+  unregister(userId: string): void {
+    this.connections.delete(userId.toString());
+  }
+
+  /**
+   * Send event to a specific user by userId.
+   */
+  sendToUser(userId: string, payload: SsePayload): void {
+    const res = this.connections.get(userId);
+    if (!res) return;
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    console.log(`Sent SSE to user ${userId}:`, payload);
+  }
+
+  /**
+   * Broadcast event to all connected users.
+   */
+  broadcast(payload: SsePayload): void {
+    for (const res of this.connections.values()) {
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify(payload)}\n\n`);
+      }
+    }
   }
 }

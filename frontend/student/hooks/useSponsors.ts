@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiRequest } from '@/utils/api';
 import { ISponsor } from '@/types/sponsor';
 
@@ -31,6 +31,11 @@ export function useSponsors() {
         const sponsorsWithPhoto: ISponsor[] = (response.data.data || []).map((s: SponsorRaw) => ({
           ...s,
           photo: { logoPhoto: s.logo?.logoPhoto || '' },
+          priority: s.priority ?? 99, 
+          type: {
+            ...s.type,
+            priority: s.type?.priority ?? 99,
+          },
         }));
         setSponsors(sponsorsWithPhoto);
       }
@@ -47,7 +52,7 @@ export function useSponsors() {
   };
 
   // Fetch sponsors with evouchers
-  const fetchSponsorsWithEvouchers = async () => {
+  const fetchSponsorsWithEvouchers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -57,6 +62,11 @@ export function useSponsors() {
         const sponsorsWithPhoto: ISponsor[] = sponsorsRaw.map((s: SponsorRaw) => ({
           ...s,
           photo: { logoPhoto: s.logo?.logoPhoto || '' },
+          priority: s.priority ?? 99,
+          type: {
+            ...s.type,
+            priority: s.type?.priority ?? 99,
+          },
         }));
         setSponsors(sponsorsWithPhoto);
       }
@@ -70,7 +80,7 @@ export function useSponsors() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return {
     sponsors,

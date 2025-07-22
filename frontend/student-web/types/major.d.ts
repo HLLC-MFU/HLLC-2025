@@ -1,14 +1,5 @@
-export type Lang = {
-  en: string;
-  th?: string;
-};
-
-export type School = {
-  _id: string;
-  name: Lang;
-  acronym?: string;
-  detail?: Lang;
-};
+import { Lang } from './lang';
+import { School } from './school';
 
 export type Major = {
   _id: string;

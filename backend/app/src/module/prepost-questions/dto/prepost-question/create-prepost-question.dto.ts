@@ -1,6 +1,7 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsObject } from 'class-validator';
 import { PrepostQuestionTypes } from '../../enum/prepost-question-types.enum';
 import { PrepostTypes } from '../../enum/posttest-types.enum';
+import { Localization } from 'src/pkg/types/common';
 
 export class CreatePrepostQuestiontDto {
   @IsEnum(PrepostQuestionTypes)
@@ -11,9 +12,9 @@ export class CreatePrepostQuestiontDto {
   @IsNotEmpty()
   type: PrepostTypes;
 
-  @IsString()
+  @IsObject()
   @IsNotEmpty()
-  question: string;
+  question: Localization;
 
   @IsNumber()
   @IsNotEmpty()

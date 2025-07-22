@@ -17,10 +17,10 @@ import { User } from '@/types/user';
 import { Role } from '@/types/role';
 
 const COLUMNS = [
-  { name: 'CODE', uid: 'code', sortable: true },
-  { name: 'USED AT', uid: 'usedAt', sortable: true },
-  { name: 'REDEEMED', uid: 'isUsed', sortable: true },
-  { name: 'USER', uid: 'user', sortable: true },
+  { name: 'CODE', uid: 'code' },
+  { name: 'USED AT', uid: 'usedAt' },
+  { name: 'IS USED', uid: 'isUsed' },
+  { name: 'USER', uid: 'user' },
 ];
 
 type EvoucherCodeTableProps = {
@@ -124,7 +124,6 @@ export default function EvoucherCodeTable({
             <TableColumn
               key={column.uid}
               align={column.uid === 'actions' ? 'center' : 'start'}
-              allowsSorting={column.sortable}
               className="w-1/4"
             >
               {column.name}

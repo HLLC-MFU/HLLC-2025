@@ -6,8 +6,11 @@ import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import { BlurView } from 'expo-blur';
 import { GlassButton } from '@/components/ui/GlassButton';
 import TutorialModal from './TutorialModal';
+import { useTranslation } from 'react-i18next';
 
 export default function MediaCard() {
+
+  const { t, i18n } = useTranslation();
   const [isModalVisible, setModalVisible] = useState(false);
   const { lamduanSetting } = useLamduanFlowers();
   const latestSetting = lamduanSetting?.[0];
@@ -37,12 +40,12 @@ export default function MediaCard() {
           />
         </View>
       ) : (
-        <Text>No Video Found</Text>
+        <Text style={{color:'#fff8'}}>{t('lamduanflower.noVideo')}</Text>
       )}
 
       <View style={styles.modalButton}>
         <GlassButton onPress={() => setModalVisible(true)}>
-          <Text style={styles.modalButtonText}>Lamduan Tutorial</Text>
+          <Text style={styles.modalButtonText}>{t('lamduanflower.lamduanTutorial')}</Text>
         </GlassButton>
       </View>
 

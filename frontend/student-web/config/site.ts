@@ -1,4 +1,4 @@
-import { LogOutIcon, BookIcon, QrCode, CircleUserRound, ShieldAlert, BellRing, Ticket } from 'lucide-react';
+import { QrCode, Book, Globe, Home, Ticket } from 'lucide-react';
 
 import { NavSection } from '@/types/nav';
 
@@ -6,34 +6,25 @@ export const siteConfig: {
   name: string;
   description: string;
   navMenuItems: NavSection[];
-  links: Record<string, string>;
 } = {
-  name: 'HLLC Admin',
-  description: '',
+  name: 'HLLC 2025',
+  description:
+    `พร้อมมั้ย⁉️ เพราะโลกของ MFU Wonder Bloom จะมีแต่คำว่า "มหัศจรรย์ และ สนุกสนาน"
+    เพราะที่นี่ คือที่ ที่น้องๆทุกคนจะได้ “ปล่อยของ” และ “ปล่อยใจ” ไปพร้อมกันใน 🌷🔥กิจกรรม How to live and learn on campus 2025 #HLLC2025 ที่กำลังจะพาเหล่า MFU freshers ไปรู้จักชีวิตมหาลัยแบบที่ทั้งสนุก ตื่นเต้น ตื่นตา ตื่นใจและเต็มไปด้วยเรื่องราวมหัศจรรย์ 🌟
+    เตรียมตัวให้พร้อมสำหรับความสนุกแบบจัดเต็ม ทั้งกิจกรรม เพื่อนใหม่ และพี่ๆ สุดน่ารัก ที่รอพาน้องๆ ไปเปิดโลกแบบ MFU Wonder Bloom สุดๆ 💕`,
   navMenuItems: [
     {
-      section: 'Activity',
       items: [
-        { label: 'Activities', href: '/activities', icon: BookIcon },
-        { label: 'CheckIn', href: '/checkin', icon: QrCode },
-        { label: 'Notifications' , href: '/notifications' , icon: BellRing},
-        { label: 'E-vouchers', href: '/evouchers', icon: Ticket },
-      ],
-    },
-    {
-      section: 'Account',
-      items: [
-        { label: 'Profile', href: '/profile', icon: CircleUserRound },
-        { label: 'Report' , href: '/report' , icon: ShieldAlert},
-        { label: 'Logout', href: '/logout', icon: LogOutIcon },
+        { label: 'Home', href: '/', icon: Home },
+        { label: 'Activity', href: '/activities', icon: Book },
+        { label: 'QRCode', href: '/qrcode', icon: QrCode },
+        { label: 'Evoucher', href: '/evouchers', icon: Ticket },
+        { label: 'Community', href: '/community', icon: Globe },
       ],
     },
   ],
-  links: {
-    github: 'https://github.com/heroui-inc/heroui',
-    twitter: 'https://twitter.com/hero_ui',
-    docs: 'https://heroui.com',
-    discord: 'https://discord.gg/9b6yyZKmH4',
-    sponsor: 'https://patreon.com/jrgarciadev',
-  },
 };
+
+export const pageOrder = siteConfig.navMenuItems.flatMap(group =>
+  group.items.map(item => item.href),
+);

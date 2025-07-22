@@ -26,8 +26,6 @@ export const LoginForm = ({
   password,
   setPassword,
   onLogin,
-  onRegister,
-  onForgotPassword,
 }: LoginFormProps) => {
   const { language, changeLanguage } = useLanguage();
   const toggleLanguage = () => {
@@ -44,8 +42,8 @@ export const LoginForm = ({
           </Pressable>
         </SafeAreaView>
         <Image
-          source={require('@/assets/images/logo-sdad.png')}
-          style={{ width: 120, height: 120, marginBottom: 16 }}
+          source={require('@/assets/images/icon.png')}
+          style={{ width: 120, height: 120, marginBottom: 16, borderRadius: 32 }}
           resizeMode="contain"
         />
 
@@ -86,17 +84,17 @@ export const LoginForm = ({
           </XStack>
 
         </YStack>
-        <Text width={'100%'} textAlign="right" onPress={onForgotPassword}>
+        {/* <Text width={'100%'} textAlign="right" onPress={onForgotPassword}>
           {t("login.forgotPassword")}
-        </Text>
+        </Text> */}
 
-        {/* <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end' }}>
+        <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end' }}>
           <ForgotPasswordPressable />
-        </View> */}
+        </View>
 
         <View style={{ width: '100%', flexDirection: 'row', gap: 10 }}>
-          <Button flex={1} onPress={onRegister}>{t("login.register")}</Button>
-          {/* <RegisterButton /> */}
+          {/* <Button flex={1} onPress={onRegister}>{t("login.register")}</Button> */}
+          <RegisterButton />
           <Button flex={1} onPress={onLogin}>{t("login.loginButton")}</Button>
         </View>
 

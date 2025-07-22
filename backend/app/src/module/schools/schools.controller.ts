@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   UseInterceptors,
+  Req,
 } from '@nestjs/common';
 import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
@@ -17,12 +18,13 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { ApiTags } from '@nestjs/swagger';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
+import { FastifyRequest } from 'fastify';
 
 @UseGuards(PermissionsGuard)
 @ApiTags('schools')
 @Controller('schools')
 export class SchoolsController {
-  constructor(private readonly schoolsService: SchoolsService) {}
+  constructor(private readonly schoolsService: SchoolsService) { }
 
   @UseInterceptors(new MultipartInterceptor())
   @Post()
@@ -44,8 +46,13 @@ export class SchoolsController {
 
   @Patch(':id')
   @Permissions('schools:update')
-  update(@Param('id') id: string, @Body() updateSchoolDto: UpdateSchoolDto) {
-    return this.schoolsService.update(id, updateSchoolDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  update(@Param('id') id: string, @Req() req: FastifyRequest) {
+    const school = req.body as UpdateSchoolDto;
+    if (!school) {
+      throw new Error('School data is required for update');
+    }
+    return this.schoolsService.update(id, school);
   }
 
   @Delete(':id')

@@ -34,10 +34,20 @@ export const useChatRooms = () => {
 
   const filteredRooms = useMemo(() => {
     const baseRooms = activeTab === 'my' ? myRooms : discoverRooms;
-    return baseRooms.filter(room => {
-      const matchesCategory = selectedCategory === 'All' || room.category === selectedCategory;
-      return matchesCategory;
-    });
+    if (selectedCategory === 'all') return baseRooms;
+    if (selectedCategory === 'school') {
+      return baseRooms.filter(room => room.metadata?.groupType === 'school');
+    }
+    if (selectedCategory === 'major') {
+      return baseRooms.filter(room => room.metadata?.groupType === 'major');
+    }
+    if (selectedCategory === 'normal') {
+      return baseRooms.filter(room => room.type === 'normal');
+    }
+    if (selectedCategory === 'readonly') {
+      return baseRooms.filter(room => room.type === 'readonly');
+    }
+    return baseRooms;
   }, [activeTab, myRooms, discoverRooms, selectedCategory]);
 
   return {

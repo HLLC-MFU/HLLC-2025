@@ -23,14 +23,20 @@ export function useUsers() {
 
     //Fetch user by username
     const fetchByUsername = async (username: string) => {
+        console.log('fetchByUsername called with:', username);
         setLoading(true);
         setError(null);
         try {
             const res = await apiRequest<{ data: User[] }>(`/users?username=${username}`, "GET");
 
-            setUsers(Array.isArray(res.data?.data) ? res.data.data : []);
-            return res.data?.data || [];
+            console.log('fetchByUsername response:', res);
+            const users = Array.isArray(res.data?.data) ? res.data.data : [];
+            console.log('Found users:', users.length, 'users:', users);
+            
+            setUsers(users);
+            return users;
         } catch (err: any) {
+            console.error('Error fetching users by username:', err);
             setError(err.message || "Failed to fetch users.");
             return [];
         } finally {
@@ -64,30 +70,89 @@ export function useUsers() {
         }
     };
 
-    // Upload users
-    const uploadUser = async (userData: Partial<User>[]) => {
-        try {
-            setLoading(true);
-            const res = await apiRequest<User>("/users/upload", "POST", userData);
-            console.log("Upload response: ", res);
+    const trimUser = (user: Partial<User>): Partial<User> => ({
+        ...user,
+        name: user.name
+            ? {
+                first: user.name.first?.trim() ?? '',
+                middle: user.name.middle?.trim(),
+                last: user.name.last?.trim() ?? '',
+            }
+            : undefined,
+    });
 
-            if (res.data) {
-                await new Promise((resolve) => {
-                    setUsers((prev) => {
-                        const updated = [...prev, res.data as User];
-                        resolve(updated);
-                        return updated;
-                    });
-                });
+
+    // Define a constant for your batch size
+    const BATCH_SIZE = 100;
+
+    /**
+     * Uploads user data in batches to the backend.
+     *
+     * @param allUserData An array of user data (Partial<User>) to be uploaded.
+     * @returns A Promise that resolves when all batches are processed.
+     */
+    const uploadUser = async (allUserData: Partial<User>[]) => {
+        setLoading(true);
+        setError(null);
+
+        // 🧹 Step 1: Trim all input before processing
+        const cleanedUserData = allUserData.map(trimUser);
+
+        const uploadedUsers: User[] = [];
+        let hasErrorOccurred = false;
+
+        try {
+            const numBatches = Math.ceil(cleanedUserData.length / BATCH_SIZE);
+
+            for (let i = 0; i < numBatches; i++) {
+                const start = i * BATCH_SIZE;
+                const end = start + BATCH_SIZE;
+                const batch = cleanedUserData.slice(start, end); // ✅ Already trimmed
+
+                console.log(`Uploading batch ${i + 1}/${numBatches} (${batch.length} users)...`);
+
+                try {
+                    const res = await apiRequest<User[]>("/users/upload", "POST", batch);
+
+                    if (res.data && Array.isArray(res.data)) {
+                        uploadedUsers.push(...res.data);
+
+                        await new Promise<void>((resolve) => {
+                            setUsers((prev) => {
+                                const updated = [...prev, ...res.data as User[]];
+                                resolve();
+                                return updated;
+                            });
+                        });
+
+                        console.log(`Batch ${i + 1} uploaded successfully.`);
+                    } else {
+                        console.warn(`Batch ${i + 1} upload: Unexpected response data format.`, res.data);
+                        setError(`Batch ${i + 1} upload failed: Unexpected response format.`);
+                        hasErrorOccurred = true;
+                    }
+                } catch (batchErr: any) {
+                    console.error(`Error uploading batch ${i + 1}:`, batchErr);
+                    setError(`Batch ${i + 1} upload failed: ${batchErr.message || "Unknown error"}`);
+                    hasErrorOccurred = true;
+                }
+            }
+        } catch (overallErr: any) {
+            console.error("Overall upload process error:", overallErr);
+            setError(overallErr.message || "Overall upload process failed.");
+            hasErrorOccurred = true;
+        } finally {
+            setLoading(false);
+            if (hasErrorOccurred) {
+                console.warn("Some batches failed during the upload process. Check logs for details.");
+            } else {
+                console.log("All batches processed successfully.");
             }
 
-            return res;
-        } catch (err: any) {
-            setError(err.message || "Failed to upload users.");
-        } finally {
-            setLoading(false)
+            return { data: uploadedUsers, error: hasErrorOccurred ? "Some batches failed" : null };
         }
     };
+
 
     // Update user 
     const updateUser = async (id: string, userData: Partial<User>) => {

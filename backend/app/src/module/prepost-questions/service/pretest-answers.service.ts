@@ -50,7 +50,7 @@ export class PretestAnswersService {
       .find({
         _id: { $in: questionIds },
         displayType: {
-          $in: [PrepostQuestionTypes.BOTH, PrepostQuestionTypes.PRE],
+          $in: [PrepostQuestionTypes.PRE],
         },
       })
       .select('_id')
@@ -107,6 +107,17 @@ export class PretestAnswersService {
       model: this.pretestAnswerModel,
       query,
       filterSchema: {},
+      populateFields: () => Promise.resolve([{ path: 'answers.pretest' }, {
+        path: 'user',
+        populate: {
+          path: 'metadata.major',
+          model: 'Major',
+          populate: {
+            path: 'school',
+            model: 'School'
+          }
+        },
+      },]),
     });
   }
 
@@ -120,12 +131,20 @@ export class PretestAnswersService {
     return await queryDeleteOne(this.pretestAnswerModel, id);
   }
 
-  async averageAllPretests(): Promise<
-    { pretest: PrepostQuestion; average: number; count: number }[]
+  async averageAllPretests(query: Record<string, string>): Promise<
+    {
+      data: { pretest: PrepostQuestion; average: number; count: number }[];
+      total: number;
+      page: number;
+      limit: number;
+    }
   > {
+
+    const fullQuery = { ...query, limit: '0', page: '1' };
+
     const results = await queryAll<PretestAnswer>({
       model: this.pretestAnswerModel,
-      query: {},
+      query: fullQuery,
       filterSchema: {},
       populateFields: () => Promise.resolve([{ path: 'answers.pretest' }]),
     });
@@ -154,11 +173,24 @@ export class PretestAnswersService {
       }
     }
 
-    return Array.from(scoreMap.entries()).map(([pretest, { sum, count }]) => ({
-      pretest,
-      average: sum / count,
-      count,
-    }));
+    const limit = Number(query.limit);
+    const page = Number(query.page ?? 1);
+    const offset = limit > 0 ? (page - 1) * limit : 0;
+    const allEntries = Array.from(scoreMap.entries());
+    const paginated = allEntries
+      .slice(offset, limit > 0 ? offset + limit : undefined)
+      .map(([pretest, { sum, count }]) => ({
+        pretest,
+        average: sum / count,
+        count,
+      }));
+
+    return {
+      data: paginated,
+      total: allEntries.length,
+      page,
+      limit,
+    };
   }
 
   async findByUserId(userId: string) {

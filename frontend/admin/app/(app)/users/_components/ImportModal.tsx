@@ -59,12 +59,12 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
             const jsonData = XLSX.utils.sheet_to_json(worksheet) as JsonData[];
 
             const formData = jsonData.map((item: JsonData) => {
-                const major = majors.find(m => m.name.en === item.major);
+                const major = majors.find(m => m.name.en === item.major.trim());
                 const mapData: Partial<User> = {
                     name: {
-                        first: item["first"],
-                        middle: item["middle"] ?? "",
-                        last: item["last"],
+                        first: item["first"].trim(),
+                        middle: item["middle"]?.trim() ?? "",
+                        last: item["last"]?.trim() ?? "",
                     },
                     username: item["username"],
                     role: roleId,

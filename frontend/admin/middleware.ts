@@ -5,7 +5,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ✅ Exclude /login route
   if (pathname === `${req.nextUrl.basePath}/login`) {
     return NextResponse.next();
   }
@@ -49,6 +48,24 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  const role = getRoleFromToken(accessToken)?.toLowerCase() ?? "";
+
+  const isAllowed =
+    role.startsWith("smo") ||
+    role === "administrator" ||
+    role === "staff" ||
+    role === "mentee" ||
+    role === "mentor";
+
+  if (!isAllowed) {
+    return NextResponse.redirect(new URL(`${req.nextUrl.basePath}/logout`, req.url));
+  }
+
+  // Restrict SMO users to /checkin and /logout only
+  if (role.startsWith("smo") && pathname !== "/checkin" && pathname !== "/logout") {
+    return NextResponse.redirect(new URL(`/checkin`, req.url));
+  }
+
   return NextResponse.next();
 }
 
@@ -62,13 +79,22 @@ function isTokenExpired(token: string): boolean {
     return exp < currentTime;
   } catch (err) {
     console.error("Invalid token format", err);
-
     return true;
+  }
+}
+
+function getRoleFromToken(token: string): string | null {
+  try {
+    const [, payloadBase64] = token.split(".");
+    const payload = JSON.parse(atob(payloadBase64));
+    return payload.role || null;
+  } catch {
+    return null;
   }
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|images|favicon.ico|login).*)",
+    "/((?!_next/static|_next/image|images|favicon.ico|login|logout).*)",
   ],
 };

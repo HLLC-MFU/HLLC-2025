@@ -8,7 +8,8 @@
         "confirm": "Confirm",
         "ok": "OK",
         "yes": "Yes",
-        "no": "No"
+        "no": "No",
+        "back": "Back"
     },
     "login": {
         "title": "Login",
@@ -32,7 +33,13 @@
         "registerButton": "Register",
         "loginPrompt": "Already have an account?",
         "login": "Login",
-        "provinceNote": "Note: You can select any province. This is used only for identity verification if you request password recovery. It does not need to reflect your current location."
+        "provinceNote": "Note: You can select any province. This is used only for identity verification if you request password recovery. It does not need to reflect your current location.",
+        "permission": {
+            "title": "HLLC Wants to Use hllc.mfu.ac.th to Sign Up",
+            "message": "This app uses your HLLC account to sign up. Please allow this app to share information about you.",
+            "Cancle": "Cancel",
+            "confirm": "Confirm"
+        }
     },
     "resetPassword": {
         "title": "Reset Password",
@@ -46,7 +53,13 @@
         "resetButton": "Reset Password",
         "loginPrompt": "Already have an account?",
         "backToLogin": "Back to Login",
-        "invalidSecret": "Invalid province. Please try again."
+        "invalidSecret": "Invalid province. Please try again.",
+        "permission": {
+            "title": "HLLC Wants to Use hllc.mfu.ac.th to Reset Password",
+            "message": "This app uses your HLLC account to reset your password. Please allow this app to share information about you.",
+            "Cancle": "Cancel",
+            "confirm": "Confirm"
+        }
     },
     "provinceSelector": {
         "title": "Select Province",
@@ -70,10 +83,12 @@
         "privacy": "Privacy",
         "about": "About",
         "delete": "Delete account",
-        "back": "Back to profile",
+        "back": "Back to Home",
         "delete_confirm_title": "Confirm Account Delete",
         "delete_confirm_message": "Are you sure you want to delete your account? This action cannot be undone.",
-        "logout": "Logout"
+        "logout": "Logout",
+        "switch_to_thai": "Switch to Thai",
+        "switch_to_english": "Switch to English"
     },
     "nav": {
         "welcome": "Welcome Back",
@@ -94,9 +109,44 @@
         "searchPlaceholder": "Search for activities...",
         "allActivities": "All Activities",
         "subtitle": "Coming soon...",
+        "noActivitiesFound": "Coming soon...",
         "backward": "Go Back",
         "detailTab": "Details",
-        "TimelineTab": "Timeline"
+        "TimelineTab": "Timeline",
+        "notOpenYet": "Not open yet",
+        "checkinAvailable": "Available for Check-in",
+        "checkedIn": "Checked In",
+        "success": "Success",
+        "waitingForAssessment": "Waiting for Assessment",
+        "missed": "Missed",
+        "unknownStatus": "Unknown Status",
+        "activity": "Activity",
+        "timeline": {
+            "title": "Timeline",
+            "notOpenYet": "Not open yet",
+            "waitingToStart": "Waiting to Start",
+            "started": "Activity Started",
+            "ended": "Activity Ended",
+            "missed": "Activity Missed",
+            "missedDescription": "You missed the activity. If you were unable to check in due to a technical problem or other reason, please reach out to MFU Activity.",
+            "evaluation": "Evaluation",
+            "openCheckin": "Available for Check-in",
+            "notOpenforCheckin": "Not open for Check-in",
+            "activityBeginAt": "Activity begins at {{startAt}} Please be ready to participate and enjoy our activity.",
+            "activityBeganAt": "Activity began at {{startAt}}",
+            "checkedIn": "You have checked in this activity",
+            "activityEndedAt": "Activity ended",
+            "evaluated": "You have completed the evaluation for this activity",
+            "assessmentCheckinDescription": "Scan the QR code at the event location or visit the designated check-in point to confirm your attendance.",
+            "assessmentCompletedDescription": "Congratulations! You've completed the activity. Please take a moment to share your feedback through the assessment.",
+            "assessmentPrompt": "Help us improve by sharing your experience and feedback about this activity.",
+            "assessmentEncouragement": "💭 Your feedback is valuable and helps us create better experiences for everyone.",
+            "assessmentButton": "Complete Assessment"
+        },
+        "noActivityData": "No activity data found.",
+        "getDirection": "Get Direction",
+        "openQrScanner": "Open QR Scanner",
+        "successfullyCheckedIn": "Successfully Checked In"
     },
     "evoucher": {
         "title": "E-Voucher",
@@ -133,7 +183,8 @@
         "you": "You",
         "unknownUser": "Unknown User",
         "connecting": "Connecting...",
-        "typeMessage": "Type your message here..."
+        "typeMessage": "Type your message here...",
+        "noCommunities": "No chat rooms found."
     },
     "roomInfo": {
         "roomDetails": "Room Details",
@@ -147,6 +198,123 @@
         "online": "Online"
     },
     "coinHunting": {
-        "collection": "Collection"
+        "collection": "14 Guardian Crystals",
+        "sponsorCollection": "Special Rewards",
+        "checkInNow": "Check in Now",
+        "collected": "Checked in",
+        "notCheckedIn": "Not checked in yet",
+        "description": "Description"
+    },
+    "assessment": {
+        "title": "Assessment Activity",
+        "questionCount": "Questions: {{count}}",
+        "notFound": "No questions found for this assessment",
+        "loading": "Loading...",
+        "low": "Low",
+        "high": "High",
+        "cancel": "CANCEL",
+        "submit": "SUBMIT",
+        "submitting": "SUBMITTING...",
+        "yourComments": "Your comments",
+        "success": "Assessment submitted successfully!",
+        "failed": "Failed to submit assessment. Please try again."
+    },
+    "pretest": {
+        "title": "Please complete the pre-activity questionnaire",
+        "noQuestions": "No pretest questions found",
+        "low": "1 = Low",
+        "high": "5 = High",
+        "submit": "Submit",
+        "submitting": "Submitting...",
+        "placeholder": "Enter your answer",
+        "select": "-- Please select --",
+        "option1": "Option 1",
+        "option2": "Option 2",
+        "option3": "Option 3",
+        "successTitle": "Submitted successfully",
+        "successMessage": "Thank you for completing the questionnaire",
+        "moreQuestions": "More Questions"
+    },
+    "posttest": {
+        "title": "Please complete the post-activity questionnaire",
+        "noQuestions": "No posttest questions found",
+        "low": "1 = Low",
+        "high": "5 = High",
+        "submit": "Submit",
+        "submitting": "Submitting...",
+        "placeholder": "Enter your answer",
+        "select": "-- Please select --",
+        "option1": "Option 1",
+        "option2": "Option 2",
+        "option3": "Option 3",
+        "successTitle": "Posttest submitted successfully",
+        "successMessage": "Thank you for completing the posttest questionnaire"
+    },
+    "lamduanflower": {
+        "title": "Lamduan Flower",
+        "lamduanTutorial": "Lamduan Tutorial",
+        "uploadLamduan": "Upload Lamduan",
+        "uploadPicture": "Upload Picture",
+        "message": "Say to yourself in the future...",
+        "submit": "submit",
+        "save": "Save",
+        "takePhoto": "Take Photo",
+        "chooseFormGallery": "Choose form Gallery",
+        "noPicture": "No tutorial photo available.",
+        "warning": "WARNING",
+        "notStarted": "The activity has not started yet.",
+        "ended": "The activity has ended.",
+        "ok": "OK",
+        "cancel": "Cancel",
+        "noVideo": "No Video Found",
+        "back": "Back",
+        "confirmSubmit": "Confirm Submission",
+        "confirmSave": "Confirm Save",
+        "actioncannot": "This action cannot be undone.",
+        "confirm": "Confirm",
+        "toast" : {
+            "createSuccess": "Create Success",
+            "submitSuccessfully": "Submit Lamduan Flower successfully!",
+            "updateSuccess": "Update Success",
+            "updatedSuccessfully": "Flower updated successfully!",
+            "error" : "Error",
+            "errorSubmit" : "Error submitting flower"
+        }
+    },
+    "step": {
+        "total": "Total",
+        "step": "Step",
+        "keepMoving": "Keep moving! Your steps contribute to the campaign.",
+        "goal": "Your goal is {{goal}} steps",
+        "deviceMismatch": "Device mismatch detected. Steps won’t count toward your campaign. Please update your device.",
+        "individual": "Individual",
+        "school": "School",
+        "achievement": "Achievement"
+    },
+    "report": {
+        "title": "Report",
+        "subtitle": "Report an issue or provide feedback",
+        "topic": "Topic",
+        "description": "Description",
+        "submit": "Submit Report",
+        "success": "Report submitted successfully!",
+        "error": "Failed to submit report. Please try again.",
+        "placeholder": {
+            "topic": "Enter the topic of your report",
+            "description": "Describe the issue or feedback in detail"
+        },
+        "reporting": "Reporting...",
+        "confirm": "Confirm",
+        "cancel": "Cancel",
+        "selectTopic": "Select a topic"
+    }  ,
+    "notification": {
+        "title": "Notifications",
+        "noNotifications": "No notifications yet",
+        "noNotificationsSubtext": "We'll notify you when something arrives",
+        "markAllAsRead": "Mark all as read",
+        "markingAsRead": "Marking as read...",
+        "read": "Read",
+        "unread": "Unread"
     }
 }
