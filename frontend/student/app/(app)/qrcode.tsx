@@ -275,7 +275,6 @@ export default function QRCodeScreen() {
               shadowColor: '#000',
               shadowOpacity: 0.15,
               shadowRadius: 12,
-              elevation: 8,
               position: 'relative',
               overflow: 'hidden',
               width: 320,
@@ -344,7 +343,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.10,
     shadowRadius: 8,
-    elevation: 2,
     alignSelf: 'stretch',
   },
   tabBarBlur: {

@@ -11,11 +11,11 @@ import {
     Material,
     MeshStandardMaterial,
 } from "three";
-import ExpoTHREE, { Renderer } from "expo-three";
-import OrbitControls from "expo-three-orbit-controls";
+import ExpoTHREE, { Renderer, THREE } from "expo-three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { ExpoWebGLRenderingContext } from "expo-gl";
 import { User } from "@/types/user";
+import { tr } from "date-fns/locale";
 
 if (__DEV__) {
     const originalLog = console.log;
@@ -65,23 +65,46 @@ export async function onContextCreate(
 
     const renderer = new Renderer({ gl });
     renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
+    renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+    renderer.toneMapping = THREE.LinearToneMapping;
+    renderer.toneMappingExposure = 1.00;
+    renderer.shadowMap.autoUpdate = true;
+    renderer.shadowMap.needsUpdate = true;
+    renderer.shadowMap.autoUpdate = false;
+    renderer.shadowMap.enabled = false;
+
 
     //   const controls = new OrbitControls(camera, renderer.domElement);
     //   controlsRef.current = controls;
 
     // Lights
     scene.add(new AmbientLight(0xffffff, 2));
-    const dirLight = new DirectionalLight(0xffffff, 1);
-    dirLight.position.set(5, 10, 5);
+    const dirLight = new DirectionalLight(0xffecec, 1.5);
+    dirLight.position.set(0, 0, 5);
+    dirLight.castShadow = false;
+    // const fillLight = new PointLight(0xffffff, 0.5);
+    // fillLight.position.set(-5, 3, 5);
+    // scene.add(fillLight);
+
     scene.add(dirLight);
+    scene.position.y += 0.6;
 
     try {
         const acronym = userData?.data?.[0]?.metadata?.major?.school?.acronym.toUpperCase() ?? "DENT";
         const loader = new GLTFLoader();
+        let character;
 
-        const character = await loader.loadAsync(
-            `${process.env.EXPO_PUBLIC_API_URL}/uploads/models/${acronym}.glb`
-        );
+        try {
+            character = await loader.loadAsync(
+                `${process.env.EXPO_PUBLIC_API_URL}/uploads/models/${acronym}.glb`
+            );
+        } catch (e) {
+            console.warn(`Failed to load model for acronym ${acronym}, loading fallback BASE model instead.`);
+            // Load fallback model on failure
+            character = await loader.loadAsync(
+                `${process.env.EXPO_PUBLIC_API_URL}/uploads/models/ADT.glb`
+            );
+        }
         const base = await loader.loadAsync(
             `${process.env.EXPO_PUBLIC_API_URL}/uploads/models/BASE.glb`
         );
@@ -102,7 +125,11 @@ export async function onContextCreate(
                 const texture = await ExpoTHREE.loadAsync({ uri: textureUrl });
                 texture.flipY = false;
                 texture.needsUpdate = true;
-                child.material = new MeshStandardMaterial({ map: texture });
+                child.material = new MeshStandardMaterial({
+                    map: texture,
+                    metalness: 0,
+                    roughness: 0.5,
+                });
             }
         });
         baseScene.traverse(async (child) => {
@@ -148,7 +175,6 @@ export async function onContextCreate(
             const delta = clock.getDelta();
             mixer.update(delta);
             //   controls.update();
-
             renderer.render(scene, camera);
             gl.endFrameEXP();
         };

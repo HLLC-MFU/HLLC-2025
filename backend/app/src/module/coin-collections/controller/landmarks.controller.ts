@@ -23,7 +23,7 @@ import { FastifyRequest } from 'fastify';
 @ApiTags('landmarks')
 @Controller('landmarks')
 export class LandmarksController {
-  constructor(private readonly landmarksService: LandmarksService) {}
+  constructor(private readonly landmarksService: LandmarksService) { }
 
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))
@@ -35,6 +35,11 @@ export class LandmarksController {
   @Get()
   findAll(@Query() query: Record<string, string>) {
     return this.landmarksService.findAll(query);
+  }
+
+  @Get('sponsor')
+  async findAllBySponsor(@Query() query: Record<string, string>) {
+    return this.landmarksService.findAllBySponsor(query);
   }
 
   @Get(':id')
