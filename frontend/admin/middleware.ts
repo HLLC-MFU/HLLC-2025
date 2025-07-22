@@ -49,6 +49,14 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // ✅ Decode access token to get role
+  const role = getRoleFromToken(accessToken);
+
+  // 🛑 Restrict SMO IT to /checkin only
+  if ((role?.toLowerCase() ?? "").startsWith("smo") && pathname !== "/checkin" && pathname !== "/logout") {
+    return NextResponse.redirect(new URL(`/checkin`, req.url));
+  }
+
   return NextResponse.next();
 }
 
@@ -67,8 +75,18 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
+function getRoleFromToken(token: string): string | null {
+  try {
+    const [, payloadBase64] = token.split(".");
+    const payload = JSON.parse(atob(payloadBase64));
+    return payload.role || null;
+  } catch {
+    return null;
+  }
+}
+
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|images|favicon.ico|login).*)",
+    "/((?!_next/static|_next/image|images|favicon.ico|login|logout).*)",
   ],
 };
