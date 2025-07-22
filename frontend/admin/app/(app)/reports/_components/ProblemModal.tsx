@@ -36,7 +36,7 @@ export function ProblemModal({
   const [descriptionEn, setDescriptionEn] = useState("");
   const [descriptionTh, setDescriptionTh] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [status, setStatus] = useState<Problem["status"]>("Pending");
+  const [status, setStatus] = useState<Problem["status"]>("pending");
 
   useEffect(() => {
     if (problem) {
@@ -52,7 +52,7 @@ export function ProblemModal({
       setDescriptionEn("");
       setDescriptionTh("");
       setCategoryId(categories[0]?.id || "");
-      setStatus("Pending");
+      setStatus("pending");
     }
   }, [problem, categories]);
 

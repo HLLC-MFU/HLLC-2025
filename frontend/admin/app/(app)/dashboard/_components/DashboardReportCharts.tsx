@@ -66,13 +66,13 @@ export function ReportCharts({ problems, reporttypes }: ProblemChartsProps) {
 
 
     const statusData: ChartData[] = [
-        { name: 'Pending', value: problems.filter(p => p.status === 'Pending').length },
-        { name: 'In-Progress', value: problems.filter(p => p.status === 'In-Progress').length },
-        { name: 'Done', value: problems.filter(p => p.status === 'Done').length }
+        { name: 'Pending', value: problems.filter(p => p.status === 'pending').length },
+        { name: 'In-Progress', value: problems.filter(p => p.status === 'in-progress').length },
+        { name: 'Done', value: problems.filter(p => p.status === 'done').length }
     ];
 
     const totalProblems = problems.length;
-    const doneProblems = problems.filter(p => p.status === 'Done').length;
+    const doneProblems = problems.filter(p => p.status === 'done').length;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

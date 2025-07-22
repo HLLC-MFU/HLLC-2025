@@ -38,7 +38,6 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: 0.12,
           shadowRadius: 24,
-          elevation: 12,
         }}
       >
         {/* Main Image */}

@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Users, Info, Loader } from 'lucide-react-native';
+import { ChevronLeft, Users, Info, Loader, ArrowDown } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -243,7 +243,7 @@ export default function ChatRoomPage() {
                 <TouchableOpacity
                   style={{
                     position: 'absolute',
-                    bottom: 60,
+                    bottom: 24,
                     right: 20,
                     backgroundColor: 'rgba(255,255,255,0.3)',
                     borderRadius: 24,
@@ -252,13 +252,12 @@ export default function ChatRoomPage() {
                     shadowColor: '#000',
                     shadowOpacity: 0.2,
                     shadowRadius: 4,
-                    elevation: 4,
                   }}
                   onPress={() =>
                     flatListRef.current?.scrollToEnd({ animated: true })
                   }
                 >
-                  <Text style={{ color: '#fff', fontSize: 16 }}></Text>
+                  <ArrowDown color={"white"}  />
                 </TouchableOpacity>
               )}
             </View>
