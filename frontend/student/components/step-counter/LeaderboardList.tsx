@@ -32,7 +32,7 @@ const LeaderboardList = ({ data, valueLabel = 'steps' }: LeaderboardListProps) =
         <View style={styles.cardRankCircle}>
           <Text style={styles.cardRankText}>{index + 4}</Text> {/* Start from rank 4 */}
         </View>
-        <View style={{paddingRight: 10}}>
+        <View style={{ paddingRight: 10 }}>
           {item.user.avatar ? (
             <Image
               source={{ uri: item.user.avatar }}
@@ -51,7 +51,9 @@ const LeaderboardList = ({ data, valueLabel = 'steps' }: LeaderboardListProps) =
         <Text style={[styles.cardName, { fontWeight: 'bold' }]}>
           {item.user.name.first} {item.user.name.last ? item.user.name.last.charAt(0) + '.' : ''}
         </Text>
-        <Text style={styles.cardSteps}>{item.totalStep} {valueLabel}</Text>
+        <Text style={styles.cardSteps}>
+          {(item.totalStep ?? 0).toString()} {valueLabel?.toString()}
+        </Text>
       </View>
     )}
     showsVerticalScrollIndicator={false}
