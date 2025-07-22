@@ -6,6 +6,7 @@ import Image from "next/image";
 import { User, EyeClosed, Eye, Lock } from "lucide-react";
 import { Button, Checkbox, Form, Input } from "@heroui/react";
 
+import background from "@/public/images/background.png";
 import useAuth from "@/hooks/useAuth";
 
 export default function LoginPage() {
@@ -37,9 +38,10 @@ export default function LoginPage() {
       <div className="absolute inset-0 md:relative md:flex h-full w-full grow">
         <Image
           fill
+          priority
           alt="Background"
           className="object-cover md:rounded-[24px]"
-          src="/images/background.png"
+          src={background}
         />
       </div>
 

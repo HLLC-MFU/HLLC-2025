@@ -27,12 +27,14 @@ export default function useCoinHunting() {
     modal: ModalType;
     selectedMarker: (typeof markers)[0] | null;
     evoucher: { code: string } | null;
-    alertType: "already-collected" | "no-evoucher" | "too-far" | null;
+    alertType: "already-collected" | "no-evoucher" | "too-far" | "cooldown" | null;
+    remainingCooldownMs?: number;
   }>({
     modal: null,
     selectedMarker: null,
     evoucher: null,
     alertType: null,
+    remainingCooldownMs: undefined,
   });
 
   // รวม UI state ที่เกี่ยวข้องไว้ใน object เดียว
@@ -103,7 +105,7 @@ export default function useCoinHunting() {
       try {
         const [landmarksRes, collectionsRes] = await Promise.all([
           apiRequest<LandmarkApiResponse>('/landmarks?page=1&limit=30'),
-          apiRequest<CoinCollectionApiResponse>('/coin-collections'),
+          apiRequest<CoinCollectionApiResponse>('/coin-collections/my-coin'),
         ]);
         if (landmarksRes.data && Array.isArray(landmarksRes.data.data)) {
           const mapped = landmarksRes.data.data.map((item: LandmarkApiItem) => ({
@@ -115,6 +117,10 @@ export default function useCoinHunting() {
             description: {
               th: item.hint?.th || '',
               en: item.hint?.en || '',
+            },
+            name: {
+              th: item.name?.th || '',
+              en: item.name?.en || '',
             },
             mapsUrl: item.location?.mapUrl || '',
             _id: item._id,
@@ -146,7 +152,7 @@ export default function useCoinHunting() {
     if (state.modal === 'stamp') {
       const fetchStamps = async () => {
         try {
-          const res = await apiRequest<CoinCollectionApiResponse>('/coin-collections');
+          const res = await apiRequest<CoinCollectionApiResponse>('/coin-collections/my-coin');
           const dataArr = Array.isArray(res?.data?.data) ? res.data.data : [];
           const landmarks = dataArr[0]?.landmarks || [];
           const NUM_SLOTS = 21;
@@ -168,7 +174,7 @@ export default function useCoinHunting() {
 
   // Handlers
   const handleMarkerPress = (marker: typeof markers[0]) => {
-    setState(s => ({ ...s, selectedMarker: marker, modal: 'marker-detail' }));
+    router.push(`/community/coin-hunting/marker-detail/${marker._id}`);
   };
 
   const handleCheckIn = () => {
@@ -184,8 +190,12 @@ export default function useCoinHunting() {
     setState(s => ({ ...s, evoucher: null, modal: 'stamp' }));
   };
 
-  const handleAlert = (type: "already-collected" | "no-evoucher" | "too-far") => {
-    setState(s => ({ ...s, alertType: type, modal: 'alert' }));
+  const handleAlert = (type: "already-collected" | "no-evoucher" | "too-far" | "cooldown", remainingCooldownMs?: number) => {
+    setState(s => ({ ...s, alertType: type, modal: 'alert', remainingCooldownMs }));
+    // Trigger refresh when evoucher is exhausted to update collected coins
+    if (type === 'no-evoucher') {
+      setRefreshKey(k => k + 1);
+    }
   };
 
   const closeModal = () => setState(s => ({ ...s, modal: null }));
@@ -211,6 +221,7 @@ export default function useCoinHunting() {
     selectedMarker: state.selectedMarker,
     evoucher: state.evoucher,
     alertType: state.alertType,
+    remainingCooldownMs: state.remainingCooldownMs,
     stampCount: uiState.stampCount,
     scanning: uiState.scanning,
     setScanning,
@@ -232,5 +243,6 @@ export default function useCoinHunting() {
     handleAlert,
     closeModal,
     setState, // เผื่ออยาก set อะไรเอง
+    setRefreshKey, // สำหรับ refresh ข้อมูล
   };
 } 

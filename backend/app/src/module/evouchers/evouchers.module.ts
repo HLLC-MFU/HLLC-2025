@@ -12,6 +12,7 @@ import {
 import { Sponsors, SponsorsSchema } from '../sponsors/schemas/sponsors.schema';
 import { SponsorsModule } from '../sponsors/sponsors.module';
 import { User, UserSchema } from '../users/schemas/user.schema';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -33,7 +34,7 @@ import { User, UserSchema } from '../users/schemas/user.schema';
         schema: UserSchema,
       },
     ]),
-    SponsorsModule,
+    SponsorsModule, NotificationsModule
   ],
   controllers: [EvoucherCodesController, EvouchersController],
   providers: [EvouchersService, EvoucherCodesService],

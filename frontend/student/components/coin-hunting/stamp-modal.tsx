@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Animated,
+  Platform,
 } from 'react-native';
 import Svg, {
   Rect,
@@ -71,9 +72,21 @@ export default function StampModal({
         const latestNewCoin = newCoins[newCoins.length - 1];
         setNewCoinIndex(latestNewCoin);
         setShowNewCoinEffect(true);
-        newCoinAnim.setValue(0);
+        // Get target position for the new coin
+        const { x: targetX, y: targetY } = getCoinPosition(
+          latestNewCoin,
+          NUM_SQUARES,
+          RADIUS,
+          KITE_INNER_RADIUS,
+          KITE_OUTER_RADIUS,
+          CENTER_X,
+          CENTER_Y,
+        );
+        // Set initial position to target position (no movement)
+        newCoinPosition.setValue({ x: targetX, y: targetY });
         newCoinScale.setValue(0.3);
-        newCoinPosition.setValue({ x: 0, y: 0 });
+        newCoinAnim.setValue(0);
+        // Only animate scale and rotation, no position movement
         Animated.parallel([
           Animated.timing(newCoinAnim, {
             toValue: 1,
@@ -81,15 +94,15 @@ export default function StampModal({
             useNativeDriver: true,
           }),
           Animated.timing(newCoinScale, {
-            toValue: 1.5,
-            duration: 400,
+            toValue: 1,
+            duration: 600,
             useNativeDriver: true,
           }),
         ]).start(() => {
           setTimeout(() => {
             setShowNewCoinEffect(false);
             setNewCoinIndex(null);
-          }, 500);
+          }, 300);
         });
       }
     }
@@ -177,14 +190,19 @@ export default function StampModal({
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      statusBarTranslucent={true}
     >
       <TouchableOpacity
-        style={styles.overlay}
+        style={Platform.OS === 'android' ? styles.overlayAndroid : styles.overlayIOS}
         activeOpacity={1}
         onPress={showNewCoinEffect ? handleTapToPlace : undefined}
       >
         <View style={styles.modalContent}>
-          <Text style={styles.title}>{t('coinHunting.collection')}</Text>
+          <Text style={styles.title}>
+            {currentPage === 0
+              ? t('coinHunting.collection')
+              : t('coinHunting.sponsorCollection')}
+          </Text>
           <View style={styles.stampHexGridContainer}>
             {currentPage === 0 && showFirework && (
               <>
@@ -374,7 +392,7 @@ export default function StampModal({
               <View style={styles.sponsor2RowsContainer}>
                 <View style={styles.sponsorRow2Row}>
                   {[0, 1, 2].map(i => {
-                    const idx = 15 + i;
+                    const idx = 14 + i; 
                     return (
                       <View key={idx} style={styles.sponsorStampSlot}>
                         {coinImages[idx] && (
@@ -394,7 +412,7 @@ export default function StampModal({
                   ]}
                 >
                   {[3, 4, 5, 6].map(i => {
-                    const idx = 15 + i;
+                    const idx = 14 + i; 
                     return (
                       <View key={idx} style={styles.sponsorStampSlot}>
                         {coinImages[idx] && (
@@ -470,7 +488,17 @@ export default function StampModal({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  overlayAndroid: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overlayIOS: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'center',

@@ -7,7 +7,7 @@ export default function QRCodeGenerator({ username, size }: { username: string; 
   const { width } = useWindowDimensions();
   
   // Calculate responsive size based on screen width
-  const responsiveSize = size || Math.min(width * 0.6, 280); // 60% of screen width, max 280px
+  const responsiveSize = size || Math.min(width * 0.5, 280); // 50% of screen width, max 280px
 
   return (
         <QRCode

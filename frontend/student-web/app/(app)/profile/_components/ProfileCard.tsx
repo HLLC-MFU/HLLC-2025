@@ -25,7 +25,7 @@ export default function ProfileCard() {
 
   if (!user) return <ProfileSkeleton />;
 
-  const fullName = [user.name.first, user.name.middle, user.name.last]
+  const fullName = [user.name?.first, user.name?.middle, user.name?.last]
     .filter(Boolean)
     .join(' ');
 
@@ -37,7 +37,7 @@ export default function ProfileCard() {
   ];
 
   return (
-    <Card className="py-4 bg-black/20 backdrop-blur-md border border-white rounded-2xl shadow-lg">
+    <Card className="py-4 bg-black/30 backdrop-blur-lg border border-white rounded-2xl shadow-lg z-10">
       <CardBody className="flex flex-col items-start space-y-4 pb-0 pt-2 px-4">
         {profileItems.map(({ label, value, icon: Icon }, index) => (
           <div key={index} className="flex items-center space-x-4 min-h-[60px]">

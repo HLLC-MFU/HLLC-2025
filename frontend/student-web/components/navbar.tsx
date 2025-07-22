@@ -14,13 +14,14 @@ import clsx from 'clsx';
 import { usePathname, useRouter } from 'next/navigation';
 import { Href } from '@react-types/shared';
 import { Tooltip } from '@heroui/react';
+import { useState } from 'react';
+
+import { ProgressBar } from './ui/progressBar';
 
 import { siteConfig } from '@/config/site';
 import { SearchIcon, Logo } from '@/components/icons';
 import { useProfile } from '@/hooks/useProfile';
-import { ProgressBar } from './ui/progressBar';
 import { useProgress } from '@/hooks/useProgress';
-import { useState } from 'react';
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -62,7 +63,12 @@ export const Navbar = () => {
   );
 
   return (
-    <HeroUINavbar maxWidth="full" position="sticky" isMenuOpen={isMenuOpen} onMenuOpenChange={setIsMenuOpen}>
+    <HeroUINavbar
+      isMenuOpen={isMenuOpen}
+      maxWidth="full"
+      position="sticky"
+      onMenuOpenChange={setIsMenuOpen}
+    >
       <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
         <NavbarBrand as="li" className="gap-3 max-w-fit">
           <NextLink className="flex justify-start items-center gap-1" href="/">
@@ -107,8 +113,11 @@ export const Navbar = () => {
 
       {/*Mobile Right Content */}
       <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
-        <ProgressBar progressBarActivities={progress} loading={progressLoading} />
-        <NavbarMenuToggle onChange={() => setIsMenuOpen(prev => !prev)}/>
+        <ProgressBar
+          loading={progressLoading}
+          progressBarActivities={progress}
+        />
+        <NavbarMenuToggle onChange={() => setIsMenuOpen(prev => !prev)} />
       </NavbarContent>
 
       {/*Mobile Menu */}

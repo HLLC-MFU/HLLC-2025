@@ -7,9 +7,10 @@ import { Button, Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger }
 import clsx from "clsx";
 import { usePathname, useRouter } from "next/navigation";
 import { Href } from "@react-types/shared";
-
-import { siteConfig } from "@/config/site";
+import logo from "@/public/logo-sdad.png";
 import { useProfile } from "@/hooks/useProfile";
+import Image from "next/image";
+import { getMenuByRole } from "@/config/getMenuByRole";
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -34,18 +35,7 @@ export const Sidebar = () => {
     localStorage.setItem("sidebar-collapsed", collapsed.toString());
   }, [collapsed]);
 
-  const hasPermission = (permission?: string): boolean => {
-    if (!permission) return true;
-    const perms = user?.role?.permissions || [];
-
-    if (perms.includes("*")) return true;
-
-    const [resource, action] = permission.split(":");
-
-    return (
-      perms.includes(permission) || perms.includes(`${resource}:*`)
-    );
-  };
+  const navMenuItems = getMenuByRole(user);
 
   return (
     <>
@@ -60,7 +50,7 @@ export const Sidebar = () => {
         <div className="flex items-center justify-between p-4 border-b border-[#00000010] dark:border-[#ffffff25]">
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <Avatar className="w-8 h-8" size="sm" src="/logo.png" />
+              <Avatar className="w-8 h-8" size="sm" icon={<Image src={logo} alt="logo" width={24} height={24} className="rounded-full" />} />
               <span className="font-semibold text-default-900">
                 {user?.name.first} {user?.name.middle} {user?.name.last}
               </span>
@@ -77,13 +67,8 @@ export const Sidebar = () => {
           </Button>
         </div>
 
-        {/* Navigation */}
         <div className="flex-1 overflow-y-auto py-4">
-          {siteConfig.navMenuItems.map((section) => {
-            const visibleItems = section.items.filter((item) => hasPermission(item.permission));
-
-            if (visibleItems.length === 0) return null;
-
+          {navMenuItems.map((section) => {
             return (
               <div key={section.section} className="space-y-1">
                 {!collapsed && (
@@ -94,7 +79,7 @@ export const Sidebar = () => {
                   </div>
                 )}
                 <div className="space-y-1 px-2">
-                  {visibleItems.map((item) => {
+                  {section.items.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname.startsWith(item.href);
 
@@ -148,7 +133,7 @@ export const Sidebar = () => {
             <Dropdown placement="top-start">
               <DropdownTrigger>
                 <div className="flex items-center gap-2 cursor-pointer hover:bg-default-100 p-2 rounded-md transition-colors">
-                  <Avatar className="w-8 h-8" size="sm" src="https://i.pravatar.cc/150?u=a042581f4e29026024d" />
+                  <Avatar className="w-8 h-8" size="sm" icon={<Image src={logo} alt="logo" width={24} height={24} className="rounded-full" />} />
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">
                       {user?.name.first} {user?.name.middle} {user?.name.last}

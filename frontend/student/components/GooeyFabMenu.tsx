@@ -1,52 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import type { ReactNode } from 'react';
 import { View, TouchableOpacity, Text, Animated, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { AlignJustify } from '@tamagui/lucide-icons';
 import { Easing } from 'react-native';
+import AssetImage from './global/AssetImage';
 
 interface SubFab {
   key: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   label?: string | null;
   onPress: () => void;
 }
 
 interface GooeyFabMenuProps {
+  assets: Record<string, string>;
   subFabs: SubFab[];
   style?: object;
 }
 
-export default function GooeyFabMenu({ subFabs, style }: GooeyFabMenuProps) {
+export default function GooeyFabMenu({
+  assets,
+  subFabs,
+  style
+}: GooeyFabMenuProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const coinAnim = React.useRef(new Animated.Value(0)).current;
-  const stepAnim = React.useRef(new Animated.Value(0)).current;
-  const createAnim = React.useRef(new Animated.Value(0)).current;
+  const coinAnim = useRef(new Animated.Value(0)).current;
+  const stepAnim = useRef(new Animated.Value(0)).current;
+  const createAnim = useRef(new Animated.Value(0)).current;
 
-  // Map animations to subFabs by index, or create dynamic animations if needed
   const anims = [createAnim, stepAnim, coinAnim];
 
   const openMenu = () => {
     setIsMenuOpen(true);
-    Animated.stagger(50, anims.map(anim =>
-      Animated.timing(anim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.exp),
-      })
-    )).start();
+    Animated.stagger(
+      50,
+      anims.map(anim =>
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.exp),
+        })
+      )
+    ).start();
   };
 
   const closeMenu = () => {
-    Animated.stagger(50, anims.map(anim =>
-      Animated.timing(anim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-        easing: Easing.in(Easing.exp),
-      })
-    ).reverse()).start(() => setIsMenuOpen(false));
+    Animated.stagger(
+      50,
+      anims.map(anim =>
+        Animated.timing(anim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+          easing: Easing.in(Easing.exp),
+        })
+      ).reverse()
+    ).start(() => setIsMenuOpen(false));
   };
 
   const toggleMenu = () => {
@@ -56,7 +68,6 @@ export default function GooeyFabMenu({ subFabs, style }: GooeyFabMenuProps) {
 
   return (
     <View style={[styles.container, style]} pointerEvents="box-none">
-      {/* Blur overlay */}
       {isMenuOpen && (
         <BlurView
           intensity={30}
@@ -72,9 +83,9 @@ export default function GooeyFabMenu({ subFabs, style }: GooeyFabMenuProps) {
         </BlurView>
       )}
 
-      {/* Sub-FABs */}
       {subFabs.map((fab, idx) => {
-        const anim = anims[idx] || anims[0]; // fallback to first animation if out of range
+        const asset = assets[fab.key];
+        const anim = anims[idx] || anims[0];
         return (
           <Animated.View
             key={fab.key}
@@ -83,7 +94,7 @@ export default function GooeyFabMenu({ subFabs, style }: GooeyFabMenuProps) {
               styles.fabSubButton,
               {
                 position: 'absolute',
-                right: 24,
+                right: -120,
                 bottom: 70 * (subFabs.length - 2.5 - idx),
                 zIndex: 2,
                 opacity: anim,
@@ -107,25 +118,29 @@ export default function GooeyFabMenu({ subFabs, style }: GooeyFabMenuProps) {
               }}
               activeOpacity={0.9}
             >
-              {fab.icon ? fab.icon : fab.label ? <Text style={styles.stepCounterFabText}>{fab.label}</Text> : null}
+              {asset ? <AssetImage uri={`${process.env.EXPO_PUBLIC_API_URL}/uploads/${asset}`} style={{ width: 24, height: 24 }} /> : fab.icon}
+              {fab.label && <Text style={styles.stepCounterFabText}>{fab.label}</Text>}
             </TouchableOpacity>
           </Animated.View>
         );
       })}
 
-      {/* Main FAB */}
       <View style={{ zIndex: 3 }}>
         <TouchableOpacity
           style={styles.enhancedFab}
           onPress={toggleMenu}
           activeOpacity={0.9}
         >
-          <BlurView intensity={0} tint="light" style={[StyleSheet.absoluteFill, styles.fabGradient]}>
-            <AlignJustify
-              size={24}
-              color="#fff"
-              style={{ transform: [{ rotate: isMenuOpen ? '45deg' : '0deg' }] }}
-            />
+          <BlurView intensity={50} tint="dark" style={[StyleSheet.absoluteFill, styles.fabGradient]}>
+            {assets.menu ? (
+              <AssetImage uri={`${process.env.EXPO_PUBLIC_API_URL}/uploads/${assets.menu}`} style={{ width: 24, height: 24 }} />
+            ) : (
+              <AlignJustify
+                size={24}
+                color="#fff"
+                style={{ transform: [{ rotate: isMenuOpen ? '45deg' : '0deg' }] }}
+              />
+            )}
           </BlurView>
         </TouchableOpacity>
       </View>
@@ -171,13 +186,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fabGradient: {
+    borderRadius: 9999,
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
   },
   fabSubButton: {
-    width: 60,
+    right: 70,
+    width: 200,
     height: 60,
     borderRadius: 30,
     backgroundColor: 'rgba(255,255,255,0.3)',
@@ -192,13 +209,18 @@ const styles = StyleSheet.create({
   },
   fabSubButtonInner: {
     flex: 1,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
   },
   stepCounterFabText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 12,
     letterSpacing: 1,
-  },
+    flexShrink: 1,
+    maxWidth: 140,
+    textAlign: 'center',
+  }
 });

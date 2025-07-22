@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 export const chatStyles = StyleSheet.create({
   container: { 
@@ -14,8 +14,7 @@ export const chatStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A',
-    elevation: 3,
+    borderBottomColor: Platform.OS === 'android' ? '#ffffff10' : '#2A2A2A',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,

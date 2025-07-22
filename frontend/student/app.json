@@ -10,6 +10,9 @@
     "newArchEnabled": true,
     "jsEngine": "hermes",
     "owner": "hllc",
+    "fonts": {
+      "LibreBarcode128": "./assets/fonts/LibreBarcode128Text-Regular.ttf"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mfuactivity.hllc",
@@ -67,18 +70,15 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
+          "image": "./assets/images/hllc-splash-screen.png",
+          "resizeMode": "cover",
           "backgroundColor": "#ffffff"
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow this app to access your camera.",
-          "microphonePermission": "Allow this app to access your microphone.",
-          "recordAudioAndroid": true
+          "cameraPermission": "Allow $(PRODUCT_NAME) to use the camera to scan QR codes during event or campaign check-ins, such as check in campaign. (อนุญาตให้ $(PRODUCT_NAME) ใช้กล้องเพื่อสแกน QR Code ขณะเช็คอินในกิจกรรมหรือแคมเปญ เช่น ยืนยันการเข้าร่วมกิจกรรม)"
         }
       ],
       [

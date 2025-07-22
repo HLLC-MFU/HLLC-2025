@@ -62,13 +62,13 @@ export function ProblemCharts({ problems, reporttypes }: ProblemChartsProps) {
 
 
     const statusData: ChartData[] = [
-        { name: 'Pending', value: problems.filter(p => p.status === 'Pending').length },
-        { name: 'In-Progress', value: problems.filter(p => p.status === 'In-Progress').length },
-        { name: 'Done', value: problems.filter(p => p.status === 'Done').length }
+        { name: 'Pending', value: problems.filter(p => p.status === 'pending').length },
+        { name: 'In-Progress', value: problems.filter(p => p.status === 'in-progress').length },
+        { name: 'Done', value: problems.filter(p => p.status === 'done').length }
     ];
 
     const totalProblems = problems.length;
-    const doneProblems = problems.filter(p => p.status === 'Done').length;
+    const doneProblems = problems.filter(p => p.status === 'done').length;
     const resolutionRate = totalProblems > 0 ? (doneProblems / totalProblems * 100).toFixed(1) : 0;
 
     return (

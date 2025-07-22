@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Modal, Pressable, StyleSheet, View, Image, Text, TouchableOpacity } from "react-native";
 
 interface TutorialModalProps {
@@ -8,6 +9,7 @@ interface TutorialModalProps {
 }
 
 export default function TutorialModal({ isVisible, onClose, photoUrl }: TutorialModalProps) {
+  const { t, i18n } = useTranslation();
   return (
     <Modal transparent visible={isVisible} animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.modalBackground} onPress={onClose}>
@@ -20,7 +22,7 @@ export default function TutorialModal({ isVisible, onClose, photoUrl }: Tutorial
             <Image source={{ uri: photoUrl }} style={styles.image} />
           ) : (
             <View style={styles.noImageContainer}>
-              <Text style={styles.noImageText}>No tutorial photo available.</Text>
+              <Text style={styles.noImageText}>{t('lamduanflower.noPicture')}</Text>
             </View>
           )}
         </Pressable>

@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import {
   queryAll,
   queryDeleteOne,
@@ -23,21 +21,15 @@ export class PrepostQuestionsService {
     private PrepostQuestionmodel: Model<PrepostQuestionDocument>,
   ) {}
 
-  async create(createPrepostQuestiontDto: CreatePrepostQuestiontDto) {
-    await throwIfExists(
-      this.PrepostQuestionmodel,
-      { question: createPrepostQuestiontDto.question },
-      'PrepostQuestion is already exists',
-    );
-
-    const posttest = new this.PrepostQuestionmodel({
-      ...createPrepostQuestiontDto,
-    });
-
-    try {
-      return await posttest.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'order');
+  async create(
+    createDto: CreatePrepostQuestiontDto | CreatePrepostQuestiontDto[],
+  ) {
+    const isArray = Array.isArray(createDto);
+    if (isArray) {
+      return await this.PrepostQuestionmodel.insertMany(createDto);
+    } else {
+      const single = new this.PrepostQuestionmodel(createDto);
+      return await single.save();
     }
   }
 

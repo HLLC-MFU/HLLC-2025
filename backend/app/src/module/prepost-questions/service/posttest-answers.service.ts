@@ -22,6 +22,7 @@ import {
   PrepostQuestionDocument,
 } from '../schema/prepost-question.schema';
 import { PrepostQuestionTypes } from '../enum/prepost-question-types.enum';
+import { TimeSetting, TimeSettingDocument } from 'src/module/time-setting/schema/time-setting.schema';
 
 @Injectable()
 export class PosttestAnswersService {
@@ -34,7 +35,10 @@ export class PosttestAnswersService {
 
     @InjectModel(PrepostQuestion.name)
     private prepostQuestionModel: Model<PrepostQuestionDocument>,
-  ) {}
+
+    @InjectModel(TimeSetting.name)
+    private timeSettingModel: Model<TimeSettingDocument>,
+  ) { }
 
   async create(createPostTestAnswerDto: CreatePosttestAnswerDto) {
     const { user, answers } = createPostTestAnswerDto;
@@ -50,7 +54,7 @@ export class PosttestAnswersService {
       .find({
         _id: { $in: questionIds },
         displayType: {
-          $in: [PrepostQuestionTypes.BOTH, PrepostQuestionTypes.POST],
+          $in: [PrepostQuestionTypes.POST],
         },
       })
       .select('_id')
@@ -109,6 +113,17 @@ export class PosttestAnswersService {
       model: this.posttestAnswerModel,
       query,
       filterSchema: {},
+      populateFields: () => Promise.resolve([{ path: 'answers.posttest' }, {
+        path: 'user',
+        populate: {
+          path: 'metadata.major',
+          model: 'Major',
+          populate: {
+            path: 'school',
+            model: 'School'
+          }
+        },
+      },]),
     });
   }
 
@@ -165,5 +180,28 @@ export class PosttestAnswersService {
     );
 
     return output;
+  }
+
+  async findByUserId(userId: string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid user ID');
+    }
+    const userObjectId = new Types.ObjectId(userId);
+    const exists = await this.posttestAnswerModel.exists({ user: userObjectId });
+
+    const firstTimeSetting = await this.timeSettingModel
+      .findOne()
+      .sort({ _id: 1 })
+      .lean();
+
+    const dueDate = firstTimeSetting
+      ? new Date() > new Date(firstTimeSetting.date)
+      : false;
+
+    return {
+      data: !!exists,
+      dueDate,
+      message: 'Posttest answer existence checked',
+    };
   }
 }

@@ -58,7 +58,7 @@ export function ProgressSummaryCard({
                         {t('nav.progress')}
                     </Text>
                     <XStack alignItems="center" gap={4}>
-                        <Progress value={progressPercentage} size="$1" width={120} height={12} marginLeft={8}>
+                        <Progress value={progressPercentage} size="$1" width={120} height={12} marginLeft={8} backgroundColor={"#fff"}>
                             <Progress.Indicator />
                         </Progress>
                         <Text

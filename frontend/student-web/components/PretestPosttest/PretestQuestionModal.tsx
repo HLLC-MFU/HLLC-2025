@@ -1,162 +1,161 @@
-import { PrepostQuestions } from '@/types/prepostQuestion';
+import React, { useState } from 'react';
 import {
-  Button,
   Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Form,
+  Button,
+  Spinner,
   Input,
-  Radio,
-  RadioGroup,
-  addToast,
 } from '@heroui/react';
-import { useState } from 'react';
 
-type PretestQuestionModalProps = {
+interface PretestQuestionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  prePostQuestions: PrepostQuestions[];
+  prePostQuestions: any[];
+  loading?: boolean;
+  error?: string | null;
   answers: { pretest: string; answer: string }[];
-  setAnswers: React.Dispatch<
-    React.SetStateAction<{ pretest: string; answer: string }[]>
-  >;
+  setAnswers: React.Dispatch<React.SetStateAction<{ pretest: string; answer: string }[]>>;
   onSubmit: () => void;
-};
+}
+
+const pastelColors = ['#FFB3B3', '#FFD6A5', '#FFF7AE', '#C1F7C7', '#A0E7A0'];
+const activeColors = ['#FF6B6B', '#FFA94D', '#FFD43B', '#51CF66', '#38D9A9'];
 
 export default function PretestQuestionModal({
   isOpen,
   onClose,
   prePostQuestions,
+  loading = false,
+  error = null,
   answers,
   setAnswers,
   onSubmit,
 }: PretestQuestionModalProps) {
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleValidationSubmit = () => {
-    const newErrors: Record<string, string> = {};
-
-    prePostQuestions.forEach(p => {
-      const answer = answers.find(ans => ans.pretest === p._id)?.answer;
-
-      if (!answer || answer.trim() === '') {
-        newErrors[p._id] = 'This field is required.';
+  const handleChange = (id: string, value: string) => {
+    setAnswers(prev => {
+      const exists = prev.find(a => a.pretest === id);
+      if (exists) {
+        return prev.map(a => a.pretest === id ? { ...a, answer: value } : a);
       }
+      return [...prev, { pretest: id, answer: value }];
     });
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      addToast({
-        title: 'Please Answer All Pretest Before Submit.',
-        color: 'warning',
-      });
-      return;
-    }
-
-    setErrors({});
-    onSubmit();
   };
 
-  return (
-    <Modal
-      backdrop="opaque"
-      classNames={{
-        backdrop:
-          'bg-gradient-to-t from-zinc-900 to-zinc-900/10 backdrop-opacity-20',
-      }}
-      isOpen={isOpen}
-      onClose={onClose}
-    >
-      <ModalContent>
-        <>
-          <ModalHeader className="flex flex-col gap-1">
-            Pretest Questions
-          </ModalHeader>
-          <ModalBody className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
-            {prePostQuestions.length === 0 ? (
-              <p>Pretest Questions Loading ...</p>
-            ) : (
-              prePostQuestions
-                .filter(p => p.displayType === 'pretest' || p.displayType === 'both')
-                .map(p => (
-                  <Form key={p._id} className="flex flex-col gap-4">
-                    <p className="font-bold">
-                      {p.order}. {p.question.en}
-                    </p>
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    await onSubmit();
+    setSubmitting(false);
+  };
 
-                    {p.type === 'text' && (
+  // คำนวณจำนวนข้อที่ต้องตอบ (เฉพาะ pretest)
+  const requiredCount = prePostQuestions.filter(q => q.displayType === 'pretest').length;
+  const answeredCount = answers.filter(a => a.answer && a.answer.trim() !== '').length;
+  const canSubmit = !loading && !submitting && requiredCount > 0 && answeredCount === requiredCount;
+
+  return (
+    <Modal isOpen={isOpen} onClose={() => {}} hideCloseButton backdrop="opaque" classNames={{backdrop:'bg-gradient-to-t from-zinc-900 to-zinc-900/10 backdrop-opacity-20'}}>
+      <ModalContent>
+        <ModalHeader className="flex flex-col gap-1">Pretest Questions</ModalHeader>
+        <ModalBody className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+          {loading ? (
+            <div className="flex justify-center items-center py-8"><Spinner size="lg" color="default" /></div>
+          ) : error ? (
+            <p className="text-red-500 mb-4">{error}</p>
+          ) : prePostQuestions.length === 0 ? (
+            <p className="mb-4">No Pretest Questions</p>
+          ) : (
+            prePostQuestions
+              .filter(q => q.displayType === 'pretest')
+              .sort((a, b) => a.order - b.order)
+              .map((q, idx) => {
+                const qid = q._id || q.id || idx;
+                const answer = answers.find(a => a.pretest === qid)?.answer || '';
+                return (
+                  <div key={qid} className="mb-6">
+                    <div className="font-bold mb-2">{idx + 1}. {q.question?.en || q.text?.en || '-'}</div>
+                    {q.type === 'rating' ? (
+                      <>
+                        <div className="flex flex-row justify-center my-2">
+                          {[1,2,3,4,5].map((val, i) => {
+                            const isActive = answer === String(val);
+                            return (
+                              <button
+                                key={val}
+                                type="button"
+                                className="mx-2 rounded-full w-10 h-10 flex items-center justify-center border"
+                                style={{
+                                  backgroundColor: isActive ? activeColors[i] : '#fff',
+                                  borderColor: isActive ? activeColors[i] : '#ddd',
+                                  borderWidth: isActive ? 2 : 1,
+                                }}
+                                onClick={() => handleChange(qid, String(val))}
+                                disabled={submitting}
+                              >
+                                <span style={{ color: isActive ? '#fff' : '#333', fontWeight: 700, fontSize: 18 }}>{val}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="flex flex-row justify-between mx-2 mb-1">
+                          <span style={{ color: '#FF6B6B', fontSize: 13 }}>Low</span>
+                          <span style={{ color: '#38D9A9', fontSize: 13 }}>High</span>
+                        </div>
+                      </>
+                    ) : q.type === 'dropdown' ? (
+                      <select
+                        className="border border-gray-300 rounded-lg mt-1 px-2 py-2 w-full"
+                        value={answer}
+                        onChange={e => handleChange(qid, e.target.value)}
+                        disabled={submitting}
+                      >
+                        <option value="">Select an option</option>
+                        {/* TODO: ดึง options จริงจาก q.options ถ้ามี */}
+                        <option value="option1">Option 1</option>
+                        <option value="option2">Option 2</option>
+                        <option value="option3">Option 3</option>
+                      </select>
+                    ) : (
                       <Input
-                        isRequired
-                        errorMessage={errors[p._id]}
-                        isInvalid={!!errors[p._id]}
-                        label="Your Answer"
-                        labelPlacement="outside"
+                        className="border border-gray-300 rounded-lg px-2 py-2 min-h-[36px]"
                         placeholder="Enter your answer"
-                        value={
-                          answers.find(ans => ans.pretest === p._id)?.answer ||
-                          ''
-                        }
-                        onChange={e => {
-                          const updated = answers.map(ans =>
-                            ans.pretest === p._id
-                              ? { ...ans, answer: e.target.value }
-                              : ans,
-                          );
-                          setAnswers(updated);
-                        }}
+                        value={answer}
+                        onChange={e => handleChange(qid, e.target.value)}
+                        disabled={submitting}
                       />
                     )}
-
-                    {p.type === 'rating' && (
-                      <>
-                        <RadioGroup
-                          label="Select your satisfaction"
-                          orientation="horizontal"
-                          value={
-                            answers.find(ans => ans.pretest === p._id)
-                              ?.answer || ''
-                          }
-                          onValueChange={val => {
-                            const updated = answers.map(ans =>
-                              ans.pretest === p._id
-                                ? { ...ans, answer: val }
-                                : ans,
-                            );
-                            setAnswers(updated);
-                          }}
-                        >
-                          <Radio value="1">1</Radio>
-                          <Radio value="2">2</Radio>
-                          <Radio value="3">3</Radio>
-                          <Radio value="4">4</Radio>
-                          <Radio value="5">5</Radio>
-                        </RadioGroup>
-                        {errors[p._id] && (
-                          <p className="text-red-500 text-sm">{errors[p._id]}</p>
-                        )}
-                      </>
-                    )}
-
-                    {p.type !== 'text' && p.type !== 'rating' && (
-                      <p className="text-sm text-gray-500">
-                        Unsupported: {p.type}
-                      </p>
-                    )}
-                  </Form>
-                ))
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button color="danger" variant="light" onPress={onClose}>
-              Close
-            </Button>
-            <Button color="primary" onPress={handleValidationSubmit}>
-              Submit
-            </Button>
-          </ModalFooter>
-        </>
+                  </div>
+                );
+              })
+          )}
+        </ModalBody>
+        <ModalFooter className="justify-center">
+          <Button
+            color="primary"
+            onPress={handleSubmit}
+            fullWidth
+            disabled={!canSubmit}
+            style={{
+              backgroundColor: '#38D9A9',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: 18,
+              borderRadius: 12,
+              height: 48,
+              border: 'none',
+              boxShadow: 'none',
+              opacity: canSubmit ? 1 : 0.5,
+              transition: 'opacity 0.2s',
+              ...(!canSubmit ? { pointerEvents: 'none' } : {})
+            }}
+          >
+            {submitting ? 'Submitting...' : 'Submit'}
+          </Button>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );

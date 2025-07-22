@@ -8,6 +8,7 @@ export type Marker = {
   mapsUrl: string;
   _id: string;
   coinImage?: string;
+  name?: Lang;
 };
 
 export type MapApiResponse = {
@@ -24,6 +25,7 @@ export type LandmarkApiItem = {
   location?: { mapUrl?: string };
   coinImage?: string;
   order?: number;
+  name?: Lang;
 };
 
 export type LandmarkApiResponse = {

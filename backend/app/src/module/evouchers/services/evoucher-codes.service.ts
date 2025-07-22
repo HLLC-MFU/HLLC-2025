@@ -15,6 +15,7 @@ import * as crypto from 'crypto';
 import { UpdateEvoucherCodeDto } from '../dto/update-evouchercodes.dto';
 import { queryAll } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
+import { NotificationsService } from 'src/module/notifications/notifications.service';
 
 @Injectable()
 export class EvoucherCodesService {
@@ -25,6 +26,7 @@ export class EvoucherCodesService {
     private codeModel: Model<EvoucherCodeDocument>,
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
+    private notificationsService: NotificationsService
   ) { }
 
   async findAll() {
@@ -110,6 +112,35 @@ export class EvoucherCodesService {
     if (!code) {
       throw new NotFoundException('No available evoucher codes to claim');
     }
+
+    const evoucher = await this.evoucherModel.findById(evoucherId).lean();
+    if (!evoucher) {
+      throw new NotFoundException('Evoucher not found');
+    }
+
+    await this.notificationsService.create({
+      title: {
+        en: 'Get Evoucher successfully',
+        th: 'ได้รับคูปองสำเร็จ',
+      },
+      subtitle: {
+        en: '',
+        th: '',
+      },
+      body: {
+        en: `You have received the evoucher "${evoucher.name?.en ?? 'Evoucher'}" successfully.`,
+        th: `คุณได้รับคูปอง "${evoucher.name?.th ?? 'คูปอง'}" เรียบร้อยแล้ว`,
+      },
+      icon: 'Ticket',
+      image: evoucher.photo.home ?? undefined,
+      scope: [
+        {
+          type: 'user',
+          id: [userId],
+        },
+      ],
+    });
+
     return {
       message: 'Evoucher code claimed successfully',
       code: code.code,

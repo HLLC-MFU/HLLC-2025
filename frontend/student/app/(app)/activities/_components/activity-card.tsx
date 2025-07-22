@@ -4,6 +4,7 @@ import { TouchableOpacity, View } from "react-native"
 import { LinearGradient } from "expo-linear-gradient"
 import type { UserActivity } from "@/types/activities"
 import { getStatusBadge } from "@/utils/activityStatus"
+import { useLanguage } from "@/context/LanguageContext"
 
 interface ActivityCardProps {
   activity: UserActivity
@@ -16,6 +17,7 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
     checkinStatus: activity.checkinStatus,
     hasAnsweredAssessment: activity.hasAnsweredAssessment,
   })
+  const { language } = useLanguage()
 
   return (
     <TouchableOpacity
@@ -36,7 +38,6 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: 0.12,
           shadowRadius: 24,
-          elevation: 12,
         }}
       >
         {/* Main Image */}
@@ -134,10 +135,8 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
               {activity.location.en} • Experience an amazing adventure with stunning views and unforgettable memories.
             </Text>
 
-            {/* Status Badges */}
+            {/* Time Badges */}
             <XStack gap={12} marginBottom={20}>
-
-
               {activity.metadata?.startAt && (
                 <View
                   style={{
@@ -150,7 +149,7 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
                   }}
                 >
                   <Text fontSize="$2" fontWeight="600" color="white">
-                    {new Date(activity.metadata.startAt).toLocaleTimeString([], {
+                    {new Date(activity.metadata.startAt).toLocaleTimeString(language === "th" ? "th-TH" : "en-US", {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",

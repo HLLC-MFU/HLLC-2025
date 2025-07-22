@@ -1,164 +1,70 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, StyleSheet, Animated, Modal, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, Animated, Platform, PanResponder } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-// import { GLView, ExpoWebGLRenderingContext } from "expo-gl";
-import ExpoTHREE, { Renderer } from "expo-three";
-import {
-  Scene,
-  PerspectiveCamera,
-  AmbientLight,
-  DirectionalLight,
-  Box3,
-  Vector3,
-  AnimationMixer,
-  Clock,
-  Mesh,
-  MeshPhysicalMaterial,
-  Material
-} from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { GLView } from "expo-gl";
 import { router } from "expo-router";
 import { BlurView } from 'expo-blur';
-import * as FileSystem from 'expo-file-system';
 import { GlassButton } from "@/components/ui/GlassButton";
 import useProfile from "@/hooks/useProfile";
 import { GraduationCap, University, Eye, EyeOff, Settings, TriangleAlert } from "lucide-react-native";
-import { Button, Paragraph, Spinner, YStack } from "tamagui";
+import { Paragraph, Spinner, YStack } from "tamagui";
 import { ReportModal } from "@/components/report/ReportModal";
+import { onContextCreate } from "@/components/profile/Scene";
+import { useAppearance } from "@/hooks/useAppearance";
+import AssetImage from "@/components/global/AssetImage";
+import { useLanguage } from "@/context/LanguageContext";
+import { Group } from "three";
 
-if (__DEV__) {
-  const originalLog = console.log;
-  console.log = (msg, ...args) => {
-    if (
-      typeof msg === 'string' && msg.includes("gl.pixelStorei() doesn't support this parameter")) {
-      return;
-    }
-    originalLog(msg, ...args);
-  };
-  const originalConsoleError = console.error;
-  console.error = (msg, ...args) => {
-    if (typeof msg === 'string' && msg.includes("THREE.GLTFLoader: Couldn't load texture")) {
-      return;
-    }
-    originalConsoleError(msg, ...args);
-  };
-}
+const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/`
 
 export default function ProfileScreen() {
   const { user } = useProfile();
-  const [isViewing, setIsViewing] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const { assets } = useAppearance();
+
+  const [isViewing, setIsViewing] = useState(true);
   const [loading, setLoading] = useState(true)
   const [isReportModalVisible, setReportModalVisible] = useState(false);
-  const [reportText, setReportText] = useState("");
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const { language } = useLanguage();
 
-  async function onContextCreate(gl: ExpoWebGLRenderingContext) {
-    const scene = new Scene();
-
-    // Camera
-    const camera = new PerspectiveCamera(
-      90,
-      gl.drawingBufferWidth / gl.drawingBufferHeight,
-      0.01,
-      1000
-    );
-    camera.position.z = 3;
-
-    const renderer = new Renderer({ gl });
-    renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
-
-    // Light
-    scene.add(new AmbientLight(0xffffff, 1));
-    const dirLight = new DirectionalLight(0xffffff, 1);
-    dirLight.position.set(5, 10, 5);
-    scene.add(dirLight);
-
-    const textureFile = user?.data[0].metadata.major?.school?.model ?? "-";
-    const glb = textureFile.model;
-
-    const loader = new GLTFLoader();
-    if (!glb) return;
-    loader.setResourcePath(glb);
-    const glbModel = await loader.loadAsync(`${process.env.EXPO_PUBLIC_API_URL}/uploads/${glb}`);
-
-    const model = glbModel.scene;
-    model.scale.set(0.5, 0.5, 0.5);
-
-    // Textures
-    const meshList: Mesh[] = [];
-
-    glbModel.scene.traverse(async (child) => {
-      if (child instanceof Mesh) {
-        meshList.push(child);
-      }
-    });
-
-    for (const mesh of meshList) {
-      const childName = (mesh.material as Material).name;
-      const assetPath = `${process.env.EXPO_PUBLIC_API_URL}/uploads/${textureFile[childName]}`;
-      const localPath = `${FileSystem.cacheDirectory}${textureFile[childName]}`;
-
-      if (assetPath) {
-        try {
-          const { uri } = await FileSystem.downloadAsync(assetPath, localPath);
-          const texture = await ExpoTHREE.loadAsync({ uri });
-
-          texture.flipY = false;
-          texture.needsUpdate = true;
-
-          if (texture) {
-            mesh.material = new MeshPhysicalMaterial({ map: texture });
-          }
-        } catch (err) {
-          console.error('Texture failed to load');
-        }
-      }
-    };
-
-    // Animations
-    const animation = glbModel.animations;
-    const mixer = new AnimationMixer(model);
-
-    if (animation.length > 0) {
-      const action = mixer.clipAction(animation[2]);
-      action.play();
-    }
-
-    const box = new Box3().setFromObject(model);
-    const center = new Vector3();
-    box.getCenter(center);
-    model.position.sub(center);
-
-    const clock = new Clock();
-
-    scene.add(model);
-    setLoading(false);
-
-    const render = (): void => {
-      requestAnimationFrame(render);
-
-      const delta = clock.getDelta();
-      mixer.update(delta);
-
-      if (scene && camera) {
-        renderer.render(scene, camera);
-      }
-      gl.endFrameEXP();
-    };
-
-    render();
-  }
+  // const characterSceneRef = useRef<Group | null>(null);
+  // const baseSceneRef = useRef<Group | null>(null);
+  const modelRef = useRef<Group | null>(null);
 
   useEffect(() => {
     Animated.timing(
       fadeAnim,
       {
-        toValue: isViewing ? 0 : 1,
+        toValue: isViewing ? 1 : 0,
         duration: 200,
         useNativeDriver: true,
       }
     ).start();
   }, [isViewing]);
+
+  const panResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderMove: (_, gesture) => {
+      if (modelRef.current) {
+        modelRef.current.rotation.y += gesture.dx * 0.001;
+        // characterSceneRef.current.rotation.y += gesture.dx * 0.001;
+        // baseSceneRef.current.rotation.y += gesture.dx * 0.001;
+
+        modelRef.current.rotation.x = Math.max(
+          -Math.PI / 2,
+          Math.min(Math.PI / 2, modelRef.current.rotation.x)
+        );
+        // characterSceneRef.current.rotation.x = Math.max(
+        //   -Math.PI / 2,
+        //   Math.min(Math.PI / 2, characterSceneRef.current.rotation.x)
+        // );
+        // baseSceneRef.current.rotation.x = Math.max(
+        //   -Math.PI / 2,
+        //   Math.min(Math.PI / 2, baseSceneRef.current.rotation.x)
+        // );
+      }
+    },
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -167,63 +73,74 @@ export default function ProfileScreen() {
           <Text style={{ color: 'white' }}>Back</Text>
         </GlassButton>
         <View style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
-          <GlassButton iconOnly>
+          <GlassButton iconOnly onPress={() => setIsViewing(!isViewing)}>
             {isViewing ? (
-              <Eye onPress={() => setIsViewing(false)} color='white' />
+              assets.visible ? <AssetImage uri={imageUrl + assets.visible} /> : <Eye color='white' />
             ) : (
-              <EyeOff onPress={() => setIsViewing(true)} color='white' />
+              assets.invisible ? <AssetImage uri={imageUrl + assets.invisible} /> : <EyeOff color='white' />
             )}
           </GlassButton>
           <GlassButton iconOnly onPress={() => router.replace('/(app)/settings')}>
-            <Settings color='white' />
+            {assets.settings ? <AssetImage uri={imageUrl + assets.settings} /> : <Settings color='white' />}
           </GlassButton>
           <GlassButton iconOnly onPress={() => setReportModalVisible(true)}>
-            <TriangleAlert color='white' />
+            {assets.report ? <AssetImage uri={imageUrl + assets.report} /> : <TriangleAlert color='white' />}
           </GlassButton>
         </View>
       </View>
 
-      {/* {loading &&
+      {loading &&
         <YStack position="absolute" height={"90%"} width={"100%"} justifyContent="center" alignItems="center">
           <Spinner size="large" />
           <Paragraph marginTop="$2" color="white">Loading character...</Paragraph>
         </YStack>
-      } */}
-      {/* 
-      <GLView
-        style={styles.model}
-        onContextCreate={onContextCreate}
-      /> */}
+      }
 
-      {/* <Animated.View style={{ opacity: fadeAnim }}> */}
-      <BlurView style={styles.information}>
-        <View style={styles.field}>
-          <Text style={styles.name}>{user?.data[0].name.first} {user?.data[0].name.last ?? '-'}</Text>
-          <Text style={styles.userName}>{user?.data[0].username}</Text>
-        </View>
+      {/* 3D Model */}
+      <View {...panResponder.panHandlers} style={{ position: 'absolute', width: '100%', height: '100%', }}>
+        <GLView
+          style={{ position: 'absolute', width: '100%', height: '100%', }}
+          onContextCreate={(gl) =>
+            // onContextCreate(gl, user, setLoading, characterSceneRef, baseSceneRef)
+            onContextCreate(gl, user, setLoading, modelRef)
+          }
+        />
+      </View>
 
-        <View style={styles.field}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5 }}>
-            <University color="dodgerblue" />
-            <Text style={styles.topic}>SCHOOL</Text>
+      <Animated.View style={{ justifyContent: 'flex-end', position: 'absolute', width: '100%', height: '100%', paddingBottom: Platform.OS === 'android' ? '20%' : '10%', opacity: fadeAnim }}>
+        <BlurView
+          style={[
+            styles.information,
+            Platform.OS === 'android' && { backgroundColor: 'rgba(0,0,0,0.85)' }
+          ]}
+        >
+          {/* Full name and Username */}
+          <View style={styles.field}>
+            <Text style={styles.name}>{user?.data[0].name.first} {user?.data[0].name.last ?? '-'}</Text>
+            <Text style={styles.userName}>{user?.data[0].username}</Text>
           </View>
-          <Text style={styles.school}>
-            {user?.data?.[0]?.metadata?.major?.school?.name?.en ?? '-'}
-          </Text>
-        </View>
-
-        <View style={styles.field}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5 }}>
-            <GraduationCap color="dodgerblue" />
-            <Text style={styles.topic}>MAJOR</Text>
+          {/* School */}
+          <View style={styles.field}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5 }}>
+              <University color="dodgerblue" />
+              <Text style={styles.topic}>SCHOOL</Text>
+            </View>
+            <Text style={styles.school}>
+              {user?.data?.[0]?.metadata?.major?.school?.name[language] ?? '-'}
+            </Text>
           </View>
-          <Text style={styles.school}>
-            {user?.data?.[0]?.metadata?.major?.name?.en ?? '-'}
-          </Text>
-        </View>
-
-      </BlurView>
-      {/* </Animated.View> */}
+          {/* Major */}
+          <View style={styles.field}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5 }}>
+              <GraduationCap color="dodgerblue" />
+              <Text style={styles.topic}>MAJOR</Text>
+            </View>
+            <Text style={styles.school}>
+              {user?.data?.[0]?.metadata?.major?.name[language] ?? '-'}
+            </Text>
+          </View>
+        </BlurView>
+      </Animated.View>
 
       {/* Modal สำหรับรายงานปัญหา (ใช้ ReportModal component) */}
       <ReportModal
@@ -245,11 +162,6 @@ const styles = StyleSheet.create({
     zIndex: 10,
     paddingHorizontal: 16,
   },
-  model: {
-    flex: 1,
-    bottom: 120,
-    // backgroundColor: 'white',
-  },
   topic: {
     color: 'dodgerblue',
     fontSize: 18,
@@ -266,7 +178,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   userName: {
-    color: '#D0D0D0',
+    color: '#eeeeeeee',
     fontSize: 16,
     fontWeight: '500',
   },
@@ -276,17 +188,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   information: {
-    position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
-    bottom: 140,
     gap: 20,
     padding: 30,
+    marginHorizontal: 'auto',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     overflow: 'hidden',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
@@ -308,7 +218,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 5,
   },
   modalTitle: {
     color: 'white',

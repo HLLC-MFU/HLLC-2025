@@ -6,9 +6,9 @@ export default function DateBadge({ date }: { date: string }) {
   const day = d.getDate();
 
   return (
-    <div className="w-16 rounded-xl bg-gray-100 px-3 py-2 text-center">
-      <div className="text-xs tracking-wide text-gray-600">{month}</div>
-      <div className="text-2xl font-semibold text-gray-800">{day}</div>
+    <div className="rounded-xl py-1.5 px-3 flex flex-col items-center bg-gray-100 w-16">
+      <span className="text-xs tracking-widest text-gray-500">{month}</span>
+      <span className="text-2xl font-semibold text-gray-700">{day}</span>
     </div>
   );
 }
