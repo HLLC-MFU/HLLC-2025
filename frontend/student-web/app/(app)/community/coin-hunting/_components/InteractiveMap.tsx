@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useGesture } from '@use-gesture/react';
 import { animated } from '@react-spring/web';
+import mapImgSrc from '@/public/images/map.png';
 
 type InteractiveMapProps = {
   onImageLoad?: (imageSize: { width: number; height: number }) => void;
@@ -26,7 +27,7 @@ export default function InteractiveMap({ onImageLoad, children, initialCenter }:
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   useEffect(() => {
     const img = new window.Image();
-    img.src = '/images/map.png';
+    img.src = typeof mapImgSrc === 'string' ? mapImgSrc : mapImgSrc.src;
     img.onload = () => {
       setImageSize({ width: img.width, height: img.height });
       onImageLoad?.({ width: img.width, height: img.height });
@@ -132,7 +133,7 @@ export default function InteractiveMap({ onImageLoad, children, initialCenter }:
       >
         <img
           ref={imageRef}
-          src="/images/map.png"
+          src={typeof mapImgSrc === 'string' ? mapImgSrc : mapImgSrc.src}
           alt="Map"
           className="w-full h-full pointer-events-none select-none"
           style={{ position: 'relative', zIndex: 10 }}
