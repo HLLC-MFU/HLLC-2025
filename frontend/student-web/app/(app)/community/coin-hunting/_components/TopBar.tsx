@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { StampIcon } from 'lucide-react';
 
 interface TopBarProps {
   onScan?: () => void;
@@ -17,10 +18,9 @@ export default function TopBar({ onStamp }: TopBarProps) {
     <div style={styles.container}>
       <div style={styles.innerRow}>
         <button onClick={onStamp} style={styles.iconBtn}>
-          <img
-            src="/images/logo-sdad.png"
-            alt="Stamp Icon"
-            style={styles.stampIcon}
+        <StampIcon
+            size={24}
+            color="#fff"
           />
         </button>
       </div>

@@ -141,6 +141,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const hideProgressSummary =
     pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
   const hideBottomNav = pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
+  const hideNotification = pathname.startsWith('/community/coin-hunting');
 
   return (
     <>
@@ -197,22 +198,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onClickAvatar={() => router.push('/profile')}
               />
             )}
-            <GlassButton
-              iconOnly
-              className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 z-50"
-              onClick={() => setIsNotificationOpen(true)}
-            >
-              {assets && assets.notification ? (
-                <Image
-                  alt="Notification"
-                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.notification}`}
-                  width={20}
-                  height={20}
-                />
-              ) : (
-                <Bell className="text-white" size={20} />
-              )}
-            </GlassButton>
+            {!hideNotification && (
+              <GlassButton
+                iconOnly
+                className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 z-50"
+                onClick={() => setIsNotificationOpen(true)}
+              >
+                {assets && assets.notification ? (
+                  <Image
+                    alt="Notification"
+                    src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.notification}`}
+                    width={20}
+                    height={20}
+                  />
+                ) : (
+                  <Bell className="text-white" size={20} />
+                )}
+              </GlassButton>
+            )}
           </div>
 
           <main
@@ -261,10 +264,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <NotificationsPage
-        isOpen={isNotificationOpen}
-        onClose={() => setIsNotificationOpen(false)}
-      />
+      {!hideNotification && (
+        <NotificationsPage
+          isOpen={isNotificationOpen}
+          onClose={() => setIsNotificationOpen(false)}
+        />
+      )}
     </>
   );
 }

@@ -55,9 +55,7 @@ export default function StepData({ leaderboardData, achievementData }: Props) {
             </View>
             <View style={styles.totalStepsBox}>
                 <Text style={styles.totalStepsDesc}>
-                    {deviceMismatch
-                        ? t('step.deviceMismatch')
-                        : t('step.keepMoving')}
+                    {t('step.keepMoving')}
                 </Text>
             </View>
             <View style={styles.totalStepsBox}>

@@ -86,6 +86,10 @@ export class AuthService {
     const payload = {
       sub: user._id.toString(),
       username: user.username,
+      role:
+        user.role && typeof user.role === 'object' && 'name' in user.role
+          ? (user.role as { name: string }).name
+          : null,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -158,6 +162,10 @@ export class AuthService {
     const payload = {
       sub: user._id.toString(),
       username: user.username,
+      role:
+        user.role && typeof user.role === 'object' && 'name' in user.role
+          ? (user.role as { name: string }).name
+          : null,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
