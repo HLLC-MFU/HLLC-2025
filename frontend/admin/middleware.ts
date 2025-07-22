@@ -5,7 +5,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ✅ Exclude /login route
   if (pathname === `${req.nextUrl.basePath}/login`) {
     return NextResponse.next();
   }
@@ -49,11 +48,21 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // ✅ Decode access token to get role
-  const role = getRoleFromToken(accessToken);
+  const role = getRoleFromToken(accessToken)?.toLowerCase() ?? "";
 
-  // 🛑 Restrict SMO IT to /checkin only
-  if ((role?.toLowerCase() ?? "").startsWith("smo") && pathname !== "/checkin" && pathname !== "/logout") {
+  const isAllowed =
+    role.startsWith("smo") ||
+    role === "administrator" ||
+    role === "staff" ||
+    role === "mentee" ||
+    role === "mentor";
+
+  if (!isAllowed) {
+    return NextResponse.redirect(new URL(`${req.nextUrl.basePath}/logout`, req.url));
+  }
+
+  // Restrict SMO users to /checkin and /logout only
+  if (role.startsWith("smo") && pathname !== "/checkin" && pathname !== "/logout") {
     return NextResponse.redirect(new URL(`/checkin`, req.url));
   }
 
@@ -70,7 +79,6 @@ function isTokenExpired(token: string): boolean {
     return exp < currentTime;
   } catch (err) {
     console.error("Invalid token format", err);
-
     return true;
   }
 }
