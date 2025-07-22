@@ -174,7 +174,7 @@ export default function ChatRoomPage() {
           <div className="flex items-center p-4 border-b border-white/30 bg-white/80">
           <button
             className="mr-4 p-2 rounded hover:bg-white/30"
-            onClick={() => router.replace('/community/chat')}
+            onClick={() => router.back()}
           >
             <ChevronLeft color="#0A84FF" size={24} />
           </button>

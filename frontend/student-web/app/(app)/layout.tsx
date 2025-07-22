@@ -142,6 +142,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
   const hideBottomNav = pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
   const hideNotification = pathname.startsWith('/community/coin-hunting');
+  const hideNotificationChat = pathname.startsWith('/community/chat');
 
   return (
     <>
@@ -198,7 +199,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onClickAvatar={() => router.push('/profile')}
               />
             )}
-            {!hideNotification && (
+            {!hideNotification && !hideNotificationChat && (
               <GlassButton
                 iconOnly
                 className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 z-50"
