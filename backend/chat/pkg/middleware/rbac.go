@@ -44,6 +44,7 @@ func NewRBACMiddleware(db *mongo.Database) *RBACMiddleware {
 type JwtClaims struct {
 	Sub      string `json:"sub"`
 	Username string `json:"username"`
+	Role     string `json:"role"` // <--  payload is role: "Administrator" match for sure 100%
 	jwt.RegisteredClaims
 }
 
@@ -53,11 +54,11 @@ func (r *RBACMiddleware) getUserIDFromToken(ctx *fiber.Ctx) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	userID, _, err := r.parseToken(tokenString)
+	userID, _, _, err := r.parseToken(tokenString)
 	return userID, err
 }
 
-// getUserRoleFromToken is a helper method to extract user role from JWT token using sub (userID)
+// getUserRoleFromToken is a helper method to extract user role from JWT token directly from payload
 func (r *RBACMiddleware) getUserRoleFromToken(ctx *fiber.Ctx) (string, error) {
 	log.Printf("[RBAC] Starting getUserRoleFromToken")
 
@@ -69,11 +70,15 @@ func (r *RBACMiddleware) getUserRoleFromToken(ctx *fiber.Ctx) (string, error) {
 	}
 	log.Printf("[RBAC] UserID extracted successfully: %s", userID)
 
-	role, err := r.GetUserRole(userID)
+	tokenString, err := r.extractToken(ctx)
 	if err != nil {
-		log.Printf("[RBAC] Failed to get user role: %v", err)
 		return "", err
 	}
+	_, _, role, err := r.parseToken(tokenString)
+	if err != nil {
+		return "", err
+	}
+
 	log.Printf("[RBAC] User role retrieved successfully: %s", role)
 
 	return role, nil
@@ -333,14 +338,14 @@ func (r *RBACMiddleware) extractToken(c *fiber.Ctx) (string, error) {
 	return "", errors.New("no token found")
 }
 
-// Parse JWT token and extract user ID
-func (r *RBACMiddleware) parseToken(tokenString string) (string, string, error) {
+// Parse JWT token and extract user ID, username, and role
+func (r *RBACMiddleware) parseToken(tokenString string) (string, string, string, error) {
 	log.Printf("[RBAC] Parsing JWT token...")
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		log.Printf("[RBAC] WARNING: JWT_SECRET environment variable is not set")
-		return "", "", errors.New("JWT_SECRET not configured")
+		return "", "", "", errors.New("JWT_SECRET not configured")
 	}
 	log.Printf("[RBAC] JWT_SECRET is configured (length: %d)", len(jwtSecret))
 
@@ -355,17 +360,17 @@ func (r *RBACMiddleware) parseToken(tokenString string) (string, string, error) 
 
 	if err != nil {
 		log.Printf("[RBAC] JWT parse error: %v", err)
-		return "", "", err
+		return "", "", "", err
 	}
 
 	if claims, ok := token.Claims.(*JwtClaims); ok && token.Valid {
-		log.Printf("[RBAC] JWT claims parsed successfully - sub: %s, username: %s, exp: %v",
-			claims.Sub, claims.Username, claims.ExpiresAt)
-		return claims.Sub, claims.Username, nil
+		log.Printf("[RBAC] JWT claims parsed successfully - sub: %s, username: %s, role: %s, exp: %v",
+			claims.Sub, claims.Username, claims.Role, claims.ExpiresAt)
+		return claims.Sub, claims.Username, claims.Role, nil
 	}
 
 	log.Printf("[RBAC] Invalid token claims or token not valid")
-	return "", "", errors.New("invalid token claims")
+	return "", "", "", errors.New("invalid token claims")
 }
 
 // ExtractUserIDFromContext extracts userID from JWT token in any context (HTTP or WebSocket)
@@ -396,7 +401,7 @@ func (r *RBACMiddleware) ExtractUserIDFromContext(ctx any) (string, error) {
 	}
 
 	// Parse token to get userID
-	userID, _, err := r.parseToken(tokenString)
+	userID, _, _, err := r.parseToken(tokenString)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse token: %w", err)
 	}
@@ -421,7 +426,7 @@ func (r *RBACMiddleware) ExtractUserIDFromToken(tokenString string) (string, err
 		return "", errors.New("token string is empty")
 	}
 
-	userID, _, err := r.parseToken(tokenString)
+	userID, _, _, err := r.parseToken(tokenString)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse token: %w", err)
 	}
@@ -436,19 +441,9 @@ func (r *RBACMiddleware) ExtractRoleNameFromToken(tokenString string) (string, e
 		return "", errors.New("token string is empty")
 	}
 
-	userID, roleName, err := r.parseToken(tokenString)
+	_, _, roleName, err := r.parseToken(tokenString)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse token: %w", err)
-	}
-
-	// Validate userID is a valid MongoDB ObjectID
-	if len(userID) != 24 {
-		log.Printf("[RBAC] Extracted userID from JWT is not a valid ObjectID: %s", userID)
-		return "", fmt.Errorf("userID in JWT 'sub' claim is not a valid ObjectID: %s", userID)
-	}
-	if _, err := primitive.ObjectIDFromHex(userID); err != nil {
-		log.Printf("[RBAC] Extracted userID from JWT is not a valid ObjectID: %s", userID)
-		return "", fmt.Errorf("userID in JWT 'sub' claim is not a valid ObjectID: %s", userID)
 	}
 
 	log.Printf("[DEBUG] Successfully extracted roleName %s from JWT token", roleName)
