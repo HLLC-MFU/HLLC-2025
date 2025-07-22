@@ -6,6 +6,7 @@ export function useNotification() {
   const notifications = useSseStore(state => state.notifications);
   const fetchNotification = useSseStore(state => state.fetchNotification);
   const readNotification = useSseStore(state => state.readNotification);
+  const markAllAsRead = useSseStore(state => state.markAllAsRead);
 
   return {
     notifications,
@@ -13,6 +14,7 @@ export function useNotification() {
     error: null,
     fetchNotification,
     readNotification,
+    markAllAsRead,
     setNotifications: () => {},
   };
 }
