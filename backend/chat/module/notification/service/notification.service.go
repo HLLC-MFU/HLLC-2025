@@ -9,6 +9,7 @@ import (
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -55,6 +56,20 @@ func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService
 // NotifyUsersInRoom sends notifications to offline users in a room only (not online users)
 func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *model.ChatMessage, onlineUsers []string) {
 	log.Printf(" Starting offline notification process for room %s", message.RoomID.Hex())
+
+	// **NEW: Check room type - skip notifications for "normal" room type**
+	roomType, err := ns.getRoomType(ctx, message.RoomID)
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get room type: %v", err)
+		return
+	}
+
+	if roomType == "normal" {
+		log.Printf("[NotificationService] Room %s has type 'normal', skipping all notifications", message.RoomID.Hex())
+		return
+	}
+
+	log.Printf("[NotificationService] Room %s has type '%s', proceeding with notifications", message.RoomID.Hex(), roomType)
 
 	// **NEW: Check if this is an evoucher message**
 	if message.EvoucherInfo != nil {
@@ -103,6 +118,13 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 
 	offlineCount := 0
 	totalMembers := 0
+
+	// **NEW: Check if room type is "normal" - skip all notifications for normal rooms**
+	if ns.isNormalRoomType(ctx, message.RoomID) {
+		log.Printf("[NotificationService] Room %s is type 'normal', skipping ALL notifications", message.RoomID.Hex())
+		log.Printf("[NotificationService] Notification summary: 0 offline users notified (room type: normal)")
+		return
+	}
 
 	// Send notification to offline members only (except sender)
 	for _, memberID := range roomMembers {
@@ -268,6 +290,20 @@ func (ns *NotificationService) SendOfflineNotification(ctx context.Context, rece
 	log.Printf("[NotificationService] Legacy SendOfflineNotification: receiver=%s, message=%s, type=%s",
 		receiverID, message.ID.Hex(), messageType)
 
+	// **NEW: Check room type - skip notifications for "normal" room type**
+	roomType, err := ns.getRoomType(ctx, message.RoomID)
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get room type: %v", err)
+		return
+	}
+
+	if roomType == "normal" {
+		log.Printf("[NotificationService] (Legacy) Room %s has type 'normal', skipping notification for user %s", message.RoomID.Hex(), receiverID)
+		return
+	}
+
+	log.Printf("[NotificationService] (Legacy) Room %s has type '%s', proceeding with notification", message.RoomID.Hex(), roomType)
+
 	// Get sender info
 	sender, err := ns.getUserById(ctx, message.UserID.Hex())
 	if err != nil {
@@ -349,6 +385,12 @@ func (ns *NotificationService) sendNotificationToKafka(ctx context.Context, rece
 // NotifyOfflineUsersOnly sends notifications ONLY to users who are currently offline
 func (ns *NotificationService) NotifyOfflineUsersOnly(ctx context.Context, message *model.ChatMessage, onlineUsers []string, roomMembers []primitive.ObjectID) {
 	log.Printf("[NotificationService] Notifying OFFLINE users only for message %s", message.ID.Hex())
+
+	// **NEW: Check if room type is "normal" - skip all notifications for normal rooms**
+	if ns.isNormalRoomType(ctx, message.RoomID) {
+		log.Printf("[NotificationService] Room %s is type 'normal', skipping ALL offline notifications", message.RoomID.Hex())
+		return
+	}
 
 	// Create online user lookup map
 	onlineUserMap := make(map[string]bool)
@@ -570,6 +612,53 @@ func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Contex
 	log.Printf("[NotificationService] ✅ Sent mention notification to user %s", receiverID)
 }
 
+// ==================== ROOM TYPE NOTIFICATION MANAGEMENT ====================
+
+// isNormalRoomType ตรวจสอบว่าห้องนี้เป็น type "normal" หรือไม่
+func (ns *NotificationService) isNormalRoomType(ctx context.Context, roomID primitive.ObjectID) bool {
+	roomCollection := ns.collection.Database().Collection("rooms")
+	var room struct {
+		Type string `bson:"type"`
+	}
+
+	err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get room type: %v", err)
+		return false // ถ้าไม่สามารถดึงข้อมูลได้ ให้ส่ง notification ตามปกติ
+	}
+
+	// ตรวจสอบว่า room type เป็น "normal" หรือไม่
+	isNormal := room.Type == "normal"
+	log.Printf("[NotificationService] Room %s type: %s, isNormal: %v", roomID.Hex(), room.Type, isNormal)
+
+	return isNormal
+}
+
+// IsNormalRoomType (Public method) ตรวจสอบว่าห้องนี้เป็น type "normal" หรือไม่
+func (ns *NotificationService) IsNormalRoomType(ctx context.Context, roomID primitive.ObjectID) bool {
+	return ns.isNormalRoomType(ctx, roomID)
+}
+
+// GetRoomType ดึง room type
+func (ns *NotificationService) GetRoomType(ctx context.Context, roomID string) (string, error) {
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return "", fmt.Errorf("invalid room ID: %w", err)
+	}
+
+	roomCollection := ns.collection.Database().Collection("rooms")
+	var room struct {
+		Type string `bson:"type"`
+	}
+
+	err = roomCollection.FindOne(ctx, bson.M{"_id": roomObjID}).Decode(&room)
+	if err != nil {
+		return "", fmt.Errorf("failed to get room: %w", err)
+	}
+
+	return room.Type, nil
+}
+
 func (ns *NotificationService) createSpecificRestrictionNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string, restrictionType string) chatModel.NotificationPayload {
 	// Set the specific restriction type in the message
 	message.Type = restrictionType
@@ -611,4 +700,40 @@ func (ns *NotificationService) determineRestrictionType(message *model.ChatMessa
 
 	// Default fallback
 	return chatModel.MessageTypeRestriction
+}
+
+// ==================== ROOM TYPE NOTIFICATION MANAGEMENT ====================
+
+// getRoomType gets the room type to determine notification behavior
+func (ns *NotificationService) getRoomType(ctx context.Context, roomID primitive.ObjectID) (string, error) {
+	roomCollection := ns.collection.Database().Collection("rooms")
+	var room struct {
+		Type string `bson:"type"`
+	}
+
+	err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get room type: %v", err)
+		return "", err
+	}
+
+	// Default to empty string if type is not set
+	if room.Type == "" {
+		log.Printf("[NotificationService] Room %s has no type field, defaulting to empty", roomID.Hex())
+		return "", nil
+	}
+
+	return room.Type, nil
+}
+
+// IsRoomNotificationEnabled checks if notifications are enabled for this room type
+func (ns *NotificationService) IsRoomNotificationEnabled(ctx context.Context, roomID primitive.ObjectID) bool {
+	roomType, err := ns.getRoomType(ctx, roomID)
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get room type, defaulting to enabled: %v", err)
+		return true // Default to enabled if we can't determine type
+	}
+
+	// Only "normal" type rooms have notifications disabled
+	return roomType != "normal"
 }
