@@ -23,45 +23,6 @@ export async function getHealthData(date: Date): Promise<{ steps: number }> {
   const fetchData = await useHealthDataForPlatform(date);
   return fetchData;
 }
-
-// Main hook for component usage
-const useHealthData = (
-  date: Date
-): { steps: number; deviceMismatch: boolean } => {
-  const [deviceMismatch, setDeviceMismatch] = useState(false);
-  const { uniqueId } = useDeviceInfo();
-  const { version } = useDeviceStore();
-
-  useEffect(() => {
-    if (!uniqueId) return; 
-    const fetchAndValidateDevice = async () => {
-      const response = await apiRequest<StepCounter[]>('/step-counters', 'GET');
-      if (
-        response.statusCode === 404 &&
-        response.message === 'No step counters registered for this user'
-      ) {
-        await apiRequest('/step-counters/device', 'POST', {
-          deviceId: uniqueId,
-        });
-        setDeviceMismatch(false);
-      } else if (response.statusCode === 200 && response.data) {
-        const matchFound = response.data.some(
-          (record) => record.deviceId === uniqueId
-        );
-        console.log(`Device match found: ${matchFound}`);
-        setDeviceMismatch(!matchFound);
-      }
-    };
-
-    fetchAndValidateDevice();
-  }, [uniqueId, version]);
-
-  const { steps } = useHealthDataForPlatform(date);
-
-  return { steps, deviceMismatch };
-};
-
-// Hook to update device ID
 export const useUpdateDevice = () => {
   const { refreshDevice } = useDeviceStore();
   const { uniqueId } = useDeviceInfo();
@@ -76,6 +37,54 @@ export const useUpdateDevice = () => {
   };
 
   return { updateDevice };
+};
+
+// Main hook for component usage
+const useHealthData = (
+  date: Date
+): { steps: number; deviceMismatch: boolean } => {
+  const [deviceMismatch, setDeviceMismatch] = useState(false);
+  const { uniqueId } = useDeviceInfo();
+  const { version } = useDeviceStore();
+  const { updateDevice } = useUpdateDevice();
+
+  useEffect(() => {
+    const fetchAndValidateDevice = async () => {
+      const response = await apiRequest<StepCounter[]>('/step-counters', 'GET');
+      console.log('Step counters response:', response);
+      if (
+        response.statusCode === 404 &&
+        response.message === 'No step counters registered for this user'
+      ) {
+        await apiRequest('/step-counters/device', 'POST', {
+          deviceId: uniqueId,
+        });
+        setDeviceMismatch(false);
+      } else if (response.statusCode === 200 && response.data) {
+        const matchFound = response.data.some(
+          (record) => record.deviceId === uniqueId
+        );
+        if (!matchFound) {
+          setDeviceMismatch(true);
+          try {
+            await updateDevice();
+            setDeviceMismatch(false); // reset mismatch if update succeeds
+          } catch (err) {
+            console.warn('Auto update device failed:', err);
+          }
+        } else {
+          setDeviceMismatch(false);
+        }
+        setDeviceMismatch(!matchFound);
+      }
+    };
+
+    fetchAndValidateDevice();
+  }, [uniqueId, version]);
+
+  const { steps } = useHealthDataForPlatform(date);
+
+  return { steps, deviceMismatch };
 };
 
 export default useHealthData;

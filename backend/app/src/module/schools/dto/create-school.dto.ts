@@ -1,3 +1,5 @@
+import { Photo } from "src/pkg/types/common";
+
 export class CreateSchoolDto {
   name: {
     th: string;
@@ -11,7 +13,7 @@ export class CreateSchoolDto {
     en: string;
   };
 
-  photo: string;
+  photos: Photo;
 
   createdAt: Date;
 }
