@@ -34,7 +34,7 @@ export default function ProgressBar({
     <div className="relative w-48 md:w-[16rem] lg:w-[24rem] max-w-full flex items-center gap-2">
       {/* Avatar Circle */}
       <button
-        className="relative z-10 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-2 border-gray-500/50 bg-gray-300/30 backdrop-blur-md overflow-hidden shadow-md flex items-center justify-center"
+        className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 md:w-22 md:h-22 rounded-full border-2 border-gray-500/50 bg-gray-300/30 backdrop-blur-md overflow-hidden shadow-md flex items-center justify-center"
         onClick={onClickAvatar ?? (() => router.push('/profile'))}
       >
         {imageError ? (

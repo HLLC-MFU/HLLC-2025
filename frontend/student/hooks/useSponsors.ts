@@ -31,6 +31,11 @@ export function useSponsors() {
         const sponsorsWithPhoto: ISponsor[] = (response.data.data || []).map((s: SponsorRaw) => ({
           ...s,
           photo: { logoPhoto: s.logo?.logoPhoto || '' },
+          priority: s.priority ?? 99, 
+          type: {
+            ...s.type,
+            priority: s.type?.priority ?? 99,
+          },
         }));
         setSponsors(sponsorsWithPhoto);
       }
@@ -57,6 +62,11 @@ export function useSponsors() {
         const sponsorsWithPhoto: ISponsor[] = sponsorsRaw.map((s: SponsorRaw) => ({
           ...s,
           photo: { logoPhoto: s.logo?.logoPhoto || '' },
+          priority: s.priority ?? 99,
+          type: {
+            ...s.type,
+            priority: s.type?.priority ?? 99,
+          },
         }));
         setSponsors(sponsorsWithPhoto);
       }

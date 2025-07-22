@@ -160,7 +160,7 @@ export default function QuestionModal({
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+      <Modal isOpen={isOpen} onClose={onClose} size="2xl" isDismissable={false} isKeyboardDismissDisabled={true}>
         <ModalContent>
           <ModalHeader>
             <h2 className="text-xl font-semibold">

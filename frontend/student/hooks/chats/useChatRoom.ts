@@ -249,7 +249,6 @@ export const useChatRoom = () => {
     console.log('Connecting to WebSocket...');
     await wsConnect(roomId);
   }, [chatState.room, isConnected, wsConnect, roomId]);
-
   // Initialize room on mount - only once
   useEffect(() => {
     const setup = async () => {
@@ -273,6 +272,7 @@ export const useChatRoom = () => {
 
       // Call disconnect to clean up WebSocket state
       wsDisconnect();
+      
 
       await initializeRoom();
     };
@@ -538,7 +538,7 @@ export const useChatRoom = () => {
       Alert.alert('Unsend ไม่สำเร็จ', (error as Error)?.message || 'เกิดข้อผิดพลาด');
     }
   }, [wsSendMessage, addMessage]);
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
     if (ws) {
       console.log('[ChatRoom] WebSocket status before disconnect:', ws.readyState); // log before
 
@@ -555,9 +555,6 @@ export const useChatRoom = () => {
     }
 
     wsDisconnect();
-    isInitialized.current = false;
-    initializationInProgress.current = false;
-    membersLoaded.current = false;
 
     console.log('[ChatRoom] Manually disconnected WebSocket');
   };

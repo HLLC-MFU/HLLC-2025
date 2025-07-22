@@ -125,7 +125,7 @@ export class CoinCollectionsService {
   }
 
   async getLeaderboard(query: Record<string, string>) {
-    const limit = Number(query.limit) || 5;
+    const limit = Number(query.limit) || 1000;
     const collections = await this.coinCollectionModel.find({})
       .populate({
         path: 'user',
@@ -254,6 +254,7 @@ export class CoinCollectionsService {
       return {
         username: user.username,
         name: user.name,
+        userId: user._id,
         coinCount: sponsorLandmarks.length,
         latestCollectedAt,
         landmarks: sponsorLandmarks.map(l => ({
@@ -282,7 +283,7 @@ export class CoinCollectionsService {
     if (collectedCount === 0) return null;
 
     //ใช้โอกาสแจกตรง ๆ เช่น 1 ใน 27
-    const dropChance = 1 / 6;
+    const dropChance = 1 / 4;
     if (Math.random() >= dropChance) {
       return null; // ไม่แจกครั้งนี้
     }

@@ -17,11 +17,14 @@
   import FresherCheckinDashboard from "./_components/FresherCheckinDashboard"
   import { usePretest } from "@/hooks/usePretestAnswer"
   import ListPretest from "./_components/ListPretest"
+  import { usePosttest } from "@/hooks/usePosttestAnswer"
+  import ListPosttest from "./_components/ListPosttest"
 
   export default function Dashboard() {
     const { activities } = useActivities({ autoFetch: true })
     const { fetchCheckinByActivity } = useCheckin(null)
     const { pretestAverage, pretestAnswer } = usePretest()
+    const { posttestAverage, posttestAnswer, totalAverageCount } = usePosttest()
     const [allCheckins, setAllCheckins] = useState<Record<string, any[]>>({})
     const [loading, setLoading] = useState(false)
     const combinedCheckins = Object.values(allCheckins).flat()
@@ -49,7 +52,7 @@
       fetchAllCheckins()
     }, [activities])
 
-    const defaultExpandedKeys = ["overview", "checkin", "pretest", "reports"]
+    const defaultExpandedKeys = ["overview", "checkin", "pretest", "posttest", "reports"]
 
     return (
       <>
@@ -108,6 +111,22 @@
           >
             <div className="p-4">
               <ListPretest pretestAverage={pretestAverage} pretestAnswers={pretestAnswer} />
+            </div>
+          </AccordionItem>
+
+          <AccordionItem
+            key="posttest"
+            aria-label="Posttest Dashboard"
+            title={
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                <span className="text-xl font-semibold">Posttest</span>
+              </div>
+            }
+            className="mb-4"
+          >
+            <div className="p-4">
+              <ListPosttest posttestAverage={posttestAverage} posttestAnswers={posttestAnswer} totalAverageCount={totalAverageCount} />
             </div>
           </AccordionItem>
 
