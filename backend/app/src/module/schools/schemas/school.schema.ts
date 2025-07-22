@@ -15,7 +15,7 @@ export class School {
   detail: Localization;
 
   @Prop({ type: Object })
-  photo: Photo;
+  photos: Photo;
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(School);

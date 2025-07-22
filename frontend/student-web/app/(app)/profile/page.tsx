@@ -117,6 +117,7 @@ export default function ProfilePage() {
         {schoolAcronym ? <SceneLights /> : <ambientLight intensity={0.05} />}
         <Scene schoolAcronym={schoolAcronym} />
         <OrbitControls
+          enablePan={false}
           minDistance={10}
           maxDistance={15}
           minPolarAngle={Math.PI / 2.25}
@@ -125,7 +126,7 @@ export default function ProfilePage() {
       </Canvas>
 
       {isVisible &&
-          <ProfileCard />
+        <ProfileCard />
       }
 
       <ReportModal

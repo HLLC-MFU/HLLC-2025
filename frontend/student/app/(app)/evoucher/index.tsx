@@ -60,11 +60,24 @@ export default function EvoucherScreen() {
     setRefreshing(false)
   }, [fetchSponsorsWithEvouchers, fetchMyEvoucherCodes])
 
-  const filteredSponsors = sponsors.filter(
-    sponsor =>
-      sponsor.name.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sponsor.name.th.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredSponsors = sponsors
+    .filter(
+      sponsor =>
+        sponsor.name.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        sponsor.name.th.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      // เรียงตาม sponsor.type.priority ก่อน, ถ้าเท่ากันให้เรียงตาม sponsor.priority
+      const aTypePriority = a.type && typeof a.type.priority === 'number' ? a.type.priority : 99;
+      const bTypePriority = b.type && typeof b.type.priority === 'number' ? b.type.priority : 99;
+      if (aTypePriority !== bTypePriority) {
+        return aTypePriority - bTypePriority;
+      }
+      if (a.priority !== b.priority) {
+        return a.priority - b.priority;
+      }
+      return 0;
+    });
 
   if (sponsorsLoading && sponsors.length === 0) {
     return (
