@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, StyleSheet, Animated, Platform } from "react-native";
+import { View, Text, StyleSheet, Animated, Platform, PanResponder } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GLView } from "expo-gl";
 import { router } from "expo-router";
@@ -13,6 +13,7 @@ import { onContextCreate } from "@/components/profile/Scene";
 import { useAppearance } from "@/hooks/useAppearance";
 import AssetImage from "@/components/global/AssetImage";
 import { useLanguage } from "@/context/LanguageContext";
+import { Group } from "three";
 
 const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/`
 
@@ -26,6 +27,10 @@ export default function ProfileScreen() {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const { language } = useLanguage();
 
+  // const characterSceneRef = useRef<Group | null>(null);
+  // const baseSceneRef = useRef<Group | null>(null);
+  const modelRef = useRef<Group | null>(null);
+
   useEffect(() => {
     Animated.timing(
       fadeAnim,
@@ -36,6 +41,30 @@ export default function ProfileScreen() {
       }
     ).start();
   }, [isViewing]);
+
+  const panResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderMove: (_, gesture) => {
+      if (modelRef.current) {
+        modelRef.current.rotation.y += gesture.dx * 0.001;
+        // characterSceneRef.current.rotation.y += gesture.dx * 0.001;
+        // baseSceneRef.current.rotation.y += gesture.dx * 0.001;
+
+        modelRef.current.rotation.x = Math.max(
+          -Math.PI / 2,
+          Math.min(Math.PI / 2, modelRef.current.rotation.x)
+        );
+        // characterSceneRef.current.rotation.x = Math.max(
+        //   -Math.PI / 2,
+        //   Math.min(Math.PI / 2, characterSceneRef.current.rotation.x)
+        // );
+        // baseSceneRef.current.rotation.x = Math.max(
+        //   -Math.PI / 2,
+        //   Math.min(Math.PI / 2, baseSceneRef.current.rotation.x)
+        // );
+      }
+    },
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -68,12 +97,15 @@ export default function ProfileScreen() {
       }
 
       {/* 3D Model */}
-      <GLView
-        style={styles.model}
-        onContextCreate={(gl) =>
-          onContextCreate(gl, user, setLoading)
-        }
-      />
+      <View {...panResponder.panHandlers} style={{ position: 'absolute', width: '100%', height: '100%', }}>
+        <GLView
+          style={{ position: 'absolute', width: '100%', height: '100%', }}
+          onContextCreate={(gl) =>
+            // onContextCreate(gl, user, setLoading, characterSceneRef, baseSceneRef)
+            onContextCreate(gl, user, setLoading, modelRef)
+          }
+        />
+      </View>
 
       <Animated.View style={{ justifyContent: 'flex-end', position: 'absolute', width: '100%', height: '100%', paddingBottom: Platform.OS === 'android' ? '20%' : '10%', opacity: fadeAnim }}>
         <BlurView
@@ -129,11 +161,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     zIndex: 10,
     paddingHorizontal: 16,
-  },
-  model: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
   },
   topic: {
     color: 'dodgerblue',

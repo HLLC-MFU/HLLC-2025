@@ -25,7 +25,7 @@ export default function ProfileCard() {
 
   if (!user) return <ProfileSkeleton />;
 
-  const fullName = [user.name.first, user.name.middle, user.name.last]
+  const fullName = [user.name?.first, user.name?.middle, user.name?.last]
     .filter(Boolean)
     .join(' ');
 
