@@ -196,7 +196,7 @@ export default function ActivitiesModal({
     };
 
     return (
-        <Modal isOpen={isOpen} size="3xl" onClose={onClose}>
+        <Modal isOpen={isOpen} size="3xl" onClose={onClose} isDismissable={false}>
             <ModalContent>
                 <Form onSubmit={handleSubmit}>
                     <ModalHeader>{mode === "add" ? "Add New Activity" : "Edit Activity"}</ModalHeader>
