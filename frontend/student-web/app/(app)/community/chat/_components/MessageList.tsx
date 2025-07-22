@@ -17,6 +17,8 @@ interface MessageListProps {
   onUnsend?: (message: Message) => void;
   stickers: any[];
   loading?: boolean;
+  room?: any;
+  user?: any;
 }
 
 const MessageList = ({
@@ -29,6 +31,8 @@ const MessageList = ({
   onUnsend,
   stickers,
   loading = false,
+  room,
+  user,
 }: MessageListProps) => {
   // flatten all messages for replyTo enrichment (sort from oldest to newest)
   const allMessages = useMemo(() => {
@@ -119,24 +123,43 @@ const MessageList = ({
                   </div>
                 );
               }
-              const isMyMessage = message.user?._id === userId;
+              const isUserMessage = !!(message.user || (message as any).userId || (message as any).user_id);
               const isLastInGroup = index === group.length - 1;
               const isFirstInGroup = index === 0;
+              const isMyMessage = (
+                (message.user && message.user._id) ||
+                (message as any).userId ||
+                (message as any).user_id
+              ) === userId;
+              const showMockSystem = room?.type === 'mc' && isUserMessage;
+              if (showMockSystem) {
+                console.log('[MC ROOM MOCK SYSTEM]', { message, roomType: room?.type, isMyMessage: isUserMessage });
+              }
               return (
-                <SwipeableMessageBubble
-                  key={message.id || `msg-${index}`}
-                  message={message}
-                  isMyMessage={isMyMessage}
-                  isRead={message.isRead}
-                  showAvatar={!isMyMessage && isLastInGroup}
-                  isLastInGroup={isLastInGroup}
-                  isFirstInGroup={isFirstInGroup}
-                  onReply={onReply}
-                  allMessages={allMessages}
-                  onReplyPreviewClick={handleReplyPreviewClick}
-                  currentUsername={currentUsername}
-                  onUnsend={onUnsend}
-                />
+                <React.Fragment key={message.id || `msg-${index}`}>
+                  <SwipeableMessageBubble
+                    message={message}
+                    isMyMessage={isMyMessage}
+                    isRead={message.isRead}
+                    showAvatar={!isMyMessage && isLastInGroup}
+                    isLastInGroup={isLastInGroup}
+                    isFirstInGroup={isFirstInGroup}
+                    onReply={onReply}
+                    allMessages={allMessages}
+                    onReplyPreviewClick={handleReplyPreviewClick}
+                    currentUsername={currentUsername}
+                    onUnsend={onUnsend}
+                    stickers={stickers}
+                    room={room}
+                    user={user}
+                  />
+                  {showMockSystem && (
+                    <SystemMessage
+                      text={"ขอบคุณสำหรับคำถามของคุณ / Thank you for your feedback"}
+                      timestamp={message.timestamp}
+                    />
+                  )}
+                </React.Fragment>
               );
             })}
           </div>

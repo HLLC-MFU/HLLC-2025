@@ -24,6 +24,7 @@ export default function ChatRoomPage() {
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [showEvoucherModal, setShowEvoucherModal] = useState(false);
   const { user } = useProfile();
+  const [localSystemMessages, setLocalSystemMessages] = useState<any[][]>([]);
 
   const getRoomName = (room: any) => {
     if (!room?.name) return t('chat.chatRoom');
@@ -103,6 +104,16 @@ export default function ChatRoomPage() {
     console.log('[DEBUG] handleSendMessageWithScroll called', { isMember, isConnected, messageText });
     if (messageText.trim() && isConnected) {
       handleSendMessage();
+      // MC room feedback response for Fresher
+      if (room?.type === 'mc' && user?.role?.name === 'Fresher') {
+        const sysMsg = {
+          id: `sys-feedback-${Date.now()}`,
+          type: 'system',
+          text: 'ขอบคุณสำหรับคำถามของคุณ / Thank you for your feedback',
+          timestamp: new Date().toISOString(),
+        };
+        setLocalSystemMessages((prev) => [...prev, [sysMsg]]);
+      }
       setMessageText('');
       setTimeout(() => {
         if (flatListRef.current) {
@@ -278,7 +289,7 @@ export default function ChatRoomPage() {
                 </div>
               )}
               <MessageList
-                messages={groupMessages}
+                messages={[...groupMessages, ...localSystemMessages]}
                 userId={userId}
                 currentUsername={user?.username || ''}
                 flatListRef={flatListRef}
@@ -288,6 +299,8 @@ export default function ChatRoomPage() {
                 onUnsend={handleUnsendMessage}
                 stickers={stickers}
                 loading={messagesLoading}
+                room={room}
+                user={user}
               />
              {showScrollToBottom && (
               <button
@@ -359,7 +372,8 @@ export default function ChatRoomPage() {
         />
       )}
 
-      {showStickerPicker && (
+      {/* StickerPicker modal - only show if not MC room */}
+      {showStickerPicker && room?.type !== 'mc' && (
         <StickerPicker
           onSelectSticker={handleSendSticker}
           onClose={() => setShowStickerPicker(false)}
