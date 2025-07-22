@@ -437,67 +437,8 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 	// WebSocket connection established - send join notification
 	log.Printf("[WebSocket] ✅ User %s successfully connected to WebSocket for room %s", userObjID.Hex(), roomID)
 
-	// Send join notification to all users in the room
-	if user, err := h.chatService.GetUserById(ctx, userID); err == nil {
-		joinEvent := map[string]interface{}{
-			"eventType": "user_joined",
-			"type":      "user_joined", // Keep consistent with eventType
-			"payload": map[string]interface{}{
-				"user": map[string]interface{}{
-					"_id":      user.ID.Hex(),
-					"username": user.Username,
-					"name": map[string]interface{}{
-						"first":  user.Name.First,
-						"middle": user.Name.Middle,
-						"last":   user.Name.Last,
-					},
-				},
-				"room": map[string]interface{}{
-					"_id": roomID,
-				},
-				"timestamp": time.Now(),
-			},
-			"timestamp": time.Now(),
-		}
-
-		if eventBytes, err := json.Marshal(joinEvent); err == nil {
-			h.chatService.GetHub().BroadcastToRoom(roomID, eventBytes)
-			log.Printf("[WebSocket] 📢 Broadcasted join event for user %s to room %s", user.Username, roomID)
-		}
-	}
-
 	defer func() {
-		// WebSocket disconnection - send leave notification
 		log.Printf("[WebSocket] 🔌 User %s disconnected from WebSocket for room %s", userObjID.Hex(), roomID)
-
-		// Send leave notification to all users in the room
-		if user, err := h.chatService.GetUserById(ctx, userID); err == nil {
-			leaveEvent := map[string]interface{}{
-				"eventType": "user_left",
-				"type":      "user_left",
-				"payload": map[string]interface{}{
-					"user": map[string]interface{}{
-						"_id":      user.ID.Hex(),
-						"username": user.Username,
-						"name": map[string]interface{}{
-							"first":  user.Name.First,
-							"middle": user.Name.Middle,
-							"last":   user.Name.Last,
-						},
-					},
-					"room": map[string]interface{}{
-						"_id": roomID,
-					},
-					"timestamp": time.Now(),
-				},
-				"timestamp": time.Now(),
-			}
-
-			if eventBytes, err := json.Marshal(leaveEvent); err == nil {
-				h.chatService.GetHub().BroadcastToRoom(roomID, eventBytes)
-				log.Printf("[WebSocket] 📢 Broadcasted leave event for user %s to room %s", user.Username, roomID)
-			}
-		}
 
 		// Unregister and cleanup
 		h.chatService.GetHub().Unregister(utils.Client{
