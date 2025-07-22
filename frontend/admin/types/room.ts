@@ -2,11 +2,7 @@
 export type Name = { en: string; th: string; };
 export type RoomType = "normal" | "readonly";
 
-// RoomSchedule สำหรับการตั้งเวลาเปิดปิดห้อง
-export type RoomSchedule = {
-    startAt?: string; // ISO string
-    endAt?: string;   // ISO string
-};
+
 
 export type RoomMetadata = {
     groupType?: "school" | "major" | "global";
@@ -34,7 +30,6 @@ export type Room = {
     createdAt?: string;
     updatedAt?: string;
     metadata?: RoomMetadata;
-    schedule?: RoomSchedule;
     canJoin?: boolean;
     isMember?: boolean;
 };

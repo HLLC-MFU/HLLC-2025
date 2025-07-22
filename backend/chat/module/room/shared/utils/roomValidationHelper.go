@@ -44,7 +44,7 @@ func (h *RoomValidationHelper) ValidateCreateRoomDto(createDto *dto.CreateRoomDt
 
 	// ตรวจสอบ room type
 	if createDto.Type != "" {
-		validTypes := []string{"normal", "readonly", "announcement", "private"}
+		validTypes := []string{"normal", "readonly", "mc"}
 		isValid := false
 		for _, validType := range validTypes {
 			if createDto.Type == validType {
@@ -78,7 +78,7 @@ func (h *RoomValidationHelper) ValidateImageUpload(file *multipart.FileHeader) e
 
 // ValidateRoomType ตรวจสอบ room type
 func (h *RoomValidationHelper) ValidateRoomType(roomType string) error {
-	validTypes := []string{"normal", "readonly", "announcement", "private"}
+	validTypes := []string{"normal", "readonly", "mc"}
 
 	for _, validType := range validTypes {
 		if roomType == validType {

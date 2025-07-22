@@ -238,6 +238,13 @@ func (s *ChatService) SaveMessageBatchToCache(ctx context.Context, roomID string
 
 // SendNotifications sends notifications to offline users
 func (s *ChatService) SendNotifications(ctx context.Context, message *model.ChatMessage, onlineUsers []string) error {
+	// Check if this is an MC room, skip notification if so
+	roomType, err := s.getRoomType(ctx, message.RoomID)
+	if err == nil && (roomType == "mc" || roomType == "normal") {
+		log.Printf("[ChatService] Skipping notification for MC & Normal room %s", message.RoomID.Hex())
+		return nil
+	}
+
 	log.Printf("[ChatService] Sending notifications for message %s", message.ID.Hex())
 
 	// Get room members
@@ -331,6 +338,19 @@ func (s *ChatService) getRoomMembers(ctx context.Context, roomID primitive.Objec
 	return members, nil
 }
 
+// getRoomType returns the type of the room (e.g., "normal", "mc", etc.)
+func (s *ChatService) getRoomType(ctx context.Context, roomID primitive.ObjectID) (string, error) {
+	roomCollection := s.mongo.Collection("rooms")
+    var room struct {
+        Type string `bson:"type"`
+    }
+    err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+    if err != nil {
+        return "", err
+    }
+    return room.Type, nil
+}
+
 // determineMessageType determines the type of message for notification
 func (s *ChatService) determineMessageType(message *model.ChatMessage) string {
 	if message.FileName != "" {
@@ -384,6 +404,12 @@ func (s *ChatService) SubmitDatabaseJob(jobType string, msg *model.ChatMessage, 
 }
 
 func (s *ChatService) SubmitNotificationJob(msg *model.ChatMessage, onlineUsers []string, ctx context.Context) bool {
+	// Check if this is an MC room, skip notification if so
+	roomType, err := s.getRoomType(ctx, msg.RoomID)
+	if err == nil && roomType == "mc" {
+		log.Printf("[ChatService] Skipping notification job for MC room %s", msg.RoomID.Hex())
+		return false
+	}
 	return s.asyncHelper.SubmitNotificationJob(msg, onlineUsers, ctx, s)
 }
 

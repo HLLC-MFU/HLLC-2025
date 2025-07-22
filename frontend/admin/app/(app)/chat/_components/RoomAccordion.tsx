@@ -1,9 +1,10 @@
 "use client";
 
-import { Accordion, AccordionItem, Button, Input, Spinner } from "@heroui/react";
+import { Accordion, AccordionItem, Button, Input, Spinner, Pagination } from "@heroui/react";
 import { PlusIcon, SearchIcon, MessageSquare, Lock, Building2, GraduationCap } from "lucide-react";
 import { useState, useMemo } from "react";
 import { RoomCard } from "./RoomCard";
+ import { RoomSkeleton } from "./RoomSkeleton";
 import type { Room, RoomType } from "@/types/room";
 
 type RoomAccordionProps = {
@@ -54,8 +55,10 @@ export default function RoomAccordion({
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-8">
-                <Spinner size="lg" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                    <RoomSkeleton key={i} />
+                ))}
             </div>
         );
     }
@@ -101,8 +104,7 @@ export default function RoomAccordion({
                             </div>
                         }
                         classNames={{
-                            base: "border border-gray-100",
-                            trigger: "hover:bg-gray-50"
+                            base: "border border-gray-100"
                         }}
                     >
                         <RoomSection
@@ -137,6 +139,8 @@ const RoomSection = ({
     onToggleStatus
 }: RoomSectionProps & { type: string }) => {
     const [filterValue, setFilterValue] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 4; // Show fewer items to make pagination more visible
     
     const filteredRooms = useMemo(() => {
         if (!filterValue) return rooms;
@@ -146,9 +150,20 @@ const RoomSection = ({
         );
     }, [rooms, filterValue]);
 
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentRooms = filteredRooms.slice(startIndex, endIndex);
+
+    // Reset to page 1 when filter changes
+    useMemo(() => {
+        setCurrentPage(1);
+    }, [filterValue]);
+
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex justify-between gap-3 items-end">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:items-end">
                 <Input
                     isClearable
                     className="w-full sm:max-w-[44%]"
@@ -163,20 +178,28 @@ const RoomSection = ({
                     }}
                 />
                 <Button 
-                    endContent={<PlusIcon size={20} />} 
+                    endContent={<PlusIcon size={18} className="sm:w-5 sm:h-5" />} 
                     onPress={onAdd}
-                    className={
+                    className={`w-full sm:w-auto flex-shrink-0 ${
                         type === 'normal' ? "bg-primary hover:bg-primary/90 text-white font-medium" :
                         type === 'readonly' ? "bg-blue-600 hover:bg-blue-700 text-white font-medium" :
                         type === 'school' ? "bg-green-600 hover:bg-green-700 text-white font-medium" :
                         type === 'major' ? "bg-yellow-500 hover:bg-yellow-600 text-white font-medium" :
                         "bg-primary text-white font-medium"
-                    }
+                    }`}
                 >
-                    {type === 'normal' && 'Add Normal Room'}
-                    {type === 'readonly' && 'Add Readonly Room'}
-                    {type === 'school' && 'Add School Room'}
-                    {type === 'major' && 'Add Major Room'}
+                    <span className="hidden sm:inline">
+                        {type === 'normal' && 'Add Normal Room'}
+                        {type === 'readonly' && 'Add Readonly Room'}
+                        {type === 'school' && 'Add School Room'}
+                        {type === 'major' && 'Add Major Room'}
+                    </span>
+                    <span className="sm:hidden">
+                        {type === 'normal' && 'Add Normal'}
+                        {type === 'readonly' && 'Add Readonly'}
+                        {type === 'school' && 'Add School'}
+                        {type === 'major' && 'Add Major'}
+                    </span>
                 </Button>
             </div>
 
@@ -187,17 +210,52 @@ const RoomSection = ({
                     </span>
                 </div> 
             ) : (
-                <div className="grid grid-cols-3 gap-4">
-                    {filteredRooms.map((room) => (
-                        <RoomCard
-                            key={room._id}
-                            room={room}
-                            onDelete={onDelete}
-                            onEdit={onEdit}
-                            onToggleStatus={onToggleStatus}
-                        />
-                    ))}
-                </div>
+                <>
+                    {/* Room Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {currentRooms.map((room) => (
+                            <RoomCard
+                                key={room._id}
+                                room={room}
+                                onDelete={onDelete}
+                                onEdit={onEdit}
+                                onToggleStatus={onToggleStatus}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Pagination - Always show if more than 1 page OR if we have rooms */}
+                    {(totalPages > 1 || filteredRooms.length > 0) && (
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 p-4 bg-gray-50 rounded-lg border">
+                            <div className="text-sm text-gray-600 font-medium">
+                                {filteredRooms.length > 0 ? (
+                                    <>
+                                        Showing <span className="text-primary font-semibold">{startIndex + 1}-{Math.min(endIndex, filteredRooms.length)}</span> of <span className="text-primary font-semibold">{filteredRooms.length}</span> rooms
+                                        {totalPages > 1 && <span className="text-gray-500 ml-2">(Page {currentPage} of {totalPages})</span>}
+                                    </>
+                                ) : (
+                                    "No rooms to display"
+                                )}
+                            </div>
+                            {totalPages > 1 && (
+                                <Pagination
+                                    total={totalPages}
+                                    page={currentPage}
+                                    onChange={setCurrentPage}
+                                    showControls
+                                    showShadow
+                                    color="primary"
+                                    size="sm"
+                                    classNames={{
+                                        wrapper: "gap-1 overflow-visible h-8",
+                                        item: "w-8 h-8 text-small bg-white border border-gray-200 hover:bg-gray-50",
+                                        cursor: "bg-primary text-white font-medium border-primary"
+                                    }}
+                                />
+                            )}
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

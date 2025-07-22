@@ -12,6 +12,7 @@ import (
 const (
 	RoomTypeNormal   = "normal"   // ห้องปกติ - user สามารถส่งข้อความ, sticker, reaction ได้
 	RoomTypeReadOnly = "readonly" // ห้องอ่านอย่างเดียว - user อ่านได้เท่านั้น
+	RoomTypeMC = "mc" // ห้องถามคำถาม จะไม่เห็น message ของคนอื่น
 )
 
 // Room Status Constants
@@ -64,7 +65,7 @@ func (r *Room) CanUserSendMessages() bool {
 
 // ValidateRoomType ตรวจสอบความถูกต้องของ room type
 func ValidateRoomType(roomType string) bool {
-	return roomType == RoomTypeNormal || roomType == RoomTypeReadOnly
+	return roomType == RoomTypeNormal || roomType == RoomTypeReadOnly || roomType == RoomTypeMC
 }
 
 // ValidateRoomStatus ตรวจสอบความถูกต้องของ room status

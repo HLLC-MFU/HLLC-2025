@@ -27,9 +27,10 @@ type RestrictionActionProps = {
     action: 'ban' | 'mute' | 'unban' | 'unmute' | 'kick';
     roomId: string;
     onSuccess: () => void;
+    currentUserId: string;
 };
 
-export function RestrictionAction({ isOpen, onClose, member, action, roomId, onSuccess }: RestrictionActionProps) {
+export function RestrictionAction({ isOpen, onClose, member, action, roomId, onSuccess, currentUserId }: RestrictionActionProps) {
     const { banUser, muteUser, unbanUser, unmuteUser, kickUser, loading } = useRestriction();
     const [restrictionData, setRestrictionData] = useState<RestrictionAction>({
         userId: '',
@@ -144,7 +145,7 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
         }
     };
 
-    if (!member) return null;
+    if (!member || member.user._id === currentUserId) return null;
 
     // Fallback logic for name
     const nameObj = member.user.name || { first: "", middle: "", last: "" };
