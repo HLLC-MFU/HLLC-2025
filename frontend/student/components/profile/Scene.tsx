@@ -10,11 +10,14 @@ import {
     Mesh,
     Material,
     MeshStandardMaterial,
+    Object3DEventMap,
+    Group,
 } from "three";
 import ExpoTHREE, { Renderer, THREE } from "expo-three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { ExpoWebGLRenderingContext } from "expo-gl";
 import { User } from "@/types/user";
+import { RefObject } from "react";
 import { tr } from "date-fns/locale";
 
 if (__DEV__) {
@@ -45,14 +48,16 @@ if (__DEV__) {
     };
 }
 
-
 export async function onContextCreate(
     gl: ExpoWebGLRenderingContext,
-    userData: User | null,
+    user: User | null,
     setLoading: (value: boolean) => void,
-    //   controlsRef: React.MutableRefObject<any>,
+    // changeCharacterScene:  RefObject<Group<Object3DEventMap> | null>,
+    // baseSceneRef:  RefObject<Group<Object3DEventMap> | null>,
+    modelRef: RefObject<Group<Object3DEventMap> | null>,
 ) {
     const scene = new Scene();
+    const group = new Group();
 
     // Camera
     const camera = new PerspectiveCamera(
@@ -73,7 +78,6 @@ export async function onContextCreate(
     renderer.shadowMap.autoUpdate = false;
     renderer.shadowMap.enabled = false;
 
-
     //   const controls = new OrbitControls(camera, renderer.domElement);
     //   controlsRef.current = controls;
 
@@ -90,21 +94,10 @@ export async function onContextCreate(
     scene.position.y += 0.6;
 
     try {
-        const acronym = userData?.data?.[0]?.metadata?.major?.school?.acronym.toUpperCase() ?? "DENT";
+        const acronym = user?.data?.[0]?.metadata?.major?.school?.acronym.toUpperCase() ?? "DENT";
         const loader = new GLTFLoader();
-        let character;
 
-        try {
-            character = await loader.loadAsync(
-                `${process.env.EXPO_PUBLIC_API_URL}/uploads/models/${acronym}.glb`
-            );
-        } catch (e) {
-            console.warn(`Failed to load model for acronym ${acronym}, loading fallback BASE model instead.`);
-            // Load fallback model on failure
-            character = await loader.loadAsync(
-                `${process.env.EXPO_PUBLIC_API_URL}/uploads/models/ADT.glb`
-            );
-        }
+        const character = await loader.loadAsync(`${process.env.EXPO_PUBLIC_API_URL}/uploads/models/${acronym}.glb`);
         const base = await loader.loadAsync(
             `${process.env.EXPO_PUBLIC_API_URL}/uploads/models/BASE.glb`
         );
@@ -114,7 +107,11 @@ export async function onContextCreate(
 
         const baseScene = base.scene;
         baseScene.scale.set(0.7, 0.7, 0.7);
-        baseScene.position.set(-0.45, -8, 0.2);
+        baseScene.position.set(-0.45, -8, 1);
+
+        // changeCharacterScene.current = characterScene;
+        // baseSceneRef.current = baseScene;
+        modelRef.current = group;
 
         // Textures;
         characterScene.traverse(async (child) => {
@@ -148,8 +145,13 @@ export async function onContextCreate(
         const animation = character.animations;
         const mixer = new AnimationMixer(characterScene);
 
-        if (animation.length > 0) {
-            const action = mixer.clipAction(animation[0]);
+        if (animation.length > 0 && acronym) {
+            const animations = acronym.toUpperCase() === "LAW"
+                ? animation[animation.length - 5]
+                : acronym.toUpperCase() === "MED"
+                    ? animation[0]
+                    : animation[animation.length - 1];
+            const action = mixer.clipAction(animations);
             action.play();
         }
 
@@ -159,22 +161,18 @@ export async function onContextCreate(
         box.getCenter(center);
         characterScene.position.sub(center);
 
-        // Set controls target to model center
-        // controls.target.copy(center);
-        // controls.update();
+        // scene.add(characterScene);
+        // scene.add(baseScene);
+        scene.add(group);
+        setLoading(false);
 
         const clock = new Clock();
-
-        scene.add(characterScene);
-        scene.add(baseScene);
-        setLoading(false);
 
         const render = () => {
             requestAnimationFrame(render);
 
             const delta = clock.getDelta();
             mixer.update(delta);
-            //   controls.update();
             renderer.render(scene, camera);
             gl.endFrameEXP();
         };
