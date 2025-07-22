@@ -8,10 +8,9 @@ import clsx from "clsx";
 import { usePathname, useRouter } from "next/navigation";
 import { Href } from "@react-types/shared";
 import logo from "@/public/logo-sdad.png";
-
-import { siteConfig } from "@/config/site";
 import { useProfile } from "@/hooks/useProfile";
 import Image from "next/image";
+import { getMenuByRole } from "@/config/getMenuByRole";
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -36,18 +35,7 @@ export const Sidebar = () => {
     localStorage.setItem("sidebar-collapsed", collapsed.toString());
   }, [collapsed]);
 
-  const hasPermission = (permission?: string): boolean => {
-    if (!permission) return true;
-    const perms = user?.role?.permissions || [];
-
-    if (perms.includes("*")) return true;
-
-    const [resource, action] = permission.split(":");
-
-    return (
-      perms.includes(permission) || perms.includes(`${resource}:*`)
-    );
-  };
+  const navMenuItems = getMenuByRole(user);
 
   return (
     <>
@@ -79,13 +67,8 @@ export const Sidebar = () => {
           </Button>
         </div>
 
-        {/* Navigation */}
         <div className="flex-1 overflow-y-auto py-4">
-          {siteConfig.navMenuItems.map((section) => {
-            const visibleItems = section.items.filter((item) => hasPermission(item.permission));
-
-            if (visibleItems.length === 0) return null;
-
+          {navMenuItems.map((section) => {
             return (
               <div key={section.section} className="space-y-1">
                 {!collapsed && (
@@ -96,7 +79,7 @@ export const Sidebar = () => {
                   </div>
                 )}
                 <div className="space-y-1 px-2">
-                  {visibleItems.map((item) => {
+                  {section.items.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname.startsWith(item.href);
 

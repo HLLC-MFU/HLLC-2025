@@ -1,9 +1,18 @@
-export function exportToCsv(data: any[], filename = "export.csv") {
+export function exportToCsv(data: any[], filename?: string) {
     if (!data || !data.length) {
         alert("No data to export");
         return;
     }
-    const headers = Object.keys(data[0]);
+
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+
+    const defaultFilename = `coin_hunting_leaderboard_${day}-${month}-${year}.csv`;
+    const finalFilename = filename || defaultFilename;
+
+    const headers = Object.keys(data[0]).filter(h => h !== "userId");
 
     const csvRows = [
         headers.join(","),
@@ -12,14 +21,11 @@ export function exportToCsv(data: any[], filename = "export.csv") {
                 .map(fieldName => {
                     let value = row[fieldName] ?? "";
 
-                    // ถ้าเป็น object ให้แปลงเป็น string
                     if (typeof value === "object" && value !== null) {
-                        // สมมติว่ารูปแบบ name เป็น {first, middle, last}
                         if (fieldName === "name") {
                             const { first = "", middle = "", last = "" } = value;
                             value = [first, middle, last].filter(Boolean).join(" ");
                         } else {
-                            // ถ้า object รูปแบบอื่น ให้แปลงเป็น JSON string
                             value = JSON.stringify(value);
                         }
                     }
@@ -27,6 +33,7 @@ export function exportToCsv(data: any[], filename = "export.csv") {
                     if (typeof value === "string" && value.includes(",")) {
                         value = `"${value.replace(/"/g, '""')}"`;
                     }
+
                     return value;
                 })
                 .join(",")
@@ -40,7 +47,7 @@ export function exportToCsv(data: any[], filename = "export.csv") {
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", filename);
+    link.setAttribute("download", finalFilename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

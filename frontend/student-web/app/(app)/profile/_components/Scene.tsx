@@ -1,7 +1,7 @@
 'use client';
 import { useAnimations, useGLTF } from '@react-three/drei';
 import { useEffect } from 'react';
-import * as THREE from 'three';
+import { Box3, LinearSRGBColorSpace, Material, Mesh, MeshStandardMaterial, Object3D, SRGBColorSpace, Vector3 } from 'three';
 
 type SceneProps = {
   schoolAcronym: string | null
@@ -14,99 +14,69 @@ export function Scene({ schoolAcronym }: SceneProps) {
 
   // Play Animation
   useEffect(() => {
-    if (character.animations.length > 0 && actions) {
-      actions[character.animations[2].name]?.reset().play();
+    if (character.animations.length > 0 && actions && schoolAcronym) {
+      if (schoolAcronym.toUpperCase() === "LAW") {
+        actions[character.animations[character.animations.length - 5].name]?.reset().play();
+      } else if (schoolAcronym.toUpperCase() === "MED") {
+        actions[character.animations[0].name]?.reset().play();
+      } else {
+        actions[character.animations[character.animations.length - 1].name]?.reset().play();
+      }
     }
   }, [actions, character.animations]);
 
   // Fix Texture Materials
-  useEffect(() => {
-    character.scene.traverse((child: THREE.Object3D) => {
-      if ((child as THREE.Mesh).isMesh || (child as any).isSkinnedMesh) {
-        const mesh = child as THREE.Mesh;
+  character.scene.traverse((child: Object3D) => {
+    if ((child as Mesh).isMesh) {
+      const mesh = child as Mesh;
 
-        if (mesh.material) {
-          const materials = Array.isArray(mesh.material)
-            ? mesh.material
-            : [mesh.material];
+      if (mesh.material) {
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
 
-          materials.forEach((mat: THREE.Material) => {
-            if (mat instanceof THREE.MeshStandardMaterial) {
-              if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
-              mat.transparent = false;
-              mat.roughness = 1;
-              mat.depthWrite = true;
-              mat.needsUpdate = true;
-            }
-          });
-        }
+        materials.forEach((mat: Material) => {
+          if (mat instanceof MeshStandardMaterial) {
+            if (mat.map) mat.map.colorSpace = LinearSRGBColorSpace;
+            mat.transparent = false;
+            mat.metalness = 0;
+            mat.roughness = 0.5;
+            mat.depthWrite = true;
+            mat.needsUpdate = true;
+          }
+        });
       }
-    });
-  }, [character]);
+    }
+  });
 
-  useEffect(() => {
-    base.scene.traverse((child: THREE.Object3D) => {
-      if ((child as THREE.Mesh).isMesh || (child as any).isSkinnedMesh) {
-        const mesh = child as THREE.Mesh;
+  base.scene.traverse((child: Object3D) => {
+    if ((child as Mesh).isMesh) {
+      const mesh = child as Mesh;
 
-        if (mesh.material) {
-          const materials = Array.isArray(mesh.material)
-            ? mesh.material
-            : [mesh.material];
+      if (mesh.material) {
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
 
-          materials.forEach((mat: THREE.Material) => {
-            if (mat instanceof THREE.MeshStandardMaterial) {
-              if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
-              mat.transparent = false;
-              mat.roughness = 1;
-              mat.metalness = 0;
-              mat.depthWrite = true;
-              mat.needsUpdate = true;
-            }
-          });
-        }
+        materials.forEach((mat: Material) => {
+          if (mat instanceof MeshStandardMaterial) {
+            if (mat.map) mat.map.colorSpace = SRGBColorSpace;
+            mat.transparent = false;
+            mat.metalness = 0;
+            mat.roughness = 0.5;
+            mat.depthWrite = true;
+            mat.needsUpdate = true;
+          }
+        });
       }
-    });
-  }, [base]);
-
-  // Center Model
-  // useEffect(() => {
-  //   if (!group.current) return;
-
-  //   const box = new THREE.Box3();
-  //   const tempBox = new THREE.Box3();
-
-  //   group.current.traverse((child: THREE.Object3D) => {
-  //     if ((child as THREE.Mesh).isMesh) {
-  //       const mesh = child as THREE.Mesh;
-
-  //       mesh.geometry?.computeBoundingBox?.();
-  //       if (mesh.geometry?.boundingBox) {
-  //         tempBox
-  //           .copy(mesh.geometry.boundingBox)
-  //           .applyMatrix4(mesh.matrixWorld);
-  //         box.union(tempBox);
-  //       }
-  //     }
-  //   });
-
-  //   const center = new THREE.Vector3();
-
-  //   box.getCenter(center);
-  //   const yMin = box.min.y;
-
-  //   group.current.position.set(
-  //     -center.x * scale,
-  //     -yMin * scale - 2,
-  //     -center.z * scale
-  //   );
-  // }, [character]);
+    }
+  });
 
   return (
     <group>
       <primitive object={character.scene} position={[0, 0, 0]} scale={0.4} />
       <primitive object={base.scene} position={[-0.35, -5.84, 0.2]} scale={0.6} />
-      {/* <primitive object={new THREE.AxesHelper(1)} /> */}
+      {/* <primitive object={new AxesHelper(1)} /> */}
     </group>
   );
 }

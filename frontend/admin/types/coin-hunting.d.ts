@@ -12,7 +12,19 @@ export type CoinHunting = {
 }
 
 export type Leaderboard = {
-    _id: string
+    rank: number
+    coinCount: number
+    latestCollectedAt: string
+    userId: string
+    username: string,
+    name: {
+        first: string,
+        middle: string,
+        last: string,
+    }
+}
+
+export type Sponsorboard = {
     rank: number
     coinCount: number
     latestCollectedAt: string

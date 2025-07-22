@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Alert, Linking, Modal, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Alert, Linking, Modal, Pressable, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassButton } from '@/components/ui/GlassButton';
 import { router } from 'expo-router';
-import { Globe, Trash, Info, ShieldCheck, LogOut } from 'lucide-react-native';
+import { Globe, Trash, Info, ShieldCheck, LogOut, ArrowLeft } from 'lucide-react-native';
 import useProfile from '@/hooks/useProfile';
 import { apiRequest } from '@/utils/api';
 import { useLanguage } from '@/context/LanguageContext';
@@ -53,6 +53,14 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.center} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerContainer}>
+          <TouchableOpacity onPress={() => router.push('/profile')} style={styles.backButton}>
+            <ArrowLeft size={28} color="#fff" />
+          </TouchableOpacity>                    
+          <Text style={styles.headerTitle}>
+            {t('global.back')}
+          </Text>
+        </View>
         <Text style={styles.text}>{t('settings.title')}</Text>
         <GlassButton onPress={toggleLanguage}>
           <View style={styles.row}>
@@ -61,12 +69,6 @@ export default function SettingsScreen() {
               style={{ width: 24, height: 24, borderRadius: 12 }}
             />
             <Text style={{ color: 'white' }}>{language === 'en' ? 'English' : 'ไทย'}</Text>
-          </View>
-        </GlassButton>
-        <GlassButton onPress={() => setShowDeleteConfirm(true)}>
-          <View style={styles.row}>
-            <Trash color="white" size={20} style={styles.icon} />
-            <Text style={{ color: 'white' }}>{t('settings.delete')}</Text>
           </View>
         </GlassButton>
         <GlassButton onPress={() => Alert.alert('About', 'HLLC 2025 Student App\nVersion 1.0.0')}>
@@ -85,9 +87,12 @@ export default function SettingsScreen() {
           <LogOut color="white" size={20} style={styles.icon} />
           <Text style={{ color: 'white' }}>{t('settings.logout')}</Text>
         </GlassButton>
-        <GlassButton onPress={() => router.back()}>
-          <Text style={{ color: 'white' }}>{t('settings.back')}</Text>
-        </GlassButton>
+
+        <Pressable style={styles.row} onPress={() => setShowDeleteConfirm(true)}>
+          <Trash color="#ff0000" size={20} style={styles.icon} />
+          <Text style={{ color: '#ff0000', fontSize: 16 }}>{t('settings.delete')}</Text>
+        </Pressable>
+
       </ScrollView>
       <Modal
         visible={showPolicy}
@@ -130,14 +135,13 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: undefined, // keep as is or set if needed
+    height: '100%',
+
   },
   center: {
-    // flex: 1,
-    justifyContent: 'center',
+    flex: 1,
     alignItems: 'center',
     gap: 24,
-    paddingVertical: 48,
     minHeight: '100%',
   },
   text: {
@@ -182,5 +186,34 @@ const styles = StyleSheet.create({
   link: {
     color: '#4FC3F7',
     textDecorationLine: 'underline',
+  },
+  bottomButtonContainer: {
+    position: 'absolute',
+    bottom: 180,
+    left: 16,
+    right: 16,
+    alignItems: 'center',
+  },
+  headerContainer: {
+    position: 'relative',
+    top: 0,
+    paddingHorizontal: 24,
+    height: 36,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 }); 
