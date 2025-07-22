@@ -92,9 +92,13 @@ export class AuthService {
           : null,
     };
 
+    const role = user.role as unknown as RoleDocument;
+    const { accessTokenSecret } = this.getJwtSecrets(role);
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         expiresIn: this.configService.get<string>('JWT_EXPIRATION'),
+        secret: accessTokenSecret,
       }),
       this.jwtService.signAsync(payload, {
         expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
@@ -154,7 +158,10 @@ export class AuthService {
     }
 
     // Get the user document (not lean) for saving
-    const user = await this.userModel.findOne({ username });
+    const user = await this.userModel
+      .findOne({ username })
+      .populate('role');
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -168,9 +175,13 @@ export class AuthService {
           : null,
     };
 
+    const role = user.role as unknown as RoleDocument;
+    const { accessTokenSecret } = this.getJwtSecrets(role);
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         expiresIn: this.configService.get<string>('JWT_EXPIRATION'),
+        secret: accessTokenSecret,
       }),
       this.jwtService.signAsync(payload, {
         expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
@@ -418,5 +429,15 @@ export class AuthService {
     }
 
     return [...allPermissions].sort();
+  }
+
+  private getJwtSecrets(role: RoleDocument) {
+    const isFresher = role.name.toLowerCase() === 'fresher';
+
+    return {
+      accessTokenSecret: isFresher
+        ? this.configService.get<string>('JWT_SECRET_FRESHER')
+        : this.configService.get<string>('JWT_SECRET_ADMIN')
+    };
   }
 }
