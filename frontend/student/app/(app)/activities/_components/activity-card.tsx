@@ -115,7 +115,7 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
                   textShadowRadius: 4,
                 }}
               >
-                {activity.name.en}
+                {activity.name[language] || "No title provided"}
               </Text>
             </YStack>
 
@@ -132,7 +132,7 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
                 textShadowRadius: 2,
               }}
             >
-              {activity.location.en} • Experience an amazing adventure with stunning views and unforgettable memories.
+              {activity.location[language] || "No location provided"}
             </Text>
 
             {/* Time Badges */}
