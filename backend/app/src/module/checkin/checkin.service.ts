@@ -72,14 +72,14 @@ export class CheckinService {
 
     const invalidRoles: Record<string, string[]> = {
       STAFF: ['ADMINISTRATOR'],
-      SMO: ['ADMINISTRATOR', 'STAFF', 'SMO'],
+      SMO: ['ADMINISTRATOR', 'MENTEE', 'SMO'],
     };
 
     if (staffRole !== 'ADMINISTRATOR') {
       if (userObjectId.toString() === staffObjectId.toString()) {
         throw new BadRequestException('Cannot check-in yourself');
       }
-      const baseRole = ['STAFF', 'SMO'].find((r) => staffRole.startsWith(r));
+      const baseRole = ['MENTEE', 'SMO'].find((r) => staffRole.startsWith(r));
       if (!baseRole) {
         throw new BadRequestException(
           'You are not allowed to check-in other users',
