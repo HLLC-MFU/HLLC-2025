@@ -13,9 +13,11 @@ export type ISponsor ={
   type: {
     _id: string;
     name: string;
+    priority: number;
     createdAt: string;
     updatedAt: string;
   };
+  priority: number;
   isShow?: boolean;
   createdAt: string;
   updatedAt: string;

@@ -1,3 +1,4 @@
+import { Lang } from "./lang";
 import { User } from "./user";
 
 export type LamduanFlowers = {
@@ -23,5 +24,6 @@ export type LamduanSetting = {
   startAt: string;
   endAt: string;
   createdAt: string;
+  description: Lang;
 };
 

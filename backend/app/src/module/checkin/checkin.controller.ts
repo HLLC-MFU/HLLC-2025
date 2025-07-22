@@ -6,6 +6,7 @@ import {
   BadRequestException,
   Get,
   Param,
+  Query,
 } from '@nestjs/common';
 import { CheckinService } from './checkin.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
@@ -14,7 +15,7 @@ import { UserRequest } from 'src/pkg/types/users';
 
 @Controller('checkins')
 export class CheckinController {
-  constructor(private readonly checkinService: CheckinService) {}
+  constructor(private readonly checkinService: CheckinService) { }
 
   @Post()
   async create(
@@ -37,8 +38,18 @@ export class CheckinController {
     }
   }
 
-  @Get(':activityId/checkedIn')
-  async findCheckedIn(@Param('activityId') activityId: string) {
-    return await this.checkinService.findCheckedInUser(activityId);
+  @Get()
+  async findAll(@Query() query: Record<string, string>) {
+    return await this.checkinService.findAll(query)
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return await this.checkinService.findOne(id);
+  }
+
+  @Get('users')
+  async findAllByActivities(@Query('activityId') activityId: string) {
+    return await this.checkinService.findAllByActivities(activityId);
   }
 }

@@ -33,7 +33,7 @@ export function PageHeader({ title, right, icon, description }: PageHeaderProps)
             </div>
             <div className="border py-3 px-4 rounded-lg bg-default-50 mb-4 mt-4">
                 <Breadcrumbs className="w-full">
-                    <BreadcrumbItem href="/">
+                    <BreadcrumbItem href={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/`}>
                         Home
                     </BreadcrumbItem>
                     {items.map((item) => (

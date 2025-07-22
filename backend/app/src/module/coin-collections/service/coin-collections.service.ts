@@ -9,7 +9,7 @@ import { UserDocument } from 'src/module/users/schemas/user.schema';
 import { CoinCollectionsHelper } from '../utils/coin-collections.helper';
 import { EvoucherCode, EvoucherCodeDocument } from 'src/module/evouchers/schemas/evoucher-code.schema';
 import { Evoucher, EvoucherDocument } from 'src/module/evouchers/schemas/evoucher.schema';
-import { EvoucherCodesService } from 'src/module/evouchers/services/evoucher-codes.service';
+import { NotificationsService } from 'src/module/notifications/notifications.service';
 
 @Injectable()
 export class CoinCollectionsService {
@@ -18,7 +18,7 @@ export class CoinCollectionsService {
     @InjectModel(Landmark.name) private landmarkModel: Model<LandmarkDocument>,
     @InjectModel(EvoucherCode.name) private evoucherCodeModel: Model<EvoucherCodeDocument>,
     @InjectModel(Evoucher.name) private evoucherModel: Model<EvoucherDocument>,
-    private evoucherCodeService: EvoucherCodesService,
+    private notificationsService: NotificationsService,
     private coinCollectionsHelper: CoinCollectionsHelper,
   ) { }
 
@@ -44,8 +44,30 @@ export class CoinCollectionsService {
         },
       },
     });
-    this.coinCollectionsHelper.checkCooldown(cooldownCheck);
 
+    let remainingCooldownMs = 0;
+
+    if (cooldownCheck.length > 0) {
+      const collectedTimestamps: Date[] = [];
+      cooldownCheck.forEach((doc) => {
+        doc.landmarks.forEach((item) => {
+          if (
+            item.landmark.equals(landmarkObjectId) &&
+            item.collectedAt >= new Date(Date.now() - landmark.cooldown)
+          ) {
+            collectedTimestamps.push(item.collectedAt);
+          }
+        });
+      });
+
+      if (collectedTimestamps.length > 0) {
+        const newest = new Date(Math.max(...collectedTimestamps.map(d => d.getTime())));
+        const cooldownEnd = newest.getTime() + landmark.cooldown;
+        remainingCooldownMs = Math.max(cooldownEnd - Date.now(), 0);
+      }
+
+      this.coinCollectionsHelper.checkCooldown(cooldownCheck, remainingCooldownMs);
+    }
     const userCollection = await this.coinCollectionModel.findOne({
       user: userObjectId,
     });
@@ -103,7 +125,7 @@ export class CoinCollectionsService {
   }
 
   async getLeaderboard(query: Record<string, string>) {
-    const limit = Number(query.limit) || 5;
+    const limit = Number(query.limit) || 1000;
     const collections = await this.coinCollectionModel.find({})
       .populate({
         path: 'user',
@@ -232,6 +254,7 @@ export class CoinCollectionsService {
       return {
         username: user.username,
         name: user.name,
+        userId: user._id,
         coinCount: sponsorLandmarks.length,
         latestCollectedAt,
         landmarks: sponsorLandmarks.map(l => ({
@@ -260,7 +283,7 @@ export class CoinCollectionsService {
     if (collectedCount === 0) return null;
 
     //ใช้โอกาสแจกตรง ๆ เช่น 1 ใน 27
-    const dropChance = 1 / 6;
+    const dropChance = 1 / 4;
     if (Math.random() >= dropChance) {
       return null; // ไม่แจกครั้งนี้
     }
@@ -312,6 +335,36 @@ export class CoinCollectionsService {
 
     if (!code) {
       throw new NotFoundException('No available evoucher codes to claim');
+    } else {
+
+      const evoucher = await this.evoucherModel.findById(evoucherId).lean();
+
+      if (!evoucher) {
+        throw new NotFoundException('Evoucher not found');
+      }
+
+      await this.notificationsService.create({
+        title: {
+          en: 'Get Evoucher successfully',
+          th: 'ได้รับคูปองสำเร็จ',
+        },
+        subtitle: {
+          en: '',
+          th: '',
+        },
+        body: {
+          en: `You have received the evoucher "${evoucher.name.en}" successfully.`,
+          th: `คุณได้รับคูปอง "${evoucher.name.th}" เรียบร้อยแล้ว`,
+        },
+        icon: 'Ticket',
+        image: evoucher.photo.home ?? undefined,
+        scope: [
+          {
+            type: 'user',
+            id: [userId],
+          },
+        ],
+      });
     }
 
     return {

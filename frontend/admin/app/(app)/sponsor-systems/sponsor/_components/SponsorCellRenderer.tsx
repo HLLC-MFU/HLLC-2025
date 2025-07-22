@@ -34,25 +34,23 @@ export default function SponsorCellRenderer({
 }: SponsorCellRendererProps) {
   const [imgError, setImgError] = useState(false);
 
-  if (!sponsor.logo.logoPhoto || imgError) {
-    return (
-      <div className="flex justify-center items-center h-20 w-20 border border-default-300 rounded">
-        <ImageIcon className="text-gray-500" />
-      </div>
-    );
-  }
-
   switch (columnKey) {
     case 'logo':
       return (
-        <Image
-          src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.logo.logoPhoto}`}
-          alt={sponsor.name.en}
-          className="rounded border border-default-300"
-          height={64}
-          width={64}
-          onError={() => setImgError(true)}
-        />
+        (sponsor.logo.logoPhoto || !imgError) ? (
+          <Image
+            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.logo.logoPhoto}`}
+            alt={sponsor.name.en}
+            className="rounded border border-default-300"
+            height={64}
+            width={64}
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="flex justify-center items-center h-20 w-20 border border-default-300 rounded">
+            <ImageIcon className="text-gray-500" />
+          </div>
+        )
       );
     case 'name':
       return (

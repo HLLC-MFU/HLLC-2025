@@ -16,6 +16,7 @@ import { ActivitiesModule } from '../activities/activities.module';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PushNotificationService } from '../notifications/push-notifications.service';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SseModule } from '../sse/sse.module';
 
 @Module({
   imports: [
@@ -42,7 +43,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
       },
     ]),
     forwardRef(() => ActivitiesModule),
-    NotificationsModule
+    NotificationsModule,
+    SseModule
   ],
   exports: [MongooseModule],
   controllers: [CheckinController],

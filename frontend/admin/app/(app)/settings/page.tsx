@@ -1,5 +1,5 @@
 'use client'
-import { IdCard, SettingsIcon } from "lucide-react";
+import { IdCard, SettingsIcon, TabletSmartphoneIcon } from "lucide-react";
 
 import SettingsList from "./_components/SettingsList";
 
@@ -16,6 +16,11 @@ export default function SettingsPage() {
         description: "Get System Settings",
         icon: <SettingsIcon />,
         href: "/settings/systems"
+    }, {
+        title: "App Version Setting",
+        description: "Get App Version Settings",
+        icon: <TabletSmartphoneIcon />,
+        href: "/settings/app-versions"
     }]
 
     return (

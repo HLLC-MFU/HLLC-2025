@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, ActionSheetIOS, Platfo
 import Avatar from './Avatar';
 import { Reply } from 'lucide-react-native';
 import { MessageBubbleProps } from '@/types/chatTypes';
-import { CHAT_BASE_URL, API_BASE_URL,IMAGE_BASE_URL } from '@/configs/chats/chatConfig';
+import { CHAT_BASE_URL, API_BASE_URL, IMAGE_BASE_URL } from '@/configs/chats/chatConfig';
 import { formatTime } from '@/utils/chats/timeUtils';
 import ImagePreviewModal from './ImagePreviewModal';
 import { apiRequest } from '@/utils/api';
@@ -18,9 +18,9 @@ interface MessageBubbleEnrichedProps extends MessageBubbleProps {
   currentUsername: string;
 }
 
-const MessageBubble = memo(({ 
-  message, 
-  isMyMessage, 
+const MessageBubble = memo(({
+  message,
+  isMyMessage,
   isRead,
   showAvatar = true,
   isLastInGroup = true,
@@ -150,7 +150,7 @@ const MessageBubble = memo(({
       // Language selection: fallback to 'th' if not detected
       const displayLang = lang === 'en' ? 'en' : 'th';
       return (
-        <View style={[styles.evoucherCard, isClaimed && styles.evoucherCardClaimed]}> 
+        <View style={[styles.evoucherCard, isClaimed && styles.evoucherCardClaimed]}>
           {/* Show sponsor image if present */}
           {message.evoucherInfo && message.evoucherInfo.sponsorImage && (
             <TouchableOpacity
@@ -194,10 +194,10 @@ const MessageBubble = memo(({
                 setClaiming(prev => ({ ...prev, [message.id ?? '']: true }));
                 try {
                   const claimUrl = message.evoucherInfo.claimUrl;
-                  
+
                   // Get token for authorization
                   const token = await SecureStore.getItemAsync("accessToken");
-                  
+
                   const response = await fetch(claimUrl, {
                     method: 'POST',
                     headers: {
@@ -206,9 +206,9 @@ const MessageBubble = memo(({
                     },
                     body: JSON.stringify({ user: userId }),
                   });
-                  
+
                   const responseData = await response.json();
-                  
+
                   if (response.ok) {
                     setClaimed(prev => ({ ...prev, [message.id ?? '']: true }));
                   } else {
@@ -223,8 +223,8 @@ const MessageBubble = memo(({
             >
               <Text style={styles.evoucherButtonText}>
                 {isClaiming
-                  ? t('evoucher.claiming', 'กำลังเคลม...')
-                  : t('evoucher.claim', 'กดเพื่อรับ E-Voucher')}
+                  ? t('evoucher.claiming', 'Claiming...')
+                  : t('evoucher.claim', 'Claim')}
               </Text>
             </TouchableOpacity>
           )}
@@ -291,7 +291,7 @@ const MessageBubble = memo(({
 
     return <Text style={getMessageTextStyle()}>{renderWithMentions(message.text || '', currentUsername)}</Text>;
   }, [message, claimed, claiming, lang, handleOpenImagePreview, handleLongPress, userId, t, currentUsername, getStickerImageUrl, getMessageTextStyle, renderWithMentions]);
-  
+
   const enrichedReplyTo = useMemo(() => {
     const replyTo = message.replyTo || undefined;
     if (replyTo && replyTo.id) {
@@ -337,7 +337,7 @@ const MessageBubble = memo(({
         </Text>
         <View style={isMyMessage ? styles.replyPreviewBoxMine : styles.replyPreviewBoxOther}>
           {enrichedReplyTo.type === 'file' && enrichedReplyTo.fileType === 'image' && enrichedReplyTo.image && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => {
                 if (enrichedReplyTo.image) {
                   handleOpenImagePreview(enrichedReplyTo.image);
@@ -348,7 +348,7 @@ const MessageBubble = memo(({
             </TouchableOpacity>
           )}
           {enrichedReplyTo.type === 'sticker' && enrichedReplyTo.image && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => {
                 if (enrichedReplyTo.image) {
                   handleOpenImagePreview(enrichedReplyTo.image);
@@ -388,26 +388,38 @@ const MessageBubble = memo(({
         {/* กล่องข้อความหลัก */}
         <View style={styles.messageBubbleRow}>
           {!isMyMessage && showAvatar && isLastInGroup ? (
-            <Avatar name={getDisplayName(message.user)} size={32} />
+            <View style={{ marginRight: 8 }}>
+              <Avatar name={getDisplayName(message.user)} size={32} />
+            </View>
           ) : (
             !isMyMessage && <View style={{ width: 40 }} />
           )}
-          <View
-            style={[
-              styles.messageBubble,
-              isMyMessage ? styles.myBubble : styles.otherBubble,
-              isFirstInGroup && (isMyMessage ? styles.myFirstBubble : styles.otherFirstBubble),
-              isLastInGroup && (isMyMessage ? styles.myLastBubble : styles.otherLastBubble),
-              (message.stickerId || message.image || message.fileType === 'image') && styles.mediaBubble,
-            ]}
-          >
-            {renderContent()}
-          </View>
+          <>
+            <View
+              style={[
+                styles.messageBubble,
+                isMyMessage ? styles.myBubble : styles.otherBubble,
+                isFirstInGroup && (isMyMessage ? styles.myFirstBubble : styles.otherFirstBubble),
+                isLastInGroup && (isMyMessage ? styles.myLastBubble : styles.otherLastBubble),
+                (message.stickerId || message.image || message.fileType === 'image') && styles.mediaBubble,
+              ]}
+            >
+              {renderContent()}
+            </View>
+          </>
+
         </View>
         {isLastInGroup && (
-          <View style={[styles.messageFooter, isMyMessage ? { alignSelf: 'flex-end' } : { marginLeft: 40 }]}> 
-            <Text style={styles.timestamp}>{formatTime(message.timestamp)}</Text>
+          <View style={[styles.messageFooter, isMyMessage ? { alignSelf: 'flex-end', alignItems: 'flex-end' } : { marginLeft: 40 }]}>
             {statusElement}
+            {!isMyMessage && (
+              <Text style={styles.messageStatusText}>
+                {message.user?.name?.first || message.user?.name?.last
+                  ? `${message.user?.name?.first ?? ''} ${message.user?.name?.last?.charAt(0) ?? ''}.`.trim()
+                  : 'unknown'}
+              </Text>
+            )}
+            <Text style={styles.timestamp}>{formatTime(message.timestamp)}</Text>
           </View>
         )}
         {/* Image Preview Modal */}
@@ -425,19 +437,19 @@ const MessageBubble = memo(({
 });
 
 const styles = StyleSheet.create({
-  messageWrapper: { 
+  messageWrapper: {
     marginVertical: 2,
     maxWidth: '100%',
     flexDirection: 'column',
   },
-  myMessage: { 
+  myMessage: {
     alignSelf: 'flex-end',
     marginLeft: 40,
     flexDirection: 'column',
     alignItems: 'flex-end',
     maxWidth: '100%', // จำกัดความกว้างสูงสุด
   },
-  otherMessage: { 
+  otherMessage: {
     alignSelf: 'flex-start',
     marginRight: 40,
     flexDirection: 'column',
@@ -450,7 +462,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     width: '100%', // ให้ใช้พื้นที่เต็ม
   },
-  messageBubble: { 
+  messageBubble: {
     maxWidth: '80%',
     minWidth: 20, // ขั้นต่ำสุดสำหรับ bubble
     paddingVertical: 8,
@@ -459,14 +471,14 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     alignSelf: 'flex-start', // ให้ bubble ขยายตามเนื้อหา
   },
-  myBubble: { 
+  myBubble: {
     backgroundColor: '#0A84FF',
     borderTopRightRadius: 4,
     borderBottomRightRadius: 18,
     borderTopLeftRadius: 18,
     borderBottomLeftRadius: 18,
   },
-  otherBubble: { 
+  otherBubble: {
     backgroundColor: '#E0E0E0',
     borderTopRightRadius: 18,
     borderBottomRightRadius: 18,
@@ -489,7 +501,7 @@ const styles = StyleSheet.create({
     padding: 4,
     backgroundColor: 'transparent',
   },
-  messageText: { 
+  messageText: {
     color: '#fff',
     fontSize: 16,
     lineHeight: 22,
@@ -497,18 +509,20 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: 'left', // จัดข้อความชิดซ้าย
   },
-  senderNameAbove: { 
-    color: '#0A84FF', 
-    fontSize: 12, 
+  senderNameAbove: {
+    color: '#0A84FF',
+    fontSize: 12,
     fontWeight: '600',
     marginBottom: 4,
     marginLeft: 40,
   },
   messageFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
     marginTop: 2,
     marginBottom: 4,
+    alignSelf: 'flex-start',
   },
   messageStatus: {
     marginLeft: 6,

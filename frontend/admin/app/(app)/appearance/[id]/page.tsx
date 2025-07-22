@@ -16,19 +16,11 @@ import { useSchools } from '@/hooks/useSchool';
 import useAppearance from '@/hooks/useAppearance';
 
 const uiSection = {
-  background: [{ title: 'Background' }],
-  header: [
-    { title: 'Progress' },
-    { title: 'Notification' },
-    { title: 'Profile' },
-  ],
-  navigation: [
-    { title: 'Home' },
-    { title: 'Activities' },
-    { title: 'QRCode' },
-    { title: 'EVoucher' },
-    { title: 'Community' },
-  ],
+  background: ['Background'],
+  header: ['Profile', 'Notification'],
+  navigation: ['Home', 'Activities', 'QRCode', 'EVoucher', 'Community'],
+  menu: ['Menu', 'Step', 'Coin', 'Lamduanflowers'],
+  profile: ['Visible', 'Invisible', 'Settings', 'Report'],
 };
 
 export default function AppearanceDetailsPage() {

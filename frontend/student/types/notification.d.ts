@@ -26,6 +26,13 @@ export interface NotificationItem {
         en: string;
       };
     };
+    redirectButton?: {
+      label: {
+        th: string;
+        en: string;
+      };
+      url: string;
+    };
     timestamp?: string;
     createdAt?: string;
     updatedAt?: string;

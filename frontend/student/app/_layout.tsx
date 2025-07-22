@@ -22,6 +22,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import '@/hooks/notifications/backgroundNotificationHandler'
 import { config } from '@/tamagui.config';
+import { useDeviceInfo } from '@/hooks/useDeviceInfo';
+import useDevice from '@/hooks/useDevice';
+import { Alert, Linking, Platform } from 'react-native';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -35,7 +38,40 @@ export default function RootLayout() {
     'NotoSansThai-600': require('../assets/fonts/NotoSansThai-SemiBold.ttf'),
     'NotoSansThai-700': require('../assets/fonts/NotoSansThai-Bold.ttf'),
     'NotoSansThai-900': require('../assets/fonts/NotoSansThai-Black.ttf'),
+    'LibreBarcode39': require('../assets/fonts/LibreBarcode39-Regular.ttf'),
   });
+  const { checkVersionUpdate } = useDevice();
+  useEffect(() => {
+    async function checkUpdate() {
+      const { updateRequired, latest } = await checkVersionUpdate();
+      
+      if (updateRequired && latest) {
+        Alert.alert(
+          'Update Available',
+          `A newer version (${latest.appVersion}) is available. Please update the app.`,
+          [
+            {
+              text: 'Update Now',
+              onPress: () => {
+                const storeUrl =
+                  Platform.OS === 'ios'
+                    ? 'itms-apps://itunes.apple.com/app/id6748238190'
+                    : 'https://hllc.mfu.ac.th/download';
+                Linking.openURL(storeUrl);
+              },
+            },
+            {
+              text: 'Skip',
+              style: 'cancel',
+            },
+          ],
+          { cancelable: false }
+        );
+      }
+    }
+
+    checkUpdate();
+  }, [checkVersionUpdate]);
 
   useEffect(() => {
     if (fontsLoaded) {

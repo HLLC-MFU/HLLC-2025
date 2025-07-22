@@ -45,6 +45,8 @@ export function useBreadcrumb() {
   const pathname = usePathname();
   const { dynamicLabels } = useBreadcrumbContext();
 
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
   const segments = pathname
     .split("/")
     .filter(Boolean)
@@ -66,7 +68,7 @@ export function useBreadcrumb() {
 
     return {
       name: label,
-      href: segmentPath,
+      href: basePath + segmentPath,
     };
   });
 }

@@ -7,6 +7,7 @@ import {
     useWindowDimensions,
     ViewStyle,
     TextStyle,
+    Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useRouter, usePathname } from 'expo-router';
@@ -14,7 +15,6 @@ import Animated, {
     useSharedValue,
     useAnimatedStyle,
     withSpring,
-
 } from 'react-native-reanimated';
 import { Home, Book, QrCode, Gift, Globe } from 'lucide-react-native';
 import { useAppearance } from '@/hooks/useAppearance';
@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
-type AllowedRoutes = "/" | "/qrcode" | "/evoucher" | "/chat" | "/step-counter" | "/activities";
+type AllowedRoutes = "/" | "/qrcode" | "/evoucher" | "/community/chat" | "/activities";
 
 
 export default function GlassTabBar() {
@@ -32,21 +32,14 @@ export default function GlassTabBar() {
     const { width } = useWindowDimensions();
     const { t } = useTranslation();
 
-    const tabs: { label: string; icon: React.ComponentType<{ size?: number; color?: string }>; route: AllowedRoutes }[] = [
-        { label: t("nav.home"), icon: Home, route: '/' },
-        { label: t("nav.activity"), icon: Book, route: '/activities' },
-        { label: t("nav.qrCode"), icon: QrCode, route: '/qrcode' },
-        { label: t("nav.evoucher"), icon: Gift, route: '/evoucher' },
-        { label: t("nav.community"), icon: Globe, route: '/chat' },
+    const tabs: { key?: string; label: string; icon: React.ComponentType<{ size?: number; color?: string }>; route: AllowedRoutes }[] = [
+        { key: 'home', label: t("nav.home"), icon: Home, route: '/' },
+        { key: 'activities', label: t("nav.activity"), icon: Book, route: '/activities' },
+        { key: 'qrcode', label: t("nav.qrCode"), icon: QrCode, route: '/qrcode' },
+        { key: 'evoucher', label: t("nav.evoucher"), icon: Gift, route: '/evoucher' },
+        { key: 'community', label: t("nav.community"), icon: Globe, route: '/community/chat' },
     ];
     const { assets } = useAppearance();
-    const icons = {
-        home: assets?.home ?? null,
-        activity: assets?.activities ?? null,
-        qrcode: assets?.qrcode ?? null,
-        voucher: assets?.evoucher ?? null,
-        chat: assets?.community ?? null,
-    };
 
     const tabWidth = (width - 48) / tabs.length;
     const offsetX = useSharedValue(0);
@@ -77,7 +70,7 @@ export default function GlassTabBar() {
 
     return (
         <View style={styles.wrapper}>
-            <BlurView intensity={40} tint="dark" style={styles.navContainer}>
+            <BlurView intensity={Platform.OS === 'ios' ? 30 : 80} tint="dark" style={styles.navContainer}>
                 {/* Focus pill */}
                 <Animated.View
                     style={[
@@ -90,8 +83,8 @@ export default function GlassTabBar() {
                 </Animated.View>
 
                 {tabs.map((tab) => {
-                    const labelKey = tab.label ? tab.label.toLowerCase() : '';
-                    const assetIcon = icons[labelKey as keyof typeof icons];
+                    const key = tab.key ? tab.key.toLowerCase() : '';
+                    const asset = assets[key];
                     const isActive = pathname === tab.route;
                     const Icon = tab.icon;
 
@@ -106,8 +99,8 @@ export default function GlassTabBar() {
                             style={styles.tabItem}
                             activeOpacity={1}
                         >
-                            {assetIcon ? (
-                                <AssetImage uri={`${baseImageUrl}/uploads/${assetIcon}`} style={{ width: 32, height: 32 }} />
+                            {asset ? (
+                                <AssetImage uri={`${baseImageUrl}/uploads/${asset}`} style={{ width: 32, height: 32 }} />
                             ) : (
                                 <Icon size={32} color={isActive ? '#fff' : '#ffffff70'} />
                             )}
@@ -146,7 +139,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255,255,255,0.12)',
+        backgroundColor: Platform.OS === 'ios' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.7)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.3)',
     },

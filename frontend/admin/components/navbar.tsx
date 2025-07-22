@@ -6,8 +6,8 @@ import {
   NavbarItem,
   NavbarMenuItem,
 } from "@heroui/navbar";
-import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
+import NextLink from "next/link";
 import { Input } from "@heroui/input";
 
 import { siteConfig } from "@/config/site";
@@ -15,8 +15,12 @@ import { ThemeSwitch } from "@/components/theme-switch";
 import {
   SearchIcon,
 } from "@/components/icons";
+import { useProfile } from "@/hooks/useProfile";
+import { getMenuByRole } from "@/config/getMenuByRole";
 
 export const Navbar = () => {
+  const user = useProfile((state) => state.user); // 🧠 ดึง user จาก Zustand
+  const navMenuItems = getMenuByRole(user); // 👈 ฟิลเตอร์เมนูตาม role
   const searchInput = (
     <Input
       aria-label="Search"
@@ -24,11 +28,6 @@ export const Navbar = () => {
         inputWrapper: "bg-default-100",
         input: "text-sm",
       }}
-      endContent={
-        <Kbd className="hidden lg:inline-block" keys={["command"]}>
-          K
-        </Kbd>
-      }
       labelPlacement="outside"
       placeholder="Search..."
       startContent={
@@ -61,24 +60,20 @@ export const Navbar = () => {
           <NavbarMenuItem>
             {searchInput}
           </NavbarMenuItem>
-          {siteConfig.navMenuItems.map((section) => (
+          {navMenuItems.map((section) => (
             <div key={section.section} className="space-y-2">
               <p className="text-xs font-semibold text-default-500 uppercase tracking-wider">
                 {section.section}
               </p>
               {section.items.map((item, index) => (
                 <NavbarMenuItem key={`${item.href}-${index}`}>
-                  <Link
-                    className="w-full"
-                    color="foreground"
+                  <NextLink
                     href={item.href}
-                    size="lg"
+                    className="w-full flex items-center gap-2 text-lg text-foreground"
                   >
-                    <div className="flex items-center gap-2">
-                      <item.icon className="w-5 h-5" />
-                      {item.label}
-                    </div>
-                  </Link>
+                    <item.icon className="w-5 h-5" />
+                    {item.label}
+                  </NextLink>
                 </NavbarMenuItem>
               ))}
             </div>

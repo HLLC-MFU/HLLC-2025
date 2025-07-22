@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, ViewStyle } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, ViewStyle, Platform } from 'react-native';
 import { MessageCircle, Sparkles } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
@@ -81,11 +81,9 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#a5b4fc',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.10,
     shadowRadius: 8,
-    elevation: 2,
   },
   tabBarBlur: {
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -110,13 +108,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     zIndex: 0,
-    shadowColor: '#fff',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
   },
   blurInsidePill: {
     flex: 1,
-    backgroundColor: 'rgba(214, 214, 224, 0.18)',
   },
   tabBtn: {
     flex: 1,

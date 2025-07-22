@@ -22,18 +22,18 @@ type RetryConfig struct {
 }
 
 type MessageStatus struct {
-	ID           primitive.ObjectID `bson:"_id" json:"id"`
-	MessageID    primitive.ObjectID `bson:"message_id" json:"message_id"`
-	RoomID       primitive.ObjectID `bson:"room_id" json:"room_id"`
-	BroadcastAt  time.Time         `bson:"broadcast_at" json:"broadcast_at"`
-	SavedToDB    bool              `bson:"saved_to_db" json:"saved_to_db"`
-	SavedToCache bool              `bson:"saved_to_cache" json:"saved_to_cache"`
-	NotificationSent bool          `bson:"notification_sent" json:"notification_sent"`
-	RetryCount   int               `bson:"retry_count" json:"retry_count"`
-	LastError    string            `bson:"last_error,omitempty" json:"last_error,omitempty"`
-	Status       string            `bson:"status" json:"status"` // "pending", "completed", "failed"
-	CreatedAt    time.Time         `bson:"created_at" json:"created_at"`
-	UpdatedAt    time.Time         `bson:"updated_at" json:"updated_at"`
+	ID               primitive.ObjectID `bson:"_id" json:"id"`
+	MessageID        primitive.ObjectID `bson:"message_id" json:"message_id"`
+	RoomID           primitive.ObjectID `bson:"room_id" json:"room_id"`
+	BroadcastAt      time.Time          `bson:"broadcast_at" json:"broadcast_at"`
+	SavedToDB        bool               `bson:"saved_to_db" json:"saved_to_db"`
+	SavedToCache     bool               `bson:"saved_to_cache" json:"saved_to_cache"`
+	NotificationSent bool               `bson:"notification_sent" json:"notification_sent"`
+	RetryCount       int                `bson:"retry_count" json:"retry_count"`
+	LastError        string             `bson:"last_error,omitempty" json:"last_error,omitempty"`
+	Status           string             `bson:"status" json:"status"` // "pending", "completed", "failed"
+	CreatedAt        time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt        time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
 // **Worker Pool Definitions**
@@ -46,12 +46,12 @@ type DatabaseWorkerPool struct {
 }
 
 type DatabaseJob struct {
-	Type        string  // "save_message", "cache_message", "notification", "retry"
-	Message     *model.ChatMessage
-	Context     context.Context
-	Service     DatabaseJobHandler  // interface to handle the actual work
-	RetryCount  int
-	OriginalTime time.Time
+	Type          string // "save_message", "cache_message", "notification", "retry"
+	Message       *model.ChatMessage
+	Context       context.Context
+	Service       DatabaseJobHandler // interface to handle the actual work
+	RetryCount    int
+	OriginalTime  time.Time
 	MessageStatus *MessageStatus
 }
 
@@ -64,20 +64,20 @@ type NotificationWorkerPool struct {
 }
 
 type NotificationJob struct {
-	Message     *model.ChatMessage
-	OnlineUsers []string
-	Context     context.Context
-	Service     NotificationJobHandler
-	RetryCount  int
+	Message      *model.ChatMessage
+	OnlineUsers  []string
+	Context      context.Context
+	Service      NotificationJobHandler
+	RetryCount   int
 	OriginalTime time.Time
 }
 
 type PhantomMessageDetector struct {
 	statusCollection *mongo.Collection
 	checkInterval    time.Duration
-	maxAge          time.Duration
-	quit            chan bool
-	service         PhantomDetectorHandler
+	maxAge           time.Duration
+	quit             chan bool
+	service          PhantomDetectorHandler
 }
 
 // **Job Handler Interfaces**
@@ -110,20 +110,20 @@ type PhantomDetectorHandler interface {
 // **AsyncHelper Main Struct**
 type AsyncHelper struct {
 	// Worker pools
-	dbWorkerPool      *DatabaseWorkerPool
-	notifyWorkerPool  *NotificationWorkerPool
-	
+	dbWorkerPool     *DatabaseWorkerPool
+	notifyWorkerPool *NotificationWorkerPool
+
 	// Reliability components
-	phantomDetector   *PhantomMessageDetector
-	statusCollection  *mongo.Collection
-	retryConfig       RetryConfig
+	phantomDetector  *PhantomMessageDetector
+	statusCollection *mongo.Collection
+	retryConfig      RetryConfig
 	config           *config.Config
 	mu               sync.RWMutex
 }
 
 const (
-	DefaultWorkerCount   = 10    // Increase from default
-	DefaultQueueSize     = 1000  // Increase queue buffer
+	DefaultWorkerCount   = 10   // Increase from default
+	DefaultQueueSize     = 1000 // Increase queue buffer
 	DefaultMaxRetries    = 3
 	DefaultInitialDelay  = 100 * time.Millisecond
 	DefaultMaxDelay      = 5 * time.Second
@@ -134,7 +134,7 @@ const (
 func NewAsyncHelper(mongo *mongo.Database, cfg *config.Config) *AsyncHelper {
 	helper := &AsyncHelper{
 		statusCollection: mongo.Collection("message-status"),
-		config:          cfg,
+		config:           cfg,
 		retryConfig: RetryConfig{
 			MaxRetries:    DefaultMaxRetries,
 			InitialDelay:  DefaultInitialDelay,
@@ -162,7 +162,7 @@ func NewAsyncHelper(mongo *mongo.Database, cfg *config.Config) *AsyncHelper {
 
 	helper.initializeWorkerPools()
 	helper.initializePhantomDetector()
-	
+
 	return helper
 }
 
@@ -172,7 +172,7 @@ func (h *AsyncHelper) initializeWorkerPools() {
 	for i := 0; i < h.dbWorkerPool.workerCount; i++ {
 		go h.startDatabaseWorker(i)
 	}
-	
+
 	for i := 0; i < h.notifyWorkerPool.workerCount; i++ {
 		go h.startNotificationWorker(i)
 	}
@@ -181,7 +181,7 @@ func (h *AsyncHelper) initializeWorkerPools() {
 	go h.startDatabaseRetryWorker()
 	go h.startNotificationRetryWorker()
 
-	log.Printf("[AsyncHelper] Initialized %d database workers and %d notification workers", 
+	log.Printf("[AsyncHelper] Initialized %d database workers and %d notification workers",
 		h.dbWorkerPool.workerCount, h.notifyWorkerPool.workerCount)
 }
 
@@ -194,8 +194,8 @@ func (h *AsyncHelper) initializePhantomDetector() {
 	h.phantomDetector = &PhantomMessageDetector{
 		statusCollection: h.statusCollection,
 		checkInterval:    h.config.AsyncFlow.PhantomDetection.CheckInterval,
-		maxAge:          h.config.AsyncFlow.PhantomDetection.MaxAge,
-		quit:            make(chan bool),
+		maxAge:           h.config.AsyncFlow.PhantomDetection.MaxAge,
+		quit:             make(chan bool),
 	}
 
 	go h.startPhantomDetectionWorker()
@@ -205,7 +205,7 @@ func (h *AsyncHelper) initializePhantomDetector() {
 // **Database Worker Implementation**
 func (h *AsyncHelper) startDatabaseWorker(workerID int) {
 	log.Printf("[AsyncHelper] Database worker %d started", workerID)
-	
+
 	for {
 		select {
 		case job := <-h.dbWorkerPool.jobs:
@@ -219,7 +219,7 @@ func (h *AsyncHelper) startDatabaseWorker(workerID int) {
 
 func (h *AsyncHelper) startNotificationWorker(workerID int) {
 	log.Printf("[AsyncHelper] Notification worker %d started", workerID)
-	
+
 	for {
 		select {
 		case job := <-h.notifyWorkerPool.jobs:
@@ -234,14 +234,14 @@ func (h *AsyncHelper) startNotificationWorker(workerID int) {
 // **Retry Workers**
 func (h *AsyncHelper) startDatabaseRetryWorker() {
 	log.Printf("[AsyncHelper] Database retry worker started")
-	
+
 	for {
 		select {
 		case job := <-h.dbWorkerPool.retryQueue:
 			delay := h.calculateRetryDelay(job.RetryCount)
-			log.Printf("[AsyncHelper] Retrying database job %s for message %s after %v (attempt %d/%d)", 
+			log.Printf("[AsyncHelper] Retrying database job %s for message %s after %v (attempt %d/%d)",
 				job.Type, job.Message.ID.Hex(), delay, job.RetryCount+1, h.retryConfig.MaxRetries)
-			
+
 			time.Sleep(delay)
 			job.RetryCount++
 			h.processDatabaseJob(job, -1) // -1 indicates retry worker
@@ -254,14 +254,14 @@ func (h *AsyncHelper) startDatabaseRetryWorker() {
 
 func (h *AsyncHelper) startNotificationRetryWorker() {
 	log.Printf("[AsyncHelper] Notification retry worker started")
-	
+
 	for {
 		select {
 		case job := <-h.notifyWorkerPool.retryQueue:
 			delay := h.calculateRetryDelay(job.RetryCount)
-			log.Printf("[AsyncHelper] Retrying notification job for message %s after %v (attempt %d/%d)", 
+			log.Printf("[AsyncHelper] Retrying notification job for message %s after %v (attempt %d/%d)",
 				job.Message.ID.Hex(), delay, job.RetryCount+1, h.retryConfig.MaxRetries)
-			
+
 			time.Sleep(delay)
 			job.RetryCount++
 			h.processNotificationJob(job, -1) // -1 indicates retry worker
@@ -275,10 +275,10 @@ func (h *AsyncHelper) startNotificationRetryWorker() {
 // **Phantom Detection Worker**
 func (h *AsyncHelper) startPhantomDetectionWorker() {
 	log.Printf("[AsyncHelper] Phantom detection worker started")
-	
+
 	ticker := time.NewTicker(h.phantomDetector.checkInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -295,29 +295,38 @@ func (h *AsyncHelper) calculateRetryDelay(retryCount int) time.Duration {
 	if retryCount <= 0 {
 		return h.retryConfig.InitialDelay
 	}
-	
+
 	delay := float64(h.retryConfig.InitialDelay) * (h.retryConfig.BackoffFactor * float64(retryCount))
 	if delay > float64(h.retryConfig.MaxDelay) {
 		return h.retryConfig.MaxDelay
 	}
-	
+
 	return time.Duration(delay)
+}
+func isValidChatMessage(msg *model.ChatMessage) bool {
+	return msg != nil &&
+		(msg.Message != "" || msg.StickerID != nil || msg.FileName != "" ||
+			msg.EvoucherInfo != nil || msg.MentionInfo != nil || msg.ModerationInfo != nil)
 }
 
 // **Job Processing**
 func (h *AsyncHelper) processDatabaseJob(job DatabaseJob, workerID int) {
 	var err error
-	
+	if !isValidChatMessage(job.Message) {
+		// Process valid message
+		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
+		return
+	}
 	// Start batch processing if available
 	if job.Type == "save_message" || job.Type == "cache_message" {
 		batchSize := h.config.AsyncFlow.DatabaseWorkers.BatchSize
 		flushTimeout := h.config.AsyncFlow.DatabaseWorkers.FlushTimeout
-		
+
 		// Try to collect a batch of messages
 		batch := []DatabaseJob{job}
 		batchTimer := time.NewTimer(flushTimeout)
 		defer batchTimer.Stop()
-		
+
 		// Collect more jobs if available
 	batchLoop:
 		for len(batch) < batchSize {
@@ -336,19 +345,19 @@ func (h *AsyncHelper) processDatabaseJob(job DatabaseJob, workerID int) {
 				break batchLoop
 			}
 		}
-		
+
 		// Process batch
 		if len(batch) > 1 {
-			log.Printf("[AsyncHelper] Worker %d processing batch of %d %s jobs", 
+			log.Printf("[AsyncHelper] Worker %d processing batch of %d %s jobs",
 				workerID, len(batch), job.Type)
-			
+
 			switch job.Type {
 			case "save_message":
 				err = h.processSaveMessageBatch(batch)
 			case "cache_message":
 				err = h.processCacheMessageBatch(batch)
 			}
-			
+
 			if err != nil {
 				// On batch failure, retry individual messages
 				for _, j := range batch {
@@ -356,7 +365,7 @@ func (h *AsyncHelper) processDatabaseJob(job DatabaseJob, workerID int) {
 				}
 				return
 			}
-			
+
 			// Update status for all messages in batch
 			for _, j := range batch {
 				if job.Type == "save_message" {
@@ -366,15 +375,15 @@ func (h *AsyncHelper) processDatabaseJob(job DatabaseJob, workerID int) {
 				}
 				h.checkMessageCompletion(j.Message.ID)
 			}
-			
+
 			if workerID >= 0 {
-				log.Printf("[AsyncHelper] Worker %d completed batch of %d %s jobs", 
+				log.Printf("[AsyncHelper] Worker %d completed batch of %d %s jobs",
 					workerID, len(batch), job.Type)
 			}
 			return
 		}
 	}
-	
+
 	// Single job processing (for non-batchable jobs or single items)
 	switch job.Type {
 	case "save_message":
@@ -388,17 +397,17 @@ func (h *AsyncHelper) processDatabaseJob(job DatabaseJob, workerID int) {
 			job.Service.UpdateMessageStatus(job.Message.ID, "saved_to_cache", true)
 		}
 	}
-	
+
 	if err != nil {
 		h.handleJobFailure(job, err.Error(), workerID)
 		return
 	}
-	
+
 	// Check if message is fully processed
 	h.checkMessageCompletion(job.Message.ID)
-	
+
 	if workerID >= 0 {
-		log.Printf("[AsyncHelper] Worker %d completed %s for message %s", 
+		log.Printf("[AsyncHelper] Worker %d completed %s for message %s",
 			workerID, job.Type, job.Message.ID.Hex())
 	}
 }
@@ -408,13 +417,18 @@ func (h *AsyncHelper) processSaveMessageBatch(batch []DatabaseJob) error {
 	if len(batch) == 0 {
 		return nil
 	}
-	
+
 	// Extract messages from batch
 	messages := make([]*model.ChatMessage, len(batch))
 	for i, job := range batch {
+		if !isValidChatMessage(job.Message) {
+			// Process valid message
+			log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
+			continue
+		}
 		messages[i] = job.Message
 	}
-	
+
 	// Perform bulk insert using interface method
 	return batch[0].Service.SaveMessageBatch(context.Background(), messages)
 }
@@ -423,14 +437,22 @@ func (h *AsyncHelper) processCacheMessageBatch(batch []DatabaseJob) error {
 	if len(batch) == 0 {
 		return nil
 	}
-	
+
 	// Group messages by room for efficient caching
 	messagesByRoom := make(map[string][]*model.ChatMessage)
 	for _, job := range batch {
+		if job.Message == nil || job.Message.Message == "" || job.Message.RoomID.IsZero() {
+			log.Printf("[AsyncHelper] Skipping cache for message %s with empty room ID", job.Message.ID.Hex())
+			continue
+		}
+		if job.Message.Message == "" {
+			log.Printf("[AsyncHelper] Skipping cache for empty message %s", job.Message.ID.Hex())
+			continue
+		}
 		roomID := job.Message.RoomID.Hex()
 		messagesByRoom[roomID] = append(messagesByRoom[roomID], job.Message)
 	}
-	
+
 	// Cache messages by room using interface method
 	for roomID, messages := range messagesByRoom {
 		if err := batch[0].Service.SaveMessageBatchToCache(
@@ -441,21 +463,26 @@ func (h *AsyncHelper) processCacheMessageBatch(batch []DatabaseJob) error {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
 func (h *AsyncHelper) processNotificationJob(job NotificationJob, workerID int) {
+	if !isValidChatMessage(job.Message) {
+		// Process valid message
+		log.Printf("[ChatService] Skipping empty message from user %s in room %s", job.Message.UserID.Hex(), job.Message.RoomID.Hex())
+		return
+	}
 	err := job.Service.SendNotifications(job.Context, job.Message, job.OnlineUsers)
-	
+
 	if err != nil {
 		h.handleNotificationJobFailure(job, err.Error(), workerID)
 		return
 	}
-	
+
 	job.Service.UpdateMessageStatus(job.Message.ID, "notification_sent", true)
 	h.checkMessageCompletion(job.Message.ID)
-	
+
 	if workerID >= 0 {
 		log.Printf("[AsyncHelper] Worker %d completed notification for message %s", workerID, job.Message.ID.Hex())
 	}
@@ -467,14 +494,14 @@ func (h *AsyncHelper) handleJobFailure(job DatabaseJob, errorMsg string, workerI
 		job.RetryCount++
 		delay := h.calculateRetryDelay(job.RetryCount)
 		time.Sleep(delay)
-		
+
 		// Try to requeue the job
 		select {
 		case h.dbWorkerPool.retryQueue <- job:
-			log.Printf("[RETRY] Job requeued for retry %d/%d after %v delay", 
+			log.Printf("[RETRY] Job requeued for retry %d/%d after %v delay",
 				job.RetryCount, h.retryConfig.MaxRetries, delay)
 		default:
-			log.Printf("[ERROR] Failed to requeue job after %d retries: %s", 
+			log.Printf("[ERROR] Failed to requeue job after %d retries: %s",
 				job.RetryCount, errorMsg)
 		}
 	} else {
@@ -484,11 +511,11 @@ func (h *AsyncHelper) handleJobFailure(job DatabaseJob, errorMsg string, workerI
 }
 
 func (h *AsyncHelper) handleNotificationJobFailure(job NotificationJob, errorMsg string, workerID int) {
-	log.Printf("[AsyncHelper] Worker %d failed notification for message %s: %v (attempt %d/%d)", 
+	log.Printf("[AsyncHelper] Worker %d failed notification for message %s: %v (attempt %d/%d)",
 		workerID, job.Message.ID.Hex(), errorMsg, job.RetryCount+1, h.retryConfig.MaxRetries)
-	
+
 	job.Service.UpdateMessageStatusWithError(job.Message.ID, errorMsg, job.RetryCount+1)
-	
+
 	if job.RetryCount < h.retryConfig.MaxRetries {
 		select {
 		case h.notifyWorkerPool.retryQueue <- job:
@@ -513,7 +540,7 @@ func (h *AsyncHelper) checkMessageCompletion(messageID primitive.ObjectID) {
 func (h *AsyncHelper) detectAndFixPhantomMessages() {
 	ctx := context.Background()
 	cutoffTime := time.Now().Add(-h.phantomDetector.maxAge)
-	
+
 	filter := bson.M{
 		"broadcast_at": bson.M{"$lte": cutoffTime},
 		"status":       bson.M{"$ne": "completed"},
@@ -523,14 +550,14 @@ func (h *AsyncHelper) detectAndFixPhantomMessages() {
 			{"notification_sent": false},
 		},
 	}
-	
+
 	cursor, err := h.statusCollection.Find(ctx, filter)
 	if err != nil {
 		log.Printf("[ERROR] Failed to query phantom messages: %v", err)
 		return
 	}
 	defer cursor.Close(ctx)
-	
+
 	var phantomCount int
 	for cursor.Next(ctx) {
 		var status MessageStatus
@@ -538,13 +565,13 @@ func (h *AsyncHelper) detectAndFixPhantomMessages() {
 			log.Printf("[ERROR] Failed to decode phantom message status: %v", err)
 			continue
 		}
-		
+
 		phantomCount++
 		if h.config.AsyncFlow.PhantomDetection.FixAutomatically {
 			go h.fixPhantomMessage(status)
 		}
 	}
-	
+
 	if phantomCount > 0 {
 		log.Printf("[PhantomDetector] Found %d phantom messages", phantomCount)
 	}
@@ -565,7 +592,7 @@ func (h *AsyncHelper) SubmitDatabaseJob(jobType string, msg *model.ChatMessage, 
 		RetryCount:   0,
 		OriginalTime: time.Now(),
 	}
-	
+
 	select {
 	case h.dbWorkerPool.jobs <- job:
 		return true
@@ -584,7 +611,7 @@ func (h *AsyncHelper) SubmitNotificationJob(msg *model.ChatMessage, onlineUsers 
 		RetryCount:   0,
 		OriginalTime: time.Now(),
 	}
-	
+
 	select {
 	case h.notifyWorkerPool.jobs <- job:
 		return true
@@ -603,15 +630,15 @@ func (h *AsyncHelper) SetPhantomDetectorHandler(handler PhantomDetectorHandler) 
 // **Shutdown**
 func (h *AsyncHelper) Shutdown() {
 	log.Printf("[AsyncHelper] Shutting down...")
-	
+
 	// Stop workers
 	close(h.dbWorkerPool.quit)
 	close(h.notifyWorkerPool.quit)
-	
+
 	if h.phantomDetector != nil {
 		close(h.phantomDetector.quit)
 	}
-	
+
 	log.Printf("[AsyncHelper] Shutdown complete")
 }
 
@@ -619,19 +646,19 @@ func (h *AsyncHelper) Shutdown() {
 func (h *AsyncHelper) GetWorkerPoolStatus() map[string]interface{} {
 	return map[string]interface{}{
 		"database_workers": map[string]interface{}{
-			"worker_count":    h.dbWorkerPool.workerCount,
-			"jobs_queued":     len(h.dbWorkerPool.jobs),
-			"retry_queued":    len(h.dbWorkerPool.retryQueue),
+			"worker_count": h.dbWorkerPool.workerCount,
+			"jobs_queued":  len(h.dbWorkerPool.jobs),
+			"retry_queued": len(h.dbWorkerPool.retryQueue),
 		},
 		"notification_workers": map[string]interface{}{
-			"worker_count":    h.notifyWorkerPool.workerCount,
-			"jobs_queued":     len(h.notifyWorkerPool.jobs),
-			"retry_queued":    len(h.notifyWorkerPool.retryQueue),
+			"worker_count": h.notifyWorkerPool.workerCount,
+			"jobs_queued":  len(h.notifyWorkerPool.jobs),
+			"retry_queued": len(h.notifyWorkerPool.retryQueue),
 		},
 		"phantom_detector": map[string]interface{}{
-			"enabled":          h.config.AsyncFlow.PhantomDetection.Enabled,
-			"check_interval":   h.phantomDetector.checkInterval.String(),
-			"max_age":         h.phantomDetector.maxAge.String(),
+			"enabled":        h.config.AsyncFlow.PhantomDetection.Enabled,
+			"check_interval": h.phantomDetector.checkInterval.String(),
+			"max_age":        h.phantomDetector.maxAge.String(),
 		},
 	}
 }
@@ -653,4 +680,4 @@ func (h *AsyncHelper) GetNotificationWorkerQueueMetrics() (size int, capacity in
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return len(h.notifyWorkerPool.jobs), cap(h.notifyWorkerPool.jobs)
-} 
+}
