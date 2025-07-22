@@ -13,12 +13,14 @@ import ActivitiesCellRenderer, {
 } from "./ActivitiesCellRenderer";
 import TopContent from "./TopContent";
 import { useState } from "react";
+import React from "react";
 
 type ActivitiesTableProps = {
     activities: Activities[];
     onAdd: () => void;
     onEdit: (activity: Activities) => void;
     onDelete: (activity: Activities) => void;
+    onViewDetail: (activity: Activities) => void;
 };
 
 export const columns = [
@@ -38,7 +40,9 @@ export default function ActivitiesTable({
     onAdd,
     onEdit,
     onDelete,
+    onViewDetail,
 }: ActivitiesTableProps) {
+    const [selectedColor, setSelectedColor] = useState<"default">("default");
     const [filterValue, setFilterValue] = useState("");
     const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
         column: "acronym",
@@ -59,6 +63,9 @@ export default function ActivitiesTable({
 
     return (
         <Table
+            color={selectedColor}
+            defaultSelectedKeys={["2"]}
+            selectionMode="single"
             aria-label="Activities table">
             <TableHeader columns={columns}>
                 {(column) => (
@@ -80,6 +87,7 @@ export default function ActivitiesTable({
                                     columnKey={column.uid as ActivitiesColumnKey}
                                     onEdit={onEdit}
                                     onDelete={onDelete}
+                                    onViewDetail={onViewDetail}
                                 />
                             </TableCell>
                         ))}
