@@ -14,6 +14,7 @@ import {
     Form,
     Select,
     SelectItem,
+    DatePicker,
 } from "@heroui/react";
 import { useState, useEffect } from "react";
 import { Activities } from "@/types/activities";
@@ -21,6 +22,7 @@ import { School } from "@/types/school";
 import { Major } from "@/types/major";
 import { User } from "@/types/user";
 import ImageInput from "@/components/ui/imageInput";
+import { fromDate } from "@internationalized/date";
 
 type ActivitiesModalProps = {
     isOpen: boolean;
@@ -61,9 +63,9 @@ export default function ActivitiesModal({
     const [isOpenMeta, setIsOpenMeta] = useState(true);
     const [isVisibleMeta, setIsVisibleMeta] = useState(true);
     const [isProgressCount, setIsProgressCount] = useState(true);
-    const [startAt, setStartAt] = useState("");
-    const [endAt, setEndAt] = useState("");
-    const [checkinStartAt, setCheckinStartAt] = useState("");
+    const [startAt, setStartAt] = useState<Date | null>(null);
+    const [endAt, setEndAt] = useState<Date | null>(null);
+    const [checkinStartAt, setCheckinStartAt] = useState<Date | null>(null);
     const [bannerPhotoFile, setBannerPhotoFile] = useState<File | null>(null);
     const [bannerPhotoUrl, setBannerPhotoUrl] = useState<string | null>(null);
     const [logoPhotoFile, setLogoPhotoFile] = useState<File | null>(null);
@@ -78,6 +80,14 @@ export default function ActivitiesModal({
         const date = new Date(utcString);
         date.setHours(date.getHours() + 7);
         return date.toISOString().slice(0, 16);
+    };
+
+    const parseISOToDate = (isoStr?: string | null) => {
+        if (!isoStr) return null;
+        const d = new Date(isoStr);
+        // ถ้าต้องปรับเวลา timezone เพิ่ม 7 ชม. เช่นในเดิม ก็ใส่
+        // d.setHours(d.getHours() + 7);
+        return d;
     };
 
     useEffect(() => {
@@ -115,9 +125,9 @@ export default function ActivitiesModal({
                     typeof u === "string" ? u : u._id
                 )
             );
-            setStartAt(toLocalDatetime(activity.metadata?.startAt));
-            setEndAt(toLocalDatetime(activity.metadata?.endAt));
-            setCheckinStartAt(toLocalDatetime(activity.metadata?.checkinStartAt));
+            setStartAt(parseISOToDate(activity.metadata?.startAt) ?? null);
+            setEndAt(parseISOToDate(activity.metadata?.endAt) ?? null);
+            setCheckinStartAt(parseISOToDate(activity.metadata?.checkinStartAt) ?? null);
             setBannerPhotoFile(null);
             setBannerPhotoUrl(
                 activity.photo?.bannerPhoto
@@ -148,9 +158,13 @@ export default function ActivitiesModal({
             setScopeMajor([]);
             setScopeSchool([]);
             setScopeUser([]);
-            setStartAt("");
-            setEndAt("");
-            setCheckinStartAt("");
+            const now = new Date();
+            const tomorrow = new Date();
+            tomorrow.setDate(now.getDate() + 1);
+
+            setStartAt(now);
+            setEndAt(tomorrow);
+            setCheckinStartAt(now);
             setBannerPhotoFile(null);
             setLogoPhotoFile(null);
             setBannerPhotoUrl(null);
@@ -185,9 +199,9 @@ export default function ActivitiesModal({
         formData.append("metadata[scope][school][]", scopeSchool.join(" , "))
         formData.append("metadata[scope][user][]", scopeUser.join(" , "))
 
-        formData.append("metadata[startAt]", startAt);
-        formData.append("metadata[endAt]", endAt);
-        formData.append("metadata[checkinStartAt]", checkinStartAt);
+        if (startAt) formData.append("metadata[startAt]", startAt.toISOString());
+        if (endAt) formData.append("metadata[endAt]", endAt.toISOString());
+        if (checkinStartAt) formData.append("metadata[checkinStartAt]", checkinStartAt.toISOString());
 
         if (bannerPhotoFile) {
             formData.append("photo[bannerPhoto]", bannerPhotoFile);
@@ -201,7 +215,7 @@ export default function ActivitiesModal({
 
     return (
         <Modal isOpen={isOpen} size="3xl" onClose={onClose} isDismissable={false} >
-            <ModalContent>
+            <ModalContent className="max-w-[60vw]">
                 <Form onSubmit={handleSubmit}>
                     <ModalHeader>{mode === "add" ? "Add New Activity" : "Edit Activity"}</ModalHeader>
                     <Divider />
@@ -242,16 +256,16 @@ export default function ActivitiesModal({
                                     <div className="flex items-center">
                                         <div className="flex justify-between gap-8">
                                             <div className="flex flex-col items-center">
-                                                <Switch isSelected={isOpenMeta} onValueChange={setIsOpenMeta} size="sm" />
-                                                <span className="text-xs mt-1">Open</span>
+                                                <Switch isSelected={isOpenMeta} onValueChange={setIsOpenMeta} size="md" />
+                                                <span className="text-md mt-1">Open</span>
                                             </div>
                                             <div className="flex flex-col items-center">
-                                                <Switch isSelected={isVisibleMeta} onValueChange={setIsVisibleMeta} size="sm" />
-                                                <span className="text-xs mt-1">Visible</span>
+                                                <Switch isSelected={isVisibleMeta} onValueChange={setIsVisibleMeta} size="md" />
+                                                <span className="text-md mt-1">Visible</span>
                                             </div>
                                             <div className="flex flex-col items-center">
-                                                <Switch isSelected={isProgressCount} onValueChange={setIsProgressCount} size="sm" />
-                                                <span className="text-xs mt-1">Count</span>
+                                                <Switch isSelected={isProgressCount} onValueChange={setIsProgressCount} size="md" />
+                                                <span className="text-md mt-1">Count</span>
                                             </div>
                                         </div>
                                     </div>
@@ -332,35 +346,22 @@ export default function ActivitiesModal({
                             <div className="space-y-4">
                                 <h3 className="text-lg font-medium text-foreground-700 border-b border-divider pb-2">Schedule</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <Input
+                                    <DatePicker
                                         isRequired
                                         label="Start Date & Time"
-                                        labelPlacement="inside"
-                                        placeholder=" "
-                                        type="datetime-local"
-                                        value={startAt}
-                                        onChange={(e) => setStartAt(e.target.value)}
-                                        variant="bordered"
+                                        value={startAt ? fromDate(startAt, "Asia/Bangkok") : undefined}
+                                        onChange={(date) => setStartAt(date?.toDate() ?? startAt)}
                                     />
-                                    <Input
-                                        isRequired
+                                    <DatePicker
                                         label="Check-in Start"
-                                        labelPlacement="inside"
-                                        placeholder=" "
-                                        type="datetime-local"
-                                        value={checkinStartAt}
-                                        onChange={(e) => setCheckinStartAt(e.target.value)}
-                                        variant="bordered"
+                                        value={checkinStartAt ? fromDate(checkinStartAt, "Asia/Bangkok") : undefined}
+                                        onChange={(date) => setCheckinStartAt(date?.toDate() ?? checkinStartAt)}
                                     />
-                                    <Input
+                                    <DatePicker
                                         isRequired
                                         label="End Date & Time"
-                                        labelPlacement="inside"
-                                        placeholder=" "
-                                        type="datetime-local"
-                                        value={endAt}
-                                        onChange={(e) => setEndAt(e.target.value)}
-                                        variant="bordered"
+                                        value={endAt ? fromDate(endAt, "Asia/Bangkok") : undefined}
+                                        onChange={(date) => setEndAt(date?.toDate() ?? endAt)}
                                     />
                                 </div>
                             </div>

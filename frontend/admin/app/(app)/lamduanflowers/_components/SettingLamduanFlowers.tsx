@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, ChangeEvent, useMemo, RefObject } from "react";
 import { Button } from "@heroui/button";
-import { Input, Textarea } from "@heroui/react";
+import { DatePicker, Input, Textarea } from "@heroui/react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 
 import { useLamduanSetting } from "@/hooks/useLamduanSetting";
 import { LamduanSetting } from "@/types/lamduan-flowers";
+import { fromDate } from "@internationalized/date";
 
 type SettingLamduanFlowersProps = {
   handleSave: (
@@ -27,10 +28,18 @@ export function SettingLamduanFlowers({
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
   const [videoLink, setVideoLink] = useState<string>("");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [descriptionTh, setDescriptionTh] = useState<string>("");
   const [descriptionEn, setDescriptionEn] = useState<string>("");
+
+  const parseISOToDate = (isoStr?: string | null) => {
+    if (!isoStr) return null;
+    const d = new Date(isoStr);
+    // ถ้าต้องปรับเวลา timezone เพิ่ม 7 ชม. เช่นในเดิม ก็ใส่
+    d.setHours(d.getHours() + 7);
+    return d;
+  };
 
   const [errors, setErrors] = useState({
     file: "",
@@ -42,20 +51,16 @@ export function SettingLamduanFlowers({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const toLocalDatetime = (iso: string | undefined | null) => {
-    if (!iso) return "";
-    const date = new Date(iso);
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 16);
-  };
-
   const populateForm = (data: LamduanSetting | null) => {
     if (!data) {
       setFile(null);
       setPreview("");
       setVideoLink("");
-      setStartDate("");
-      setEndDate("");
+      const now = new Date();
+      const tomorrow = new Date();
+      tomorrow.setDate(now.getDate() + 1);
+      setStartDate(now);
+      setEndDate(tomorrow);
       setDescriptionTh("");
       setDescriptionEn("");
       originalRef.current = null;
@@ -65,8 +70,8 @@ export function SettingLamduanFlowers({
     setFile(null);
     setPreview(`${process.env.NEXT_PUBLIC_API_URL}/uploads/${data.tutorialPhoto}`);
     setVideoLink(data.tutorialVideo);
-    setStartDate(toLocalDatetime(data.startAt));
-    setEndDate(toLocalDatetime(data.endAt));
+    setStartDate(parseISOToDate(data.startAt));
+    setEndDate(parseISOToDate(data.endAt));
     setDescriptionTh(data.description?.th ?? "");
     setDescriptionEn(data.description?.en ?? "");
     originalRef.current = data;
@@ -117,8 +122,8 @@ export function SettingLamduanFlowers({
     const original = originalRef.current;
     if (!original) return true;
 
-    const originalStart = toLocalDatetime(original.startAt);
-    const originalEnd = toLocalDatetime(original.endAt);
+    const originalStart = parseISOToDate(original.startAt);
+    const originalEnd = parseISOToDate(original.endAt);
 
     return (
       videoLink !== original.tutorialVideo ||
@@ -156,8 +161,8 @@ export function SettingLamduanFlowers({
           : !isYoutubeLink(videoLink)
             ? "Video link must be a valid YouTube URL"
             : "",
-      startDate: startDate.trim() === "" ? "Start date is required" : "",
-      endDate: endDate.trim() === "" ? "End date is required" : "",
+      startDate: startDate === null ? "Start date is required" : "",
+      endDate: endDate === null ? "End date is required" : "",
       description:
         !descriptionTh.trim() && !descriptionEn.trim()
           ? "At least one language must be filled"
@@ -169,7 +174,7 @@ export function SettingLamduanFlowers({
     const hasError = Object.values(newErrors).some((v) => v !== "");
     if (hasError) return;
 
-    handleSave(isChanged, file, videoLink, startDate, endDate, {
+    handleSave(isChanged, file, videoLink, startDate ? startDate.toISOString() : "", endDate ? endDate.toISOString() : "", {
       th: descriptionTh,
       en: descriptionEn,
     });
@@ -230,19 +235,19 @@ export function SettingLamduanFlowers({
           isInvalid={!!errors.description}
           className="w-full h-50 resize-none"
         />
-          <Textarea
-            isRequired
-            label="คำอธิบาย (TH)"
-            labelPlacement="outside"
-            placeholder="อธิบายกิจกรรมเป็นภาษาไทย"
-            value={descriptionTh}
-            onChange={(e) => {
-              setDescriptionTh(e.target.value);
-              clearError("description");
-            }}
-            isInvalid={!!errors.description}
-            className="w-full h-50 resize-none"
-          />
+        <Textarea
+          isRequired
+          label="คำอธิบาย (TH)"
+          labelPlacement="outside"
+          placeholder="อธิบายกิจกรรมเป็นภาษาไทย"
+          value={descriptionTh}
+          onChange={(e) => {
+            setDescriptionTh(e.target.value);
+            clearError("description");
+          }}
+          isInvalid={!!errors.description}
+          className="w-full h-50 resize-none"
+        />
       </div>
 
       {errors.description && (
@@ -268,35 +273,17 @@ export function SettingLamduanFlowers({
       </div>
 
       <div className="flex flex-col md:flex-row gap-2">
-        <Input
+        <DatePicker
           isRequired
-          className="w-full"
-          errorMessage={errors.startDate}
-          isInvalid={!!errors.startDate}
-          label="Event start"
-          labelPlacement="inside"
-          placeholder=" "
-          type="datetime-local"
-          value={startDate}
-          onChange={(e) => {
-            setStartDate(e.target.value);
-            clearError("startDate");
-          }}
+          label="Start Date & Time"
+          value={startDate ? fromDate(startDate, "Asia/Bangkok") : undefined}
+          onChange={(date) => setStartDate(date?.toDate() ?? startDate)}
         />
-        <Input
+        <DatePicker
           isRequired
-          className="w-full"
-          errorMessage={errors.endDate}
-          isInvalid={!!errors.endDate}
-          label="Event end"
-          labelPlacement="inside"
-          placeholder=" "
-          type="datetime-local"
-          value={endDate}
-          onChange={(e) => {
-            setEndDate(e.target.value);
-            clearError("endDate");
-          }}
+          label="End Date & Time"
+          value={endDate ? fromDate(endDate, "Asia/Bangkok") : undefined}
+          onChange={(date) => setEndDate(date?.toDate() ?? endDate)}
         />
       </div>
 
