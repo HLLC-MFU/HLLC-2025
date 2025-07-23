@@ -13,8 +13,11 @@ import { ConfirmModal } from "./_components/ConfirmModal";
 import { useSchools } from "@/hooks/useSchool";
 import { useMajors } from "@/hooks/useMajor";
 import { useUsers } from "@/hooks/useUsers";
+import ActivitiesDetailModal from "./_components/ActivitiesDetailCard";
 
 export default function ActivitiesPage() {
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [selectedActivityDetail, setSelectedActivityDetail] = useState<Activities | undefined>(undefined);
     const { activities, activityTypes, loading, updateActivityType, createActivityType, fetchActivities, updateActivity, createActivity, deleteActivity, deleteActivityType } = useActivities({ autoFetch: true });
     const { schools } = useSchools();
     const { majors } = useMajors();
@@ -29,6 +32,7 @@ export default function ActivitiesPage() {
     const [isConfirmOpen, setIsConfirmOpen] = useState(false)
     const [isConfirmTypeOpen, setIsConfirmTypeOpen] = useState(false);
     const [selectedActivitiesTypeToDelete, setSelectedActivitiesTypeToDelete] = useState<ActivityType | undefined>()
+    const [searchForType, setSearchForType] = useState<{ id: string; query: string }>({ id: '', query: '' });
 
     const filteredActivities = useMemo(() => {
         if (!activities) return [];
@@ -47,21 +51,31 @@ export default function ActivitiesPage() {
     }, [activities, searchQuery]);
 
     const filteredActivitiesByType = (typeId: string) => {
-        return filteredActivities.filter((activity) => {
-            let activityTypeId: string | undefined;
+        const query = (searchForType.id === typeId) ? searchForType.query.toLowerCase() : "";
 
+        return activities.filter(activity => {
+            let activityTypeId: string | undefined;
             if (typeof activity.type === 'string') {
                 const matchedType = activityTypes.find(t => t.name === activity.type);
                 activityTypeId = matchedType?._id;
             } else {
                 activityTypeId = activity.type?._id;
             }
-
-            return activityTypeId === typeId;
+            if (activityTypeId !== typeId) return false;
+            if (!query) return true;
+            return (
+                activity.name?.en?.toLowerCase().includes(query) ||
+                activity.name?.th?.toLowerCase().includes(query) ||
+                activity.acronym?.toLowerCase().includes(query) ||
+                activity.location?.en?.toLowerCase().includes(query) ||
+                activity.location?.th?.toLowerCase().includes(query)
+            );
         });
     };
 
+
     const handleAddActivity = (activityType: ActivityType) => {
+        setSelectedActivity(undefined);
         setModalMode('add');
         setSelectedActivitiesType(activityType);
         setIsActivityModalOpen(true);
@@ -79,6 +93,10 @@ export default function ActivitiesPage() {
         setIsTypeModalOpen(true);
     };
 
+    const handleViewDetail = (activity: Activities) => {
+        setSelectedActivityDetail(activity);
+        setIsDetailModalOpen(true);
+    };
 
     const handleDeleteActivity = (activity: Activities) => {
         setSelectedActivity(activity);
@@ -183,7 +201,7 @@ export default function ActivitiesPage() {
                 }
                 title="Activities Management"
             />
-            <Accordion variant="splitted">
+            <Accordion variant="splitted" selectionMode="multiple">
                 {loading ? (
                     Array.from({ length: 3 }).map((_, index) => (
                         <AccordionItem
@@ -210,9 +228,9 @@ export default function ActivitiesPage() {
                             >
                                 <div className="mb-5 flex justify-between w-full">
                                     <TopContent
-                                        filterValue={searchQuery}
-                                        onClear={() => setSearchQuery("")}
-                                        onSearchChange={setSearchQuery}
+                                        filterValue={searchForType.id === activityType._id ? searchForType.query : ""}
+                                        onClear={() => setSearchForType({ id: activityType._id, query: "" })}
+                                        onSearchChange={(value) => setSearchForType({ id: activityType._id, query: value })}
                                         onAdd={() => handleAddActivity(activityType)}
                                         onEdit={() => handleEditType(activityType)}
                                         onDelete={() => handleDeleteType(activityType)}
@@ -228,6 +246,7 @@ export default function ActivitiesPage() {
                                             setIsActivityModalOpen(true);
                                         }}
                                         onDelete={(activity) => handleDeleteActivity(activity)}
+                                        onViewDetail={handleViewDetail}
                                         activities={activitiesForType}
                                     />
                                 ) : (
@@ -261,6 +280,15 @@ export default function ActivitiesPage() {
                 onClose={() => setIsTypeModalOpen(false)}
                 onSubmit={handleSubmitType}
             />
+            <ActivitiesDetailModal
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                activity={selectedActivityDetail!}
+                schools={schools}
+                majors={majors}
+                users={users}
+            />
+
             {/* Confirm modal สำหรับลบ Activity */}
             <ConfirmModal
                 isOpen={isConfirmOpen}

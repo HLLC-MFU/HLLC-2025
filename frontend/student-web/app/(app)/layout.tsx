@@ -8,7 +8,7 @@ import ProgressBar from '@/components/ui/progressBar';
 import SSEListener from '@/components/SSEListener';
 import { useAppearances } from '@/hooks/useAppearances';
 import { useProfile } from '@/hooks/useProfile';
-import PretestQuestionModal from '@/components/PretestPosttest/PretestQuestionModal';
+// import PretestQuestionModal from '@/components/PretestPosttest/PretestQuestionModal';
 import PosttestQuestionModal from '@/components/PretestPosttest/PosttestQuestionModal';
 import { usePrepostQuestion } from '@/hooks/usePrePostQuestion';
 import { useSseStore } from '@/stores/useSseStore';
@@ -225,7 +225,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {children}
           </main>
 
-          <PretestQuestionModal
+          {/* <PretestQuestionModal
             answers={pretestAnswersInput}
             isOpen={isPretestModalOpen}
             prePostQuestions={selectedPretestQuestions}
@@ -239,7 +239,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               setSelectedPretestQuestions([]);
             }}
             onSubmit={() => handlePretestSubmit()}
-          />
+          /> */}
 
           <PosttestQuestionModal
             answers={posttestAnswersInput}

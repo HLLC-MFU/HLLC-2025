@@ -209,18 +209,18 @@ export default function LamduanOrigamiPage() {
         <TouchableOpacity>
           <View style={styles.backButton}>
             <GlassButton onPress={() => router.back()}>
-              <Text style={styles.backButtonText}>
-                {t('lamduanflower.back')}
-              </Text>
+              <Text style={styles.backButtonText}>{t('lamduanflower.back')}</Text>
             </GlassButton>
           </View>
         </TouchableOpacity>
+
         <ScrollView
           keyboardShouldPersistTaps="handled"
           ref={scrollViewRef}
           contentContainerStyle={[styles.container, { paddingBottom: 100 }]}
           showsVerticalScrollIndicator={false}
         >
+
           <BannerImage />
 
           <BlurView intensity={40} tint="light" style={styles.card}>

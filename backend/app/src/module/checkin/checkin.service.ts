@@ -94,7 +94,7 @@ export class CheckinService {
     }
 
     const activityObjectIds = activities.map((id) => new Types.ObjectId(id));
-    const isAdmin = staffRole === 'ADMINISTRATOR';
+   const isAdmin = ['ADMINISTRATOR', 'MENTEE'].includes(staffRole);
 
     await validateCheckinTime(activities, this.activityModel, isAdmin);
 
