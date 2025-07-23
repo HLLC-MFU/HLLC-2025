@@ -22,6 +22,7 @@ import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { FastifyRequest } from 'fastify';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
 import { ActivitiesService } from '../activities/services/activities.service';
+import { SetPasswordSmoDto } from './dto/set-password-smo.dto';
 
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
@@ -95,5 +96,10 @@ export class UsersController {
   @CacheKey('users:invalidate')
   removeMultiple(@Body() ids: string[]) {
     return this.usersService.removeMultiple(ids);
+  }
+
+  @Post('smo-password')
+  setPasswordSMO(@Body() body: SetPasswordSmoDto) {
+    return this.usersService.setPasswordSMO(body.password);
   }
 }

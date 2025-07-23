@@ -20,6 +20,7 @@ import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
@@ -30,7 +31,7 @@ export class UsersService {
     private readonly roleModel: Model<RoleDocument>,
     @InjectModel(Major.name)
     private readonly majorModel: Model<MajorDocument>,
-  ) {}
+  ) { }
 
   /**
    * Creates a new user.
@@ -272,4 +273,42 @@ export class UsersService {
     }
   }
 
-}
+  async setPasswordSMO(password: string): Promise<User[]> {
+    if (!password) {
+      throw new BadRequestException('Password is required');
+    }
+
+    // หาทุก role ที่ขึ้นต้นว่า "smo" (ไม่สน case)
+    const smoRoles = await this.roleModel.find({
+      name: { $regex: /^smo/i },
+    });
+
+    if (!smoRoles.length) {
+      throw new NotFoundException('SMO roles not found');
+    }
+
+    const smoRoleIds = smoRoles.map(role => role._id);
+
+    const smoUsers = await this.userModel.find({ role: { $in: smoRoleIds } });
+
+    if (!smoUsers.length) {
+      throw new NotFoundException('No users found with SMO roles');
+    }
+
+    const updatedUsers = await Promise.all(
+      smoUsers.map(async (user) => {
+        user.password = password;
+        const hashedSecret = await bcrypt.hash('Chiang Rai', 10);
+        user.metadata = {
+          ...user.metadata,
+          secret: hashedSecret,
+        };
+        await user.save();
+        return user.toObject();
+      }),
+    );
+
+    return updatedUsers;
+  }
+
+} 
