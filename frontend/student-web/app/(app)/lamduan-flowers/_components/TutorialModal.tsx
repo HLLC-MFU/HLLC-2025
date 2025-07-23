@@ -26,7 +26,7 @@ export default function TutorialModal({ isOpen, onClose, photoUrl }: TutorialMod
                             Lamduan Tutorial
                         </ModalHeader>
 
-                        <ModalBody className="p-0 min-h-[300px]">
+                        <ModalBody className="p-0 min-h-[300px] flex items-center">
                             {photoUrl ? (
                                 <Image
                                     src={photoUrl}

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, RefObject } from "react";
 import {
-    Accordion, AccordionItem, addToast, Button, Modal, ModalBody,
+    Accordion, AccordionItem, addToast, Button, Image, Modal, ModalBody,
     ModalContent, ModalFooter, ModalHeader, Pagination
 } from "@heroui/react";
 import { Flower2, Settings } from "lucide-react";
@@ -185,7 +185,7 @@ export default function AccordionLamduan({
 
                     <ModalBody className="flex flex-col items-center gap-4">
                         {viewModalFlower?.photo && (
-                            <img
+                            <Image
                                 alt="User Photo"
                                 className="rounded-xl object-contain max-h-80 w-full bg-white"
                                 src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${viewModalFlower.photo}`}
