@@ -136,7 +136,7 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
               >
                 {activity.location[language] || "No location provided"}
               </Text>
-                            <Text
+              <Text
                 fontSize="$3"
                 color="rgba(255,255,255,0.9)"
                 numberOfLines={3}
@@ -148,6 +148,7 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
                   textShadowRadius: 2,
                 }}
               >
+                {activity.shortDetails[language] || "No location provided"}
               </Text>
             </YStack>
 
