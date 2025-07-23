@@ -81,8 +81,14 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
           
           {/* Room type and group type badges */}
           <div className="flex flex-wrap gap-2">
-            {/* Room type badge */}
-            {room.type && (
+            {/* MC Room badge only */}
+            {room.type === 'mc' && (
+              <div className="inline-block bg-blue-600/80 text-white text-xs font-bold rounded-full px-2 py-1 border border-blue-200/50 shadow-lg ml-1">
+                Master of Ceremonies Room
+              </div>
+            )}
+            {/* Room type badge for other types */}
+            {room.type && room.type !== 'mc' && (
               <div className="inline-block bg-white/15 backdrop-blur-sm text-white/90 text-xs font-semibold rounded-full px-2 py-1 border border-white/30">
                 {room.type === 'readonly'
                   ? (language === 'th' ? 'อ่านอย่างเดียว' : 'Read-only')
@@ -91,7 +97,6 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
                     : room.type}
               </div>
             )}
-            
             {/* Group type badge */}
             {room.metadata?.isGroupRoom && room.metadata?.groupType && (
               <div className="inline-block bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm text-white/90 text-xs font-semibold rounded-full px-2 py-1 border border-purple-300/30">

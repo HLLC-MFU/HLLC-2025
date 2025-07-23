@@ -9,12 +9,6 @@ interface RoomInfoProps {
   onClose: () => void;
 }
 
-type AvatarProps = {
-  size: number;
-  fallback: string;
-  image?:string;
-}
-
 const RoomInfo = ({ room, onClose }: RoomInfoProps) => {
   const [activeTab, setActiveTab] = useState<'info' | 'members'>('info');
   const { handleJoin, joining, isMember, members, loadMembers, loadMoreMembers, loading } = useChatRoom({});

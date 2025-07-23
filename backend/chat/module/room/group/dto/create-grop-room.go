@@ -22,9 +22,10 @@ type (
 		GroupValue string               `form:"groupValue" validate:"required"`        // ID ของ major หรือ school
 		Type       string               `form:"type" validate:"roomType"`              // ประเภทห้อง (normal, readonly)
 		Status     string               `form:"status" validate:"roomStatus"`          // สถานะห้อง (active, inactive)
+		Capacity   int                  `form:"capacity" validate:"optional"`          // เพิ่ม capacity field
 		CreatedBy  string               `form:"createdBy" validate:"mongoId,optional"` // Optional - will extract from JWT if not provided
 		Image      string               `form:"image" validate:"optional"`
-		// หมายเหตุ: ไม่ต้องระบุ capacity เพราะห้องกลุ่มจะเป็น unlimited (capacity = 0)
+		Members    []string             `form:"members" json:"members" validate:"mongoId,optional"`   // เพิ่ม field นี้สำหรับ manual members
 	}
 
 	UpdateRoomDto struct {

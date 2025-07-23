@@ -15,7 +15,9 @@ type IRBACMiddleware interface {
 	SetUserRoleInContext() fiber.Handler
 	ExtractUserIDFromContext(ctx interface{}) (string, error)
 	ExtractUserIDFromToken(tokenString string) (string, error)
+	ExtractRoleNameFromToken(tokenString string) (string, error)
+	RequireRoleParam() fiber.Handler
 }
 
 // Ensure RBACMiddleware implements IRBACMiddleware
-var _ IRBACMiddleware = (*RBACMiddleware)(nil) 
+var _ IRBACMiddleware = (*RBACMiddleware)(nil)

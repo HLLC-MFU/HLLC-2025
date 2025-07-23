@@ -68,7 +68,7 @@ type (
 		chatService    *chatService.ChatService
 		roomService    RoomService
 		stickerService StickerService
-		wsHandler      *WebSocketHandler
+		WsHandler      *WebSocketHandler
 		rbac           middleware.IRBACMiddleware
 		connManager    *connection.ConnectionManager
 		roleService    *userService.RoleService
@@ -95,7 +95,7 @@ func NewChatController(
 		connManager:    connManager,
 		roleService:    roleService,
 	}
-	controller.wsHandler = NewWebSocketHandler(
+	controller.WsHandler = NewWebSocketHandler(
 		chatService,
 		chatService,
 		roomService,
@@ -114,7 +114,11 @@ func (c *ChatController) setupRoutes() {
 	c.App.Use(c.rbac.SetUserRoleInContext())
 	
 	// Add RBAC middleware to WebSocket route
-	c.Get("/ws/:roomId", c.rbac.RequireReadOnlyAccess(), websocket.New(c.wsHandler.HandleWebSocket))
+	c.Get("/ws/:roomId", c.rbac.RequireReadOnlyAccess(), websocket.New(c.WsHandler.HandleWebSocket))
+
+	// Add MC WebSocket route with role param filtering
+	c.Get("/ws/mc/:roomId", c.rbac.RequireRoleParam(), websocket.New(c.WsHandler.HandleWebSocket))
+
 	c.Post("/rooms/:roomId/stickers", c.handleSendSticker, c.rbac.RequireReadOnlyAccess())
 	// **NEW: Cache management endpoints**
 	c.Delete("/rooms/:roomId/cache", c.handleClearCache, c.rbac.RequireAdministrator())
@@ -125,7 +129,7 @@ func (c *ChatController) setupRoutes() {
 func (c *ChatController) SetupWebSocketHandler() {
 	// Set up WebSocket handler with room status change callback
 	if roomService, ok := c.roomService.(interface{ SetStatusChangeCallback(func(ctx context.Context, roomID string, newStatus string)) }); ok {
-		roomService.SetStatusChangeCallback(c.wsHandler.HandleRoomStatusChange)
+		roomService.SetStatusChangeCallback(c.WsHandler.HandleRoomStatusChange)
 		log.Printf("[ChatController] Connected WebSocket handler to room service for status change events")
 	} else {
 		log.Printf("[ChatController] Warning: Room service does not support status change callbacks")

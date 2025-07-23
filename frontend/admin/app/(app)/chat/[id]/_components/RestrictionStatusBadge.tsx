@@ -8,14 +8,14 @@ type RestrictionStatusBadgeProps = {
 
 export function RestrictionStatusBadge({ restrictionStatus, showExpiry = false }: RestrictionStatusBadgeProps) {
     if (!restrictionStatus) return null;
-
     const { isBanned, isMuted, banExpiry, muteExpiry } = restrictionStatus;
-
-    if (!isBanned && !isMuted) return null;
-
+    const now = new Date();
+    const isBanActive = isBanned && (!banExpiry || new Date(banExpiry) > now);
+    const isMuteActive = isMuted && (!muteExpiry || new Date(muteExpiry) > now);
+    if (!isBanActive && !isMuteActive) return null;
     return (
         <div className="flex gap-2 mt-1 justify-start text-center">
-            {isBanned && (
+            {isBanActive && (
                 <div className="inline-flex items-center gap-1 px-2 py-1 rounded text-red-700 text-xs">
                     <Ban size={10}/>
                     Banned
@@ -26,7 +26,7 @@ export function RestrictionStatusBadge({ restrictionStatus, showExpiry = false }
                     )}
                 </div>
             )}
-            {isMuted && (
+            {isMuteActive && (
                 <div className="inline-flex items-center gap-1 px-2 py-1 rounded text-yellow-700 text-xs">
                     <MicOff size={10} />
                     Muted

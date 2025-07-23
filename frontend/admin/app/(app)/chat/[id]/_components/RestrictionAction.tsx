@@ -27,9 +27,10 @@ type RestrictionActionProps = {
     action: 'ban' | 'mute' | 'unban' | 'unmute' | 'kick';
     roomId: string;
     onSuccess: () => void;
+    currentUserId: string;
 };
 
-export function RestrictionAction({ isOpen, onClose, member, action, roomId, onSuccess }: RestrictionActionProps) {
+export function RestrictionAction({ isOpen, onClose, member, action, roomId, onSuccess, currentUserId }: RestrictionActionProps) {
     const { banUser, muteUser, unbanUser, unmuteUser, kickUser, loading } = useRestriction();
     const [restrictionData, setRestrictionData] = useState<RestrictionAction>({
         userId: '',
@@ -144,7 +145,7 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
         }
     };
 
-    if (!member) return null;
+    if (!member || member.user._id === currentUserId) return null;
 
     // Fallback logic for name
     const nameObj = member.user.name || { first: "", middle: "", last: "" };
@@ -245,10 +246,11 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                                                 </Button>
                                             </DropdownTrigger>
                                             <DropdownMenu
-                                                selectedKeys={[restrictionData.timeUnit || 'minutes']}
+                                                selectedKeys={[restrictionData.timeUnit]}
+                                                selectionMode="single"
                                                 onSelectionChange={(keys) => {
-                                                    const selected = Array.from(keys)[0] as string;
-                                                    setRestrictionData({ ...restrictionData, timeUnit: selected as 'minutes' | 'hours' });
+                                                    const selected = Array.from(keys)[0] as 'minutes' | 'hours';
+                                                    setRestrictionData({ ...restrictionData, timeUnit: selected });
                                                 }}
                                             >
                                                 <DropdownItem key="minutes">Minutes</DropdownItem>
@@ -270,10 +272,11 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                                             </Button>
                                         </DropdownTrigger>
                                         <DropdownMenu
-                                            selectedKeys={[restrictionData.restriction || 'can_view']}
+                                            selectedKeys={[restrictionData.restriction]}
+                                            selectionMode="single"
                                             onSelectionChange={(keys) => {
-                                                const selected = Array.from(keys)[0] as string;
-                                                setRestrictionData({ ...restrictionData, restriction: selected as 'can_view' | 'cannot_view' });
+                                                const selected = Array.from(keys)[0] as 'can_view' | 'cannot_view';
+                                                setRestrictionData({ ...restrictionData, restriction: selected });
                                             }}
                                         >
                                             <DropdownItem key="can_view">Can View Messages</DropdownItem>
