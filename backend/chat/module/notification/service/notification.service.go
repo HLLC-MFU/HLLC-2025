@@ -13,6 +13,8 @@ import (
 	"log"
 	"strings"
 
+	roomModel "chat/module/room/room/model"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -57,26 +59,29 @@ func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService
 func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *model.ChatMessage, onlineUsers []string) {
 	log.Printf(" Starting offline notification process for room %s", message.RoomID.Hex())
 
-	// **NEW: Check room type - skip notifications for "normal" room type**
-	roomType, err := ns.getRoomType(ctx, message.RoomID)
+	// โหลด room เต็ม (metadata)
+	fullRoom, err := ns.getFullRoomById(ctx, message.RoomID)
 	if err != nil {
-		log.Printf("[NotificationService] Failed to get room type: %v", err)
-		return
+		log.Printf("[NotificationService] Failed to get full room: %v", err)
+		// fallback เดิม
+		roomType, err := ns.getRoomType(ctx, message.RoomID)
+		if err != nil {
+			log.Printf("[NotificationService] Failed to get room type: %v", err)
+			return
+		}
+		if roomType == "normal" {
+			log.Printf("[NotificationService] Room %s has type 'normal', skipping all notifications", message.RoomID.Hex())
+			return
+		}
+	} else {
+		roomType := fullRoom.Type
+		groupType := fullRoom.GetGroupType()
+		if roomType == "normal" && !(groupType == "school" || groupType == "major") {
+			log.Printf("[NotificationService] Room %s is type 'normal' and not groupType school/major, skipping ALL notifications", message.RoomID.Hex())
+			log.Printf("[NotificationService] Notification summary: 0 offline users notified (room type: normal)")
+			return
+		}
 	}
-
-	if roomType == "normal" {
-		log.Printf("[NotificationService] Room %s has type 'normal', skipping all notifications", message.RoomID.Hex())
-		return
-	}
-
-	// **NEW: Handle MC room notifications - skip all notifications for MC rooms**
-	if roomType == "mc" {
-		log.Printf("[NotificationService] MC Room detected: %s, skipping ALL notifications", message.RoomID.Hex())
-		log.Printf("[NotificationService] Notification summary: 0 offline users notified (room type: mc)")
-		return
-	}
-
-	log.Printf("[NotificationService] Room %s has type '%s', proceeding with notifications", message.RoomID.Hex(), roomType)
 
 	// **NEW: Check if this is an evoucher message**
 	if message.EvoucherInfo != nil {
@@ -297,19 +302,23 @@ func (ns *NotificationService) SendOfflineNotification(ctx context.Context, rece
 	log.Printf("[NotificationService] Legacy SendOfflineNotification: receiver=%s, message=%s, type=%s",
 		receiverID, message.ID.Hex(), messageType)
 
-	// **NEW: Check room type - skip notifications for "normal" room type**
-	roomType, err := ns.getRoomType(ctx, message.RoomID)
+	fullRoom, err := ns.getFullRoomById(ctx, message.RoomID)
 	if err != nil {
-		log.Printf("[NotificationService] Failed to get room type: %v", err)
-		return
+		roomType, err := ns.getRoomType(ctx, message.RoomID)
+		if err != nil {
+			log.Printf("[NotificationService] Failed to get room type: %v", err)
+			return
+		}
+		if roomType == "normal" {
+			log.Printf("[NotificationService] (Legacy) Room %s has type 'normal', skipping notification for user %s", message.RoomID.Hex(), receiverID)
+			return
+		}
+	} else {
+		if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
+			log.Printf("[NotificationService] (Legacy) Room %s is type 'normal' and not groupType school/major, skipping notification for user %s", message.RoomID.Hex(), receiverID)
+			return
+		}
 	}
-
-	if roomType == "normal" {
-		log.Printf("[NotificationService] (Legacy) Room %s has type 'normal', skipping notification for user %s", message.RoomID.Hex(), receiverID)
-		return
-	}
-
-	log.Printf("[NotificationService] (Legacy) Room %s has type '%s', proceeding with notification", message.RoomID.Hex(), roomType)
 
 	// Get sender info
 	sender, err := ns.getUserById(ctx, message.UserID.Hex())
@@ -393,10 +402,17 @@ func (ns *NotificationService) sendNotificationToKafka(ctx context.Context, rece
 func (ns *NotificationService) NotifyOfflineUsersOnly(ctx context.Context, message *model.ChatMessage, onlineUsers []string, roomMembers []primitive.ObjectID) {
 	log.Printf("[NotificationService] Notifying OFFLINE users only for message %s", message.ID.Hex())
 
-	// **NEW: Check if room type is "normal" - skip all notifications for normal rooms**
-	if ns.isNormalRoomType(ctx, message.RoomID) {
-		log.Printf("[NotificationService] Room %s is type 'normal', skipping ALL offline notifications", message.RoomID.Hex())
-		return
+	fullRoom, err := ns.getFullRoomById(ctx, message.RoomID)
+	if err != nil {
+		if ns.isNormalRoomType(ctx, message.RoomID) {
+			log.Printf("[NotificationService] Room %s is type 'normal', skipping ALL offline notifications", message.RoomID.Hex())
+			return
+		}
+	} else {
+		if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
+			log.Printf("[NotificationService] Room %s is type 'normal' and not groupType school/major, skipping ALL offline notifications", message.RoomID.Hex())
+			return
+		}
 	}
 
 	// Create online user lookup map
@@ -623,22 +639,27 @@ func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Contex
 
 // isNormalRoomType ตรวจสอบว่าห้องนี้เป็น type "normal" หรือไม่
 func (ns *NotificationService) isNormalRoomType(ctx context.Context, roomID primitive.ObjectID) bool {
-	roomCollection := ns.collection.Database().Collection("rooms")
-	var room struct {
-		Type string `bson:"type"`
-	}
-
-	err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+	fullRoom, err := ns.getFullRoomById(ctx, roomID)
 	if err != nil {
-		log.Printf("[NotificationService] Failed to get room type: %v", err)
-		return false // ถ้าไม่สามารถดึงข้อมูลได้ ให้ส่ง notification ตามปกติ
+		// fallback เดิม
+		roomCollection := ns.collection.Database().Collection("rooms")
+		var room struct {
+			Type string `bson:"type"`
+		}
+		err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+		if err != nil {
+			log.Printf("[NotificationService] Failed to get room type: %v", err)
+			return false // ถ้าไม่สามารถดึงข้อมูลได้ ให้ส่ง notification ตามปกติ
+		}
+		isNormal := room.Type == "normal"
+		log.Printf("[NotificationService] Room %s type: %s, isNormal: %v", roomID.Hex(), room.Type, isNormal)
+		return isNormal
 	}
-
-	// ตรวจสอบว่า room type เป็น "normal" หรือไม่
-	isNormal := room.Type == "normal"
-	log.Printf("[NotificationService] Room %s type: %s, isNormal: %v", roomID.Hex(), room.Type, isNormal)
-
-	return isNormal
+	// ถ้าเป็น normal + ไม่ใช่ school/major = true (ห้าม noti)
+	if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
+		return true
+	}
+	return false
 }
 
 // IsNormalRoomType (Public method) ตรวจสอบว่าห้องนี้เป็น type "normal" หรือไม่
@@ -735,12 +756,28 @@ func (ns *NotificationService) getRoomType(ctx context.Context, roomID primitive
 
 // IsRoomNotificationEnabled checks if notifications are enabled for this room type
 func (ns *NotificationService) IsRoomNotificationEnabled(ctx context.Context, roomID primitive.ObjectID) bool {
-	roomType, err := ns.getRoomType(ctx, roomID)
+	fullRoom, err := ns.getFullRoomById(ctx, roomID)
 	if err != nil {
-		log.Printf("[NotificationService] Failed to get room type, defaulting to enabled: %v", err)
-		return true // Default to enabled if we can't determine type
+		roomType, err := ns.getRoomType(ctx, roomID)
+		if err != nil {
+			log.Printf("[NotificationService] Failed to get room type, defaulting to enabled: %v", err)
+			return true // Default to enabled if we can't determine type
+		}
+		return roomType != "normal"
 	}
+	if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
+		return false
+	}
+	return true
+}
 
-	// Only "normal" type rooms have notifications disabled
-	return roomType != "normal"
+// เพิ่ม helper สำหรับโหลด room เต็ม (metadata)
+func (ns *NotificationService) getFullRoomById(ctx context.Context, roomID primitive.ObjectID) (*roomModel.Room, error) {
+	roomCollection := ns.collection.Database().Collection("rooms")
+	var room roomModel.Room
+	err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+	if err != nil {
+		return nil, err
+	}
+	return &room, nil
 }

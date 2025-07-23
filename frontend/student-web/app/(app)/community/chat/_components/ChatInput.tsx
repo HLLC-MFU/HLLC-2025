@@ -44,7 +44,7 @@ const ChatInput = ({
   const hasText = messageText.trim().length > 0;
   
   // Check if user has Administrator role
-  const isAdministrator = user?.role?.name === 'Administrator' || "MENTEE" || "Mentor";
+  const isAdministrator = user?.role?.name === 'Administrator' || user?.role?.name === 'MENTEE' || user?.role?.name === 'Mentor';
   // MC Room logic
   const isMCRoom = room?.type === 'mc';
   const isFresher = user?.role?.name === 'Fresher';
@@ -55,7 +55,9 @@ const ChatInput = ({
   // Check if room is inactive
   const isInactiveRoom = room?.status === 'inactive';
   // Determine if input should be disabled
-  const isDisabled = !isMember || !isConnected || isInactiveRoom || (isReadOnlyRoom && !isAdministrator);
+  // Administrator สามารถส่งข้อความใน readonly room ได้เสมอ
+  const isDisabled = !isMember || !isConnected || isInactiveRoom ||
+    (isReadOnlyRoom && !isAdministrator);
   // Determine if user can send messages
   const canSend = hasText && !isDisabled;
 

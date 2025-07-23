@@ -249,7 +249,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                                 (type as string) === 'normal' ? 'bg-blue-100 text-blue-700' :
                                 'bg-gray-100 text-gray-700'
                             }`}>
-                                {(type as string) === 'mc' ? 'Master of Ceremonies' : (type as string).charAt(0).toUpperCase() + (type as string).slice(1)}
+                                {(type as string) === 'mc' ? 'Master of Ceremonies' : ((type ? type : '') as string).charAt(0).toUpperCase() + ((type ? type : '') as string).slice(1)}
                             </span>
                         </div>
                         <div className="space-y-6">
