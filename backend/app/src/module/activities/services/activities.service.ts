@@ -49,7 +49,7 @@ export class ActivitiesService {
     @InjectModel(Major.name)
     private majorsModel: Model<MajorDocument>,
     private readonly assessmentsService: AssessmentsService,
-  ) {}
+  ) { }
 
   async create(createActivitiesDto: CreateActivitiesDto) {
     const metadata = createActivitiesDto.metadata || {};
@@ -349,31 +349,49 @@ export class ActivitiesService {
   }
 
   async update(id: string, updateActivityDto: UpdateActivityDto) {
+    const originActivity = await this.activitiesModel.findById(id).lean();
+    if (!originActivity) throw new NotFoundException('Activity not found');
     if (updateActivityDto.metadata?.scope) {
       const scope = updateActivityDto.metadata.scope;
-      const convertedScope = {
-        major: Array.isArray(scope.major)
-          ? scope.major.map((id) => new Types.ObjectId(id))
-          : scope.major
-            ? [Types.ObjectId.createFromHexString(scope.major)]
-            : [],
-        school: Array.isArray(scope.school)
-          ? scope.school.map((id) => new Types.ObjectId(id))
-          : scope.school
-            ? [Types.ObjectId.createFromHexString(scope.school)]
-            : [],
-        user: Array.isArray(scope.user)
-          ? scope.user.map((id) => new Types.ObjectId(id))
-          : scope.user
-            ? [Types.ObjectId.createFromHexString(scope.user)]
-            : [],
+
+      function parseIds(value?: string | string[]): string[] {
+        if (!value) return [];
+        if (Array.isArray(value)) return value;
+        return value.split(',').map((id) => id.trim());
+      }
+
+      const parsedScope = {
+        major: parseIds(scope.major),
+        school: parseIds(scope.school),
+        user: parseIds(scope.user),
       };
+
+      const convertedScope = {
+        major: parsedScope.major
+          .filter((id) => Types.ObjectId.isValid(id))
+          .map((id) => new Types.ObjectId(id)),
+        school: parsedScope.school
+          .filter((id) => Types.ObjectId.isValid(id))
+          .map((id) => new Types.ObjectId(id)),
+        user: parsedScope.user
+          .filter((id) => Types.ObjectId.isValid(id))
+          .map((id) => new Types.ObjectId(id)),
+      };
+
       updateActivityDto.metadata.scope = {
         major: convertedScope.major.map((id) => id.toString()),
         school: convertedScope.school.map((id) => id.toString()),
         user: convertedScope.user.map((id) => id.toString()),
       };
     }
+
+    if (updateActivityDto.photo) {
+      updateActivityDto.photo = {
+        ...originActivity.photo,
+        ...updateActivityDto.photo,
+      };
+    }
+
     const activity = await this.activitiesModel
       .findByIdAndUpdate(id, updateActivityDto, { new: true })
       .lean();
@@ -384,6 +402,7 @@ export class ActivitiesService {
 
     return activity;
   }
+
 
   async remove(id: string) {
     await this.activitiesModel.findByIdAndDelete(id).lean();
