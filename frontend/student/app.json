@@ -2,7 +2,7 @@
   "expo": {
     "name": "HLLC",
     "slug": "student",
-    "version": "1.0.0",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -70,8 +70,6 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/hllc-splash-screen.png",
-          "resizeMode": "cover",
           "backgroundColor": "#ffffff"
         }
       ],

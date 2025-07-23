@@ -115,25 +115,43 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
                   textShadowRadius: 4,
                 }}
               >
-                {activity.name.en}
+                {activity.name[language] || "No title provided"}
               </Text>
+
             </YStack>
 
             {/* Description */}
-            <Text
-              fontSize="$3"
-              color="rgba(255,255,255,0.9)"
-              numberOfLines={3}
-              marginBottom={16}
-              lineHeight={20}
-              style={{
-                textShadowColor: "rgba(0,0,0,0.3)",
-                textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 2,
-              }}
-            >
-              {activity.location.en} • Experience an amazing adventure with stunning views and unforgettable memories.
-            </Text>
+            <YStack>
+              <Text
+                fontSize="$3"
+                color="rgba(255,255,255,0.9)"
+                numberOfLines={3}
+                marginBottom={16}
+                lineHeight={20}
+                style={{
+                  textShadowColor: "rgba(0,0,0,0.3)",
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 2,
+                }}
+              >
+                {activity.location[language] || "No location provided"}
+              </Text>
+              <Text
+                fontSize="$3"
+                color="rgba(255,255,255,0.9)"
+                numberOfLines={3}
+                marginBottom={16}
+                lineHeight={20}
+                style={{
+                  textShadowColor: "rgba(0,0,0,0.3)",
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 2,
+                }}
+              >
+                {activity.shortDetails[language] || "No location provided"}
+              </Text>
+            </YStack>
+
 
             {/* Time Badges */}
             <XStack gap={12} marginBottom={20}>
