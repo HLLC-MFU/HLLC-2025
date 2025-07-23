@@ -43,8 +43,10 @@ const ChatInput = ({
   const [isFocused, setIsFocused] = useState(false);
   const hasText = messageText.trim().length > 0;
   
-  // Check if user has Administrator role
-  const isAdministrator = user?.role?.name === 'Administrator' || user?.role?.name === 'MENTEE' || user?.role?.name === 'Mentor';
+  // Check if user has Administrator role (case-insensitive)
+  const roleName = user?.role?.name?.toLowerCase?.() || '';
+  // const isAdministrator = roleName === 'administrator' || roleName === 'mentee' || roleName === 'mentor';
+  const isAdministrator = roleName === 'administrator';
   // MC Room logic
   const isMCRoom = room?.type === 'mc';
   const isFresher = user?.role?.name === 'Fresher';
