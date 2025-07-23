@@ -16,6 +16,8 @@ interface SwipeableMessageBubbleProps {
   currentUsername: string;
   onUnsend?: (message: Message) => void;
   stickers?: any[];
+  room?: any;
+  user?: any;
 }
 
 const SwipeableMessageBubble: React.FC<SwipeableMessageBubbleProps> = ({
@@ -31,6 +33,8 @@ const SwipeableMessageBubble: React.FC<SwipeableMessageBubbleProps> = ({
   currentUsername,
   onUnsend,
   stickers,
+  room,
+  user,
 }) => {
   return (
     <div className="relative flex items-center group">
@@ -47,6 +51,8 @@ const SwipeableMessageBubble: React.FC<SwipeableMessageBubbleProps> = ({
         currentUsername={currentUsername}
         onUnsend={onUnsend}
         stickers={stickers}
+        room={room}
+        user={user}
       />
       <button
         className="absolute top-1/2 -translate-y-1/2 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-1 border border-gray-200 shadow"

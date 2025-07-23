@@ -149,11 +149,6 @@ export default function ReportsPage() {
                         <div
                           key={problem.id}
                           className="rounded-lg border border-gray-200 p-3 hover:border-gray-300"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedProblem(problem);
-                            setIsProblemModalOpen(true);
-                          }}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                             <div className="flex-1 min-w-0">

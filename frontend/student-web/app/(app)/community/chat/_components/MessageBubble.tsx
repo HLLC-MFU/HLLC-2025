@@ -11,6 +11,8 @@ interface MessageBubbleEnrichedProps extends MessageBubbleProps {
   onReplyPreviewClick?: (replyToId: string) => void;
   currentUsername: string;
   stickers?: any[]; // <-- add stickers prop
+  room?: any;
+  user?: any;
 }
 
 const MessageBubble = memo(({ 

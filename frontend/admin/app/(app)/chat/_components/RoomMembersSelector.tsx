@@ -66,10 +66,10 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                     <span className="text-xs text-default-500">Select additional members to add to this room</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    {selectedMembers.length > 0 && (
+                    {selectedMembers.length > 0 && !isSelectAllActive && (
                         <Button color="default" size="sm" variant="light" onPress={handleClearAll}>Clear All</Button>
                     )}
-                    {allowSelectAll && (
+                    {allowSelectAll && !isSelectAllActive && (
                         <Button className="font-bold shadow-md" color="primary" isDisabled={isSelectAllActive} size="md"
                             startContent={<Users size={18} />} variant={isSelectAllActive ? "solid" : "flat"} onPress={handleSelectAll}>
                             Select All Users
@@ -78,12 +78,46 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                 </div>
             </div>
 
+            {/* All Users Selected UX */}
+            {isSelectAllActive && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-4 mb-2">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-500 text-white text-2xl font-bold">
+                        <Users size={28} />
+                    </div>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold text-sm flex items-center gap-1">
+                                <Users size={16} /> All Users Selected
+                            </span>
+                            <button
+                                className="ml-2 text-xs text-blue-600 underline"
+                                onClick={handleClearAll}
+                                type="button"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                        <div className="text-blue-700 font-medium">
+                            All users in the system will be added to this room.
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                            You cannot select individual users while this option is active.
+                        </div>
+                    </div>
+                </div>
+            )}
+            {isSelectAllActive && (
+                <div className="border-b border-blue-100 mb-2" />
+            )}
+
             {/* Search Input */}
-            <Input isDisabled={isSelectAllActive} label="Search Users" placeholder="Type to search users..."
-                startContent={<Users size={20} />} value={searchQuery} onValueChange={handleSearch} />
+            {!isSelectAllActive && (
+                <Input isDisabled={isSelectAllActive} label="Search Users" placeholder="Type to search users..."
+                    startContent={<Users size={20} />} value={searchQuery} onValueChange={handleSearch} />
+            )}
 
             {/* Selected Members */}
-            {selectedMembers.length > 0 && (
+            {!isSelectAllActive && selectedMembers.length > 0 && (
                 <div className="space-y-2">
                     <span className="text-sm text-default-500">Selected Members:</span>
                     <div className="flex flex-wrap gap-2">
@@ -98,12 +132,6 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                             </div>
                         ))}
                     </div>
-                    {isSelectAllActive && (
-                        <div className="flex items-center gap-2 mt-2">
-                            <Badge className="text-base font-bold" color="primary" variant="solid">ALL USERS SELECTED</Badge>
-                            <span className="text-primary-600 font-semibold">All users in the system will be added to this room</span>
-                        </div>
-                    )}
                 </div>
             )}
 
@@ -114,14 +142,13 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                     <div className="max-h-40 overflow-y-auto space-y-1">
                         {(() => {
                             const availableUsers = users.filter(user => !selectedMembers.some(u => u._id === user._id));
-                            console.log('Available users for selection:', availableUsers.length, 'users:', availableUsers);
                             return availableUsers.map(user => (
                             <div key={user._id} className="flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors bg-default-50 hover:bg-default-100"
                                 onClick={() => handleUserSelect(user)}>
                                 <div className="flex items-center gap-2">
                                     <UserPlus className="text-default-400" size={16} />
                                     <span className="text-sm font-medium">{user.username || `${user.name?.first || ''} ${user.name?.last || ''}`.trim()}</span>
-                                    {user.name?.first && <span className="text-xs text-default-400">{user.name?.first} {user.name?.last}</span>}
+                                    {user.name?.first && <span className="ml-2 text-xs text-default-400">{user.name?.first} {user.name?.last}</span>}
                                 </div>
                             </div>
                             ));

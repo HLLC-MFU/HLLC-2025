@@ -8,7 +8,6 @@ import (
 	roomHelper "chat/module/room/shared/utils"
 	"chat/pkg/middleware"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -206,50 +205,28 @@ func (h *RoomMemberHelper) LeaveRoom(ctx context.Context, roomID primitive.Objec
 
 // broadcastUserJoined broadcast event เมื่อ user เข้าร่วม
 func (h *RoomMemberHelper) broadcastUserJoined(roomID, userID string) {
-	if h.hub == nil {
-		log.Printf("[MemberHelper] Hub not available for broadcasting")
-		return
-	}
-
-	// ส่ง event ไปยัง WebSocket hub
-	event := map[string]interface{}{
-		"type":      "user_joined",
-		"roomId":    roomID,
-		"userId":    userID,
-		"timestamp": time.Now(),
-	}
-
-	if data, err := json.Marshal(event); err == nil {
-		h.hub.BroadcastToRoom(roomID, data)
-		log.Printf("[MemberHelper] Broadcasted user_joined event for room %s", roomID)
-	} else {
-		log.Printf("[MemberHelper] Failed to marshal user_joined event: %v", err)
-	}
-
-	// TODO: ส่ง event ไปยัง Kafka (จะใช้ eventEmitter ตามที่มีอยู่)
+	// Disabled: Do not broadcast user_joined event
+	// event := ChatEvent{
+	//     Type: "user_joined",
+	//     Payload: map[string]string{
+	//         "roomId": roomID,
+	//         "userId": userID,
+	//     },
+	// }
+	// eventBytes, _ := json.Marshal(event)
+	// h.hub.BroadcastToRoom(roomID, eventBytes)
 }
 
 // broadcastUserLeft broadcast event เมื่อ user ออกจากห้อง
 func (h *RoomMemberHelper) broadcastUserLeft(roomID, userID string) {
-	if h.hub == nil {
-		log.Printf("[MemberHelper] Hub not available for broadcasting")
-		return
-	}
-
-	// ส่ง event ไปยัง WebSocket hub
-	event := map[string]interface{}{
-		"type":      "user_left",
-		"roomId":    roomID,
-		"userId":    userID,
-		"timestamp": time.Now(),
-	}
-
-	if data, err := json.Marshal(event); err == nil {
-		h.hub.BroadcastToRoom(roomID, data)
-		log.Printf("[MemberHelper] Broadcasted user_left event for room %s", roomID)
-	} else {
-		log.Printf("[MemberHelper] Failed to marshal user_left event: %v", err)
-	}
-
-	// TODO: ส่ง event ไปยัง Kafka (จะใช้ eventEmitter ตามที่มีอยู่)
+	// Disabled: Do not broadcast user_left event
+	// event := ChatEvent{
+	//     Type: "user_left",
+	//     Payload: map[string]string{
+	//         "roomId": roomID,
+	//         "userId": userID,
+	//     },
+	// }
+	// eventBytes, _ := json.Marshal(event)
+	// h.hub.BroadcastToRoom(roomID, eventBytes)
 }

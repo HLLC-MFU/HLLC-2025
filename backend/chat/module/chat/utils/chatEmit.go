@@ -260,49 +260,49 @@ func (e *ChatEventEmitter) EmitTyping(ctx context.Context, roomID, userID string
 	return nil
 }
 
-func (e *ChatEventEmitter) EmitUserJoined(ctx context.Context, roomID, userID string) error {
-	event := ChatEvent{
-		Type: "user_joined",
-		Payload: map[string]string{
-			"roomId": roomID,
-			"userId": userID,
-		},
-	}
+// func (e *ChatEventEmitter) EmitUserJoined(ctx context.Context, roomID, userID string) error {
+// 	event := ChatEvent{
+// 		Type: "user_joined",
+// 		Payload: map[string]string{
+// 			"roomId": roomID,
+// 			"userId": userID,
+// 		},
+// 	}
 
-	eventBytes, _ := json.Marshal(event)
-	e.hub.BroadcastToRoom(roomID, eventBytes)
+// 	eventBytes, _ := json.Marshal(event)
+// 	e.hub.BroadcastToRoom(roomID, eventBytes)
 
-	roomTopic := getRoomTopic(roomID)
-	if err := e.bus.Emit(ctx, roomTopic, roomID, eventBytes); err != nil {
-		log.Printf("[WARN] Failed to emit user_joined to Kafka (continuing without Kafka): %v", err)
-		// Don't return error - continue without Kafka
-	}
+// 	roomTopic := getRoomTopic(roomID)
+// 	if err := e.bus.Emit(ctx, roomTopic, roomID, eventBytes); err != nil {
+// 		log.Printf("[WARN] Failed to emit user_joined to Kafka (continuing without Kafka): %v", err)
+// 		// Don't return error - continue without Kafka
+// 	}
 
-	log.Printf("[Kafka] Successfully published user_joined to topic %s", roomTopic)
-	return nil
-}
+// 	log.Printf("[Kafka] Successfully published user_joined to topic %s", roomTopic)
+// 	return nil
+// }
 
-func (e *ChatEventEmitter) EmitUserLeft(ctx context.Context, roomID, userID string) error {
-	event := ChatEvent{
-		Type: "user_left",
-		Payload: map[string]string{
-			"roomId": roomID,
-			"userId": userID,
-		},
-	}
+// func (e *ChatEventEmitter) EmitUserLeft(ctx context.Context, roomID, userID string) error {
+// 	event := ChatEvent{
+// 		Type: "user_left",
+// 		Payload: map[string]string{
+// 			"roomId": roomID,
+// 			"userId": userID,
+// 		},
+// 	}
 
-	eventBytes, _ := json.Marshal(event)
-	e.hub.BroadcastToRoom(roomID, eventBytes)
+// 	eventBytes, _ := json.Marshal(event)
+// 	e.hub.BroadcastToRoom(roomID, eventBytes)
 
-	roomTopic := getRoomTopic(roomID)
-	if err := e.bus.Emit(ctx, roomTopic, roomID, eventBytes); err != nil {
-		log.Printf("[WARN] Failed to emit user_left to Kafka (continuing without Kafka): %v", err)
-		// Don't return error - continue without Kafka
-	}
+// 	roomTopic := getRoomTopic(roomID)
+// 	if err := e.bus.Emit(ctx, roomTopic, roomID, eventBytes); err != nil {
+// 		log.Printf("[WARN] Failed to emit user_left to Kafka (continuing without Kafka): %v", err)
+// 		// Don't return error - continue without Kafka
+// 	}
 
-	log.Printf("[Kafka] Successfully published user_left to topic %s", roomTopic)
-	return nil
-}
+// 	log.Printf("[Kafka] Successfully published user_left to topic %s", roomTopic)
+// 	return nil
+// }
 
 // Helper methods for mobile event structure
 
