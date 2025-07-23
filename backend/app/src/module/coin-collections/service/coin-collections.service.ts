@@ -280,6 +280,7 @@ export class CoinCollectionsService {
     const collectedCount = await this.coinCollectionModel.countDocuments({
       landmarks: { $elemMatch: { landmark: landmarkId } }
     });
+    
     if (collectedCount === 0) return null;
 
     //ใช้โอกาสแจกตรง ๆ เช่น 1 ใน 27
@@ -295,16 +296,16 @@ export class CoinCollectionsService {
       'metadata.landmark': landmarkId.toString(),
       'metadata.round': collectedCount,
     });
+    
     if (alreadyClaimed) return;
 
     // หา evoucher ที่ยังไม่เคยได้
     const now = new Date();
     const exclude = await this.evoucherCodeModel.distinct('evoucher', { user: userId });
     const evoucher = await this.evoucherModel.findOne({
-      startAt: { $lte: now },
-      endAt: { $gte: now },
       _id: { $nin: exclude },
     });
+
     if (!evoucher) throw new BadRequestException('No new evoucher available for you');
 
     // claim code
