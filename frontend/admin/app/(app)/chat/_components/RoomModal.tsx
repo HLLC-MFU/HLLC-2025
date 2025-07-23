@@ -77,8 +77,8 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
             setImageError(false);
 
             // set type ตาม roomType เฉพาะตอน add
-            if (roomType === "normal" || roomType === "readonly") {
-                setType(roomType);
+            if (["normal", "readonly", "mc"].includes(roomType)) {
+                setType(roomType as RoomType);
             } else {
                 setType("normal");
             }
@@ -217,6 +217,41 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                         {`${mode === "add" ? "Add" : "Edit"} ${roomType === "school" ? "School" : roomType === "major" ? "Major" : "Room"}`}
                     </ModalHeader>
                     <ModalBody>
+                        {/* Room avatar, name, and type tag preview */}
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-xl ${
+                                (type as string) === 'normal' ? 'bg-blue-500' :
+                                (type as string) === 'readonly' ? 'bg-blue-700' :
+                                (type as string) === 'mc' ? 'bg-purple-500' :
+                                (type as string) === 'school' ? 'bg-green-600' :
+                                (type as string) === 'major' ? 'bg-yellow-500' :
+                                'bg-gray-400'
+                            }`}>
+                                {nameEn.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="font-semibold text-lg truncate">{nameEn || 'Room Name'}</span>
+                            {/* Show groupType tag for major/school */}
+                            {(roomType === 'major' || roomType === 'school') && (
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ml-2 ${
+                                    roomType === 'school' ? 'bg-green-100 text-green-700' :
+                                    roomType === 'major' ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-gray-100 text-gray-700'
+                                }`}>
+                                    {roomType === 'school' ? 'School' : 'Major'}
+                                </span>
+                            )}
+                            {/* Show type tag always */}
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ml-2 ${
+                                (type as string) === 'mc' ? 'bg-purple-100 text-purple-700' :
+                                (type as string) === 'school' ? 'bg-green-100 text-green-700' :
+                                (type as string) === 'major' ? 'bg-yellow-100 text-yellow-700' :
+                                (type as string) === 'readonly' ? 'bg-blue-200 text-blue-800' :
+                                (type as string) === 'normal' ? 'bg-blue-100 text-blue-700' :
+                                'bg-gray-100 text-gray-700'
+                            }`}>
+                                {(type as string) === 'mc' ? 'Master of Ceremonies' : (type as string).charAt(0).toUpperCase() + (type as string).slice(1)}
+                            </span>
+                        </div>
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input

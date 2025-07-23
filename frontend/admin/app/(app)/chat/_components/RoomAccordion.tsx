@@ -1,7 +1,7 @@
 "use client";
 
 import { Accordion, AccordionItem, Button, Input, Spinner, Pagination } from "@heroui/react";
-import { PlusIcon, SearchIcon, MessageSquare, Lock, Building2, GraduationCap } from "lucide-react";
+import { PlusIcon, SearchIcon, MessageSquare, Lock, Building2, GraduationCap, MicVocal } from "lucide-react";
 import { useState, useMemo } from "react";
 import { RoomCard } from "./RoomCard";
  import { RoomSkeleton } from "./RoomSkeleton";
@@ -34,6 +34,7 @@ export default function RoomAccordion({
     const roomCategories = [
         { label: "Normal", type: "normal" as RoomType, icon: <MessageSquare size={18} /> },
         { label: "Readonly", type: "readonly" as RoomType, icon: <Lock size={18} /> },
+        { label: "Master of Ceremonies", type: "mc" as RoomType, icon: <MicVocal size={18} /> },
         { label: "School", type: "school", icon: <Building2 size={18} /> },
         { label: "Major", type: "major", icon: <GraduationCap size={18} /> }
     ];
@@ -191,12 +192,14 @@ const RoomSection = ({
                     <span className="hidden sm:inline">
                         {type === 'normal' && 'Add Normal Room'}
                         {type === 'readonly' && 'Add Readonly Room'}
+                        {type === 'mc' && 'Add Master of Ceremonies Room'}
                         {type === 'school' && 'Add School Room'}
                         {type === 'major' && 'Add Major Room'}
                     </span>
                     <span className="sm:hidden">
                         {type === 'normal' && 'Add Normal'}
                         {type === 'readonly' && 'Add Readonly'}
+                        {type === 'mc' && 'Add Master of Ceremonies'}
                         {type === 'school' && 'Add School'}
                         {type === 'major' && 'Add Major'}
                     </span>
