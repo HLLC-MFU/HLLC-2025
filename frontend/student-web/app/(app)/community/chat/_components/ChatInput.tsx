@@ -44,7 +44,7 @@ const ChatInput = ({
   const hasText = messageText.trim().length > 0;
   
   // Check if user has Administrator role
-  const isAdministrator = user?.role?.name === 'Administrator';
+  const isAdministrator = user?.role?.name === 'Administrator' || "MENTEE" || "Mentor";
   // MC Room logic
   const isMCRoom = room?.type === 'mc';
   const isFresher = user?.role?.name === 'Fresher';

@@ -9,21 +9,52 @@ interface SystemMessageProps {
 
 const SystemMessage = memo(({ text, timestamp, userRoleName }: SystemMessageProps) => {
   // Custom rendering for MC room feedback
-  if (text === 'ขอบคุณสำหรับคำถามของคุณ / Thank you for your feedback') {
+  if (text === 'ขอบคุณสำหรับคำถามของคุณ /n Thank you for your feedback') {
     // Only show for Fresher
     if (userRoleName?.toLowerCase() !== 'fresher') return null;
     return (
-      <div style={styles.mcSystemMessageContainerLeft}>
-        <div style={styles.mcSystemMessageBubbleNeutral}>
-          {/* <div style={{ fontSize: 28, marginBottom: 4, textAlign: 'center' }}>🙏</div> */}
-          <div style={{ fontWeight: 600, color: '#222', fontSize: 15, textAlign: 'center', lineHeight: 1.4, marginBottom: 4 }}>
-            ขอบคุณสำหรับคำถามของคุณ 🙏
+      <div style={{ display: 'flex', alignItems: 'flex-end', margin: '18px 0 12px 0', width: '100%' }}>
+        {/* System Avatar */}
+        <div style={{
+          width: 36,
+          height: 36,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 700,
+          fontSize: 18,
+          color: '#fff',
+          marginRight: 12,
+          boxShadow: '0 2px 8px 0 rgba(59, 130, 246, 0.10)',
+          border: '2px solid #e5e7eb',
+          flexShrink: 0,
+        }} title="System">S</div>
+        <div style={{ flex: 1 }}>
+          {/* System Name and Username */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+            <span style={{
+              fontWeight: 500,
+              color: '#64748b',
+              fontSize: 13,
+              padding: '2px 8px',
+              borderRadius: 8,
+              letterSpacing: 0.1,
+              marginLeft: 2
+            }}>@system</span>
           </div>
-          <div style={{ color: '#555', fontSize: 13, textAlign: 'center', lineHeight: 1.4 }}>
-            Thank you for your feedback 🙏
+          {/* System Message */}
+          <div style={styles.mcSystemMessageBubbleNeutral}>
+            <div style={{ fontWeight: 600, color: '#222', fontSize: 15, lineHeight: 1.5, marginBottom: 4, textAlign: 'left' }}>
+              ขอบคุณสำหรับคำถามของคุณ 🙏
+            </div>
+            <div style={{ color: '#555', fontSize: 13, lineHeight: 1.4, textAlign: 'left' }}>
+              Thank you for your feedback 🙏
+            </div>
           </div>
+          {timestamp && <p style={styles.timestamp}>{formatTime(timestamp)}</p>}
         </div>
-        {timestamp && <p style={styles.timestamp}>{formatTime(timestamp)}</p>}
       </div>
     );
   }
@@ -89,13 +120,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     boxShadow: '0 2px 12px 0 rgba(100, 116, 139, 0.10)',
     padding: '16px 22px 12px 22px',
     marginLeft: 0,
-    marginRight: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
+    marginRight: 0,
+    display: 'inline-block',
     border: '1px solid #e5e7eb',
-    maxWidth: 320,
-    minWidth: 180,
+    minWidth: 0,
+    maxWidth: '80%',
+    wordBreak: 'break-word',
   },
 };
 

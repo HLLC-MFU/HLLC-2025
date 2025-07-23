@@ -104,16 +104,16 @@ export default function ChatRoomPage() {
     console.log('[DEBUG] handleSendMessageWithScroll called', { isMember, isConnected, messageText });
     if (messageText.trim() && isConnected) {
       handleSendMessage();
-      // MC room feedback response for Fresher
-      if (room?.type === 'mc' && user?.role?.name === 'Fresher') {
-        const sysMsg = {
-          id: `sys-feedback-${Date.now()}`,
-          type: 'system',
-          text: 'ขอบคุณสำหรับคำถามของคุณ / Thank you for your feedback',
-          timestamp: new Date().toISOString(),
-        };
-        setLocalSystemMessages((prev) => [...prev, [sysMsg]]);
-      }
+      // REMOVE: Do not add local feedback system message for Fresher in MC room
+      // if (room?.type === 'mc' && user?.role?.name === 'Fresher') {
+      //   const sysMsg = {
+      //     id: `sys-feedback-${Date.now()}`,
+      //     type: 'system',
+      //     text: 'ขอบคุณสำหรับคำถามของคุณ /n Thank you for your feedback',
+      //     timestamp: new Date().toISOString(),
+      //   };
+      //   setLocalSystemMessages((prev) => [...prev, [sysMsg]]);
+      // }
       setMessageText('');
       setTimeout(() => {
         if (flatListRef.current) {

@@ -137,13 +137,11 @@ const MessageList = ({
               }
               // Prevent duplicate thank you feedback system message for Fresher in MC room
               // Only show one feedback per user message
-              const isThankYouFeedback = message.text === 'ขอบคุณสำหรับคำถามของคุณ / Thank you for your feedback';
-              // Find if a feedback system message already exists for this timestamp
+              const isThankYouFeedback = message.text === 'ขอบคุณสำหรับคำถามของคุณ /n Thank you for your feedback';
               let shouldShowSystemMessage = showMockSystem;
               if (isThankYouFeedback) {
-                // If this is a feedback system message, only show if not already present for this timestamp
-                const alreadyExists = group.some((m, i2) => i2 !== index && m.text === message.text && m.timestamp === message.timestamp);
-                if (alreadyExists) shouldShowSystemMessage = false;
+                // Never render the manual/duplicate feedback bubble
+                shouldShowSystemMessage = false;
               }
               return (
                 <React.Fragment key={message.id || `msg-${index}`}>
@@ -165,7 +163,7 @@ const MessageList = ({
                   />
                   {shouldShowSystemMessage && (
                     <SystemMessage
-                      text={"ขอบคุณสำหรับคำถามของคุณ / Thank you for your feedback"}
+                      text={"ขอบคุณสำหรับคำถามของคุณ /n Thank you for your feedback"}
                       timestamp={message.timestamp}
                       userRoleName={user?.role?.name}
                     />
