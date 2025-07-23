@@ -34,25 +34,21 @@ export class UsersController {
   ) {}
 
   @Post()
-  @CacheKey('users:invalidate')
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Post('upload')
-  @CacheKey('users:invalidate')
   upload(@Body() uploadUserDtos: UserUploadDirectDto[]) {
     return this.usersService.upload(uploadUserDtos);
   }
 
   @Get()
-  @CacheKey('users')
   async findAll(@Query() query: Record<string, string>) {
     return this.usersService.findAll(query);
   }
 
   @Get('statistics')
-  @CacheKey('users:statistics')
   async getUserCountByRoles(): Promise<
     Record<string, { registered: number; notRegistered: number }>
   > {
@@ -60,7 +56,6 @@ export class UsersController {
   }
 
   @Get(':id')
-  @CacheKey('users:$params.id')
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
@@ -93,7 +88,6 @@ export class UsersController {
   }
 
   @Delete('multiple')
-  @CacheKey('users:invalidate')
   removeMultiple(@Body() ids: string[]) {
     return this.usersService.removeMultiple(ids);
   }

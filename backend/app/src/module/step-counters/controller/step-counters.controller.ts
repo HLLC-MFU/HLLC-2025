@@ -7,10 +7,12 @@ import {
   BadRequestException,
   Req,
   Patch,
+  Logger,
 } from '@nestjs/common';
 import { StepCountersService } from '../service/step-counters.service';
 import { FastifyRequest } from 'fastify';
 import { apiResponse } from 'src/pkg/helper/api-response.helper';
+import { Public } from 'src/module/auth/decorators/public.decorator';
 
 class RegisterDeviceDto {
   deviceId: string;
@@ -28,7 +30,7 @@ class CollectStepDto {
 
 @Controller('step-counters')
 export class StepCountersController {
-  constructor(private readonly stepCountersService: StepCountersService) {}
+  constructor(private readonly stepCountersService: StepCountersService) { }
 
   @Get()
   getUserStep(
@@ -75,20 +77,32 @@ export class StepCountersController {
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
     @Body() body: CollectStepDto,
   ) {
+    const logger = new Logger('StepCounterController');
+
     const user = req.user as { _id?: string; id?: string };
     const userId: string = user?._id ?? user?.id ?? '';
     const { deviceId, stepCount, date } = body;
+
+
     if (!userId || !deviceId || stepCount == null || !date) {
+      logger.warn(
+        `Missing fields: userId=${userId}, deviceId=${deviceId}, stepCount=${stepCount}, date=${date}`,
+      );
       throw new BadRequestException(
         'Missing userId, deviceId, stepCount, or date',
       );
     }
-    return this.stepCountersService.collectStep(
+
+    const result = await this.stepCountersService.collectStep(
       userId,
       deviceId,
       stepCount,
       date,
     );
+
+    logger.debug(`Step collection successful for userId=${userId}`);
+
+    return result;
   }
 
   // ดึง leaderboard
@@ -119,14 +133,14 @@ export class StepCountersController {
   ) {
     const user = req.user as { _id?: string; id?: string };
     const userId: string = user?._id ?? user?.id ?? '';
+
     try {
-      return apiResponse(
-        await this.stepCountersService.getUserRankSummary(userId),
-        "Successfully retrieved user's rank summary",
-        200,
-      )
-    }catch (error) {
+      const result = await this.stepCountersService.getUserRankSummary(userId);
+      return apiResponse(result, "Successfully retrieved user's rank summary", 200);
+    } catch (error) {
+      console.error('[controller] error:', error);
       throw new BadRequestException('Failed to retrieve user rank summary');
     }
   }
+
 }
