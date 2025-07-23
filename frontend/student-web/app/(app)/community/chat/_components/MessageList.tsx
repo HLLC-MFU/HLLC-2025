@@ -135,6 +135,16 @@ const MessageList = ({
               if (showMockSystem) {
                 console.log('[MC ROOM MOCK SYSTEM]', { message, roomType: room?.type, isMyMessage: isUserMessage });
               }
+              // Prevent duplicate thank you feedback system message for Fresher in MC room
+              // Only show one feedback per user message
+              const isThankYouFeedback = message.text === 'ขอบคุณสำหรับคำถามของคุณ / Thank you for your feedback';
+              // Find if a feedback system message already exists for this timestamp
+              let shouldShowSystemMessage = showMockSystem;
+              if (isThankYouFeedback) {
+                // If this is a feedback system message, only show if not already present for this timestamp
+                const alreadyExists = group.some((m, i2) => i2 !== index && m.text === message.text && m.timestamp === message.timestamp);
+                if (alreadyExists) shouldShowSystemMessage = false;
+              }
               return (
                 <React.Fragment key={message.id || `msg-${index}`}>
                   <SwipeableMessageBubble
@@ -153,10 +163,11 @@ const MessageList = ({
                     room={room}
                     user={user}
                   />
-                  {showMockSystem && (
+                  {shouldShowSystemMessage && (
                     <SystemMessage
                       text={"ขอบคุณสำหรับคำถามของคุณ / Thank you for your feedback"}
                       timestamp={message.timestamp}
+                      userRoleName={user?.role?.name}
                     />
                   )}
                 </React.Fragment>

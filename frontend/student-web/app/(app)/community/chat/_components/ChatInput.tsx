@@ -49,13 +49,13 @@ const ChatInput = ({
   const isMCRoom = room?.type === 'mc';
   const isFresher = user?.role?.name === 'Fresher';
   // Disable all but plain text for Fresher in MC room
-  const isFresherInMCRoom = isMCRoom && isFresher;
+  const isFresherInMCRoom = false; // Allow Fresher to send text in MC room
   // Check if room is read-only
   const isReadOnlyRoom = room?.type === 'readonly';
   // Check if room is inactive
   const isInactiveRoom = room?.status === 'inactive';
   // Determine if input should be disabled
-  const isDisabled = !isMember || !isConnected || isInactiveRoom || (isReadOnlyRoom && !isAdministrator) || isFresherInMCRoom;
+  const isDisabled = !isMember || !isConnected || isInactiveRoom || (isReadOnlyRoom && !isAdministrator);
   // Determine if user can send messages
   const canSend = hasText && !isDisabled;
 

@@ -4,11 +4,14 @@ import { formatTime } from '@/utils/chats/timeUtils';
 interface SystemMessageProps {
   text: string;
   timestamp?: string;
+  userRoleName?: string; // <-- add this prop
 }
 
-const SystemMessage = memo(({ text, timestamp }: SystemMessageProps) => {
+const SystemMessage = memo(({ text, timestamp, userRoleName }: SystemMessageProps) => {
   // Custom rendering for MC room feedback
   if (text === 'ขอบคุณสำหรับคำถามของคุณ / Thank you for your feedback') {
+    // Only show for Fresher
+    if (userRoleName?.toLowerCase() !== 'fresher') return null;
     return (
       <div style={styles.mcSystemMessageContainerLeft}>
         <div style={styles.mcSystemMessageBubbleNeutral}>

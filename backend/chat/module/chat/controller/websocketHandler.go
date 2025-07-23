@@ -149,8 +149,16 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 
 			// Add role information (excluding permissions)
 			if user.Role != primitive.NilObjectID {
-				userData["role"] = map[string]interface{}{
-					"_id": user.Role.Hex(),
+				roleObj, err := h.roleService.GetRoleById(ctx, user.Role.Hex())
+				if err == nil && roleObj != nil {
+					userData["role"] = map[string]interface{}{
+						"_id":  roleObj.ID.Hex(),
+						"name": roleObj.Name,
+					}
+				} else {
+					userData["role"] = map[string]interface{}{
+						"_id": user.Role.Hex(),
+					}
 				}
 			}
 		} else {
