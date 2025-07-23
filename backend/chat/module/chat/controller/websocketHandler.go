@@ -59,7 +59,7 @@ func NewWebSocketHandler(
 }
 
 // Send chat history
-func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.Conn, roomID string) {
+func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.Conn, roomID string, userID string) {
 	log.Printf("[WebSocket] 🔍 Fetching chat history for room %s", roomID)
 
 	messages, err := h.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
@@ -113,11 +113,6 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 	}
 
 	// ===== เพิ่มโค้ด filter เฉพาะ MC room =====
-	userID, err := h.rbacMiddleware.ExtractUserIDFromContext(ctx)
-	if err != nil {
-		log.Printf("[WebSocket] ❌ Failed to extract userID from context: %v", err)
-		return
-	}
 	userObjID, _ := primitive.ObjectIDFromHex(userID)
 	mcHelper := utils.NewMCRoomHelper(h.chatService.GetMongo())
 	roomObjID, _ := primitive.ObjectIDFromHex(roomID)
@@ -417,7 +412,7 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 
 	// **ENHANCED: Send chat history with better logging**
 	log.Printf("[WebSocket] 📚 Sending chat history to user %s for room %s", userID, roomID)
-	h.sendChatHistory(ctx, conn, roomID)
+	h.sendChatHistory(ctx, conn, roomID, userID)
 	log.Printf("[WebSocket] ✅ Chat history sent to user %s for room %s", userID, roomID)
 
 	// Create client object
