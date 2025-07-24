@@ -42,9 +42,9 @@ export class Evoucher {
   @Prop({ type: Types.ObjectId, ref: 'Sponsors' })
   sponsor: Types.ObjectId;
 
-  @Prop({ required: false, type: String, enum: EvoucherType, default: EvoucherType.NORMAL })
+  @Prop({ required: false, type: String, enum: EvoucherType})
   type: EvoucherType;
-
+  
   @Prop({ type: Object, default: {} })
   metadata?: Record<string, string>;
 }
