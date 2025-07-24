@@ -2,7 +2,14 @@
 
 import React, { useState } from 'react';
 import { Accordion, AccordionItem, addToast, Button } from '@heroui/react';
-import { Plus, UserRound, UserRoundCog, UserRoundSearch } from 'lucide-react';
+import {
+  MonitorSmartphone,
+  Plus,
+  Smartphone,
+  UserRound,
+  UserRoundCog,
+  UserRoundSearch,
+} from 'lucide-react';
 
 import UsersTable from './_components/UserTable';
 import AddRoleModal from './_components/AddRoleModal';
@@ -53,7 +60,7 @@ export default function ManagementPage() {
   const { majors, loading: majorsLoading } = useMajors();
   const { removePassword } = useAuth();
   const { devices, loading: devicesLoading } = useDevices();
-
+  const [filteredCount, setFilteredCount] = useState<number>(0);
 
   const [isRoleOpen, setIsRoleOpen] = useState(false);
   const [modal, setModal] = useState({
@@ -170,21 +177,19 @@ export default function ManagementPage() {
 
       <div className="flex flex-col gap-6">
         <Accordion className="px-0" variant="splitted">
-          {isLoading ? (
-            Array.from({ length: 3 }).map((_, index) => (
-              <AccordionItem
-                key={`skeleton-${index}`}
-                aria-label={`Loading ${index}`}
-                title={
-                  <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
-                }
-              >
-                <div className="h-[100px] w-full bg-gray-100 rounded-md animate-pulse" />
-              </AccordionItem>
-            ))
-          ) : (
-            <>
-              {roles.map((role) => {
+          {isLoading
+            ? Array.from({ length: 3 }).map((_, index) => (
+                <AccordionItem
+                  key={`skeleton-${index}`}
+                  aria-label={`Loading ${index}`}
+                  title={
+                    <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
+                  }
+                >
+                  <div className="h-[100px] w-full bg-gray-100 rounded-md animate-pulse" />
+                </AccordionItem>
+              ))
+            : roles.map((role) => {
                 const roleName = role.name ?? 'Unnamed';
                 const roleUsers = groupedByRoleId[role._id] || [];
 
@@ -228,18 +233,26 @@ export default function ManagementPage() {
                   </AccordionItem>
                 );
               })}
-            </>
-          )}
         </Accordion>
         <Accordion className="px-0" variant="splitted">
-          <AccordionItem
-            key="device-accordion"
-            aria-label="Devices"
-            title="Devices"
-          >
-             <DeviceTable devices={devices} loading={devicesLoading} />
-          </AccordionItem>
-        </Accordion>
+      <AccordionItem
+        key="device-accordion"
+        aria-label="Devices"
+        className="font-medium mb-2"
+        title={
+          <div className="flex items-center gap-2">
+            <MonitorSmartphone className="w-5 h-5" />
+            <span>Devices ({filteredCount})</span>
+          </div>
+        }
+      >
+        <DeviceTable
+          devices={devices}
+          loading={devicesLoading}
+          onFilteredCountChange={setFilteredCount}
+        />
+      </AccordionItem>
+    </Accordion>
 
         <AddRoleModal
           isOpen={isRoleOpen}
