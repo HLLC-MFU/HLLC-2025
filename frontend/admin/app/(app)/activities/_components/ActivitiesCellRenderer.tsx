@@ -116,15 +116,15 @@ export default function ActivitiesCellRenderer({
                 <div className="flex flex-col gap-1 text-sm">
                     <div>
                         <span className="font-medium text-default-400">School:</span>{" "}
-                        {schoolNames || "-"}
+                        {schoolNames || " - "}
                     </div>
                     <div>
                         <span className="font-medium text-default-400">Major:</span>{" "}
-                        {majorNames || "-"}
+                        {majorNames || " - "}
                     </div>
                     <div>
                         <span className="font-medium text-default-400">User:</span>{" "}
-                        {userNames || "-"}
+                        {userNames || " - "}
                     </div>
                 </div>
             );
