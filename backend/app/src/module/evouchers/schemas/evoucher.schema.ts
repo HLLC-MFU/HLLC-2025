@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { Localization } from 'src/pkg/types/common';
+import { EvoucherType } from '../enum/evoucher-type.enum';
 
 type EvoucherPhoto = {
   front: string;
@@ -41,6 +42,9 @@ export class Evoucher {
   @Prop({ type: Types.ObjectId, ref: 'Sponsors' })
   sponsor: Types.ObjectId;
 
+  @Prop({ required: false, type: String, enum: EvoucherType})
+  type: EvoucherType;
+  
   @Prop({ type: Object, default: {} })
   metadata?: Record<string, string>;
 }
