@@ -6,19 +6,19 @@ import {
   NavbarItem,
   NavbarMenuItem,
 } from "@heroui/navbar";
-import { Link } from "@heroui/link";
 import NextLink from "next/link";
 import { Input } from "@heroui/input";
 
-import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
 import {
   SearchIcon,
 } from "@/components/icons";
 import { useProfile } from "@/hooks/useProfile";
 import { getMenuByRole } from "@/config/getMenuByRole";
+import { useState } from "react";
 
 export const Navbar = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const user = useProfile((state) => state.user); // 🧠 ดึง user จาก Zustand
   const navMenuItems = getMenuByRole(user); // 👈 ฟิลเตอร์เมนูตาม role
   const searchInput = (
@@ -38,19 +38,26 @@ export const Navbar = () => {
   );
 
   return (
-    <HeroUINavbar maxWidth="full" position="sticky">
+    <HeroUINavbar
+      maxWidth="full" 
+      position="sticky"
+      isMenuOpen={isMenuOpen}
+      onMenuOpenChange={setIsMenuOpen}
+    >
 
       <NavbarContent
-        className="hidden sm:flex basis-1/5 sm:basis-full"
+        className="hidden lg:flex basis-1/5 lg:basis-full"
         justify="end"
       >
-        <NavbarItem className="hidden sm:flex gap-2">
+        <NavbarItem className="flex gap-2">
           <ThemeSwitch />
         </NavbarItem>
-        <NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
+        <NavbarItem className="flex">
+          {searchInput}
+        </NavbarItem>
       </NavbarContent>
 
-      <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
+      <NavbarContent className="flex lg:hidden basis-1 pl-4" justify="end">
         <ThemeSwitch />
         <NavbarMenuToggle />
       </NavbarContent>
@@ -69,6 +76,7 @@ export const Navbar = () => {
                 <NavbarMenuItem key={`${item.href}-${index}`}>
                   <NextLink
                     href={item.href}
+                    onClick={() => setIsMenuOpen(false)}
                     className="w-full flex items-center gap-2 text-lg text-foreground"
                   >
                     <item.icon className="w-5 h-5" />
