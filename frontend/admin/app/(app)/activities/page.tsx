@@ -1,19 +1,21 @@
 'use client'
-import { PageHeader } from "@/components/ui/page-header";
-import { useActivities } from "@/hooks/useActivities";
-import { Accordion, AccordionItem, addToast, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, useUser } from "@heroui/react";
-import { University, Plus, EllipsisVertical, Pen, Trash } from "lucide-react";
-import ActivitiesTable from "./_components/ActivitiesTable";
+import { Accordion, AccordionItem, addToast, Button } from "@heroui/react";
+import { University, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+
+import ActivitiesTable from "./_components/ActivitiesTable";
 import { ActivitiesTypeModal } from "./_components/ActivitiesTypeModal";
-import { Activities, ActivityType } from "@/types/activities";
 import ActivitiesModal from "./_components/ActivitiesModal";
 import TopContent from "./_components/TopContent";
 import { ConfirmModal } from "./_components/ConfirmModal";
+import ActivitiesDetailModal from "./_components/ActivitiesDetailCard";
+
+import { Activities, ActivityType } from "@/types/activities";
 import { useSchools } from "@/hooks/useSchool";
 import { useMajors } from "@/hooks/useMajor";
 import { useUsers } from "@/hooks/useUsers";
-import ActivitiesDetailModal from "./_components/ActivitiesDetailCard";
+import { useActivities } from "@/hooks/useActivities";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function ActivitiesPage() {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -55,14 +57,17 @@ export default function ActivitiesPage() {
 
         return activities.filter(activity => {
             let activityTypeId: string | undefined;
+
             if (typeof activity.type === 'string') {
                 const matchedType = activityTypes.find(t => t.name === activity.type);
+
                 activityTypeId = matchedType?._id;
             } else {
                 activityTypeId = activity.type?._id;
             }
             if (activityTypeId !== typeId) return false;
             if (!query) return true;
+
             return (
                 activity.name?.en?.toLowerCase().includes(query) ||
                 activity.name?.th?.toLowerCase().includes(query) ||
@@ -155,8 +160,8 @@ export default function ActivitiesPage() {
             if (mode === 'edit' && selectedActivity) {
                 await updateActivity(selectedActivity._id, formData);
             } else {
-                await createActivity(formData);
-                console.log('Activity created successfully');
+                const res = await createActivity(formData);
+                console.log('Activity created successfully', res);
             }
         } catch (error) {
             console.error('Error creating/updating activity:', error);
@@ -201,7 +206,7 @@ export default function ActivitiesPage() {
                 }
                 title="Activities Management"
             />
-            <Accordion variant="splitted" selectionMode="multiple">
+            <Accordion selectionMode="multiple" variant="splitted">
                 {loading ? (
                     Array.from({ length: 3 }).map((_, index) => (
                         <AccordionItem
@@ -229,28 +234,28 @@ export default function ActivitiesPage() {
                                 <div className="mb-5 flex justify-between w-full">
                                     <TopContent
                                         filterValue={searchForType.id === activityType._id ? searchForType.query : ""}
-                                        onClear={() => setSearchForType({ id: activityType._id, query: "" })}
-                                        onSearchChange={(value) => setSearchForType({ id: activityType._id, query: value })}
                                         onAdd={() => handleAddActivity(activityType)}
-                                        onEdit={() => handleEditType(activityType)}
+                                        onClear={() => setSearchForType({ id: activityType._id, query: "" })}
                                         onDelete={() => handleDeleteType(activityType)}
+                                        onEdit={() => handleEditType(activityType)}
+                                        onSearchChange={(value) => setSearchForType({ id: activityType._id, query: value })}
                                     />
                                 </div>
 
                                 {activitiesForType.length > 0 ? (
                                     <ActivitiesTable
+                                        activities={activitiesForType}
+                                        majors={majors}
+                                        schools={schools}
+                                        users={users}
                                         onAdd={() => handleAddActivity(activityType)}
+                                        onDelete={(activity) => handleDeleteActivity(activity)}
                                         onEdit={(activity) => {
                                             setSelectedActivity(activity);
                                             setModalMode("edit");
                                             setIsActivityModalOpen(true);
                                         }}
-                                        onDelete={(activity) => handleDeleteActivity(activity)}
                                         onViewDetail={handleViewDetail}
-                                        activities={activitiesForType}
-                                        schools={schools}
-                                        majors={majors}
-                                        users={users}
                                     />
                                 ) : (
                                     <div className="p-4 text-sm text-gray-500">
@@ -264,32 +269,32 @@ export default function ActivitiesPage() {
             </Accordion>
 
             <ActivitiesModal
+                activity={selectedActivity}
+                activityTypes={activityTypes}
                 isOpen={isActivityModalOpen}
+                majors={majors}
+                mode={modalMode}
+                schools={schools}
+                typeId={selectedActivitiesType?._id ?? ""}
+                users={users}
                 onClose={() => setIsActivityModalOpen(false)}
                 onSubmit={handleSubmitActivity}
-                mode={modalMode}
-                activity={selectedActivity}
-                typeId={selectedActivitiesType?._id ?? ""}
-                activityTypes={activityTypes}
-                schools={schools}
-                majors={majors}
-                users={users}
             />
 
             <ActivitiesTypeModal
+                activityType={selectedActivitiesType}
                 isOpen={isTypeModalOpen}
                 mode={modalMode}
-                activityType={selectedActivitiesType}
                 onClose={() => setIsTypeModalOpen(false)}
                 onSubmit={handleSubmitType}
             />
             <ActivitiesDetailModal
-                isOpen={isDetailModalOpen}
-                onClose={() => setIsDetailModalOpen(false)}
                 activity={selectedActivityDetail!}
-                schools={schools}
+                isOpen={isDetailModalOpen}
                 majors={majors}
+                schools={schools}
                 users={users}
+                onClose={() => setIsDetailModalOpen(false)}
             />
 
             {/* Confirm modal สำหรับลบ Activity */}
