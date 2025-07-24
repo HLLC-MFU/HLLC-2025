@@ -52,7 +52,7 @@ const useAuth = create<AuthStore>()(
               variant: "solid",
             });
 
-            redirect("/");
+            return false;;
 
           } else {
             set({ error: res.statusText });
