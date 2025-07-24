@@ -299,11 +299,11 @@ export class CoinCollectionsService {
     
     if (alreadyClaimed) return;
 
-    // หา evoucher ที่ยังไม่เคยได้
-    const now = new Date();
+    // หา evoucher ที่ยังไม่เคยได้ หาแต่ evoucher type เป็น 'campaign'
     const exclude = await this.evoucherCodeModel.distinct('evoucher', { user: userId });
     const evoucher = await this.evoucherModel.findOne({
       _id: { $nin: exclude },
+      type: 'campaign',
     });
 
     if (!evoucher) throw new BadRequestException('No new evoucher available for you');
