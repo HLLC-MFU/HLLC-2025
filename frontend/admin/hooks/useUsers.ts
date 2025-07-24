@@ -180,12 +180,14 @@ export function useUsers() {
         try {
             setLoading(true);
             const res = await apiRequest(`/users/${id}`, "DELETE");
+            if (!res) return; 
 
-            if (res.statusCode !== 200) {
-                throw new Error(res.message || "Failed to delete user.");
-            } else {
-                setUsers((prev) => prev.filter((u) => u._id !== id));
-            }
+            setUsers((prev) => prev.filter((u) => u._id !== id));
+            // if (res.statusCode !== 200) {
+            //     throw new Error(res.message || "Failed to delete user.");
+            // } else {
+            //     setUsers((prev) => prev.filter((u) => u._id !== id));
+            // }
 
             return res;
         } catch (err: any) {
