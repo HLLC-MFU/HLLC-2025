@@ -248,6 +248,9 @@ export default function ActivitiesPage() {
                                         onDelete={(activity) => handleDeleteActivity(activity)}
                                         onViewDetail={handleViewDetail}
                                         activities={activitiesForType}
+                                        schools={schools}
+                                        majors={majors}
+                                        users={users}
                                     />
                                 ) : (
                                     <div className="p-4 text-sm text-gray-500">

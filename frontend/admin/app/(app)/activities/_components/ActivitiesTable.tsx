@@ -14,9 +14,15 @@ import ActivitiesCellRenderer, {
 import TopContent from "./TopContent";
 import { useState } from "react";
 import React from "react";
+import { School } from "@/types/school";
+import { Major } from "@/types/major";
+import { User } from "@/types/user";
 
 type ActivitiesTableProps = {
     activities: Activities[];
+    schools: School[];
+    majors: Major[];
+    users: User[];
     onAdd: () => void;
     onEdit: (activity: Activities) => void;
     onDelete: (activity: Activities) => void;
@@ -29,6 +35,7 @@ export const columns = [
     { uid: "location", name: "Location" },
     { uid: "startAt", name: "Start At" },
     { uid: "endAt", name: "End At" },
+    { uid: "scope", name: "Scope" },
     { uid: "isOpen", name: "Status" },
     { uid: "isVisible", name: "Show" },
     { uid: "isProgressCount", name: "isProgressCount" },
@@ -37,6 +44,9 @@ export const columns = [
 
 export default function ActivitiesTable({
     activities,
+    schools,
+    majors,
+    users,
     onAdd,
     onEdit,
     onDelete,
@@ -88,6 +98,9 @@ export default function ActivitiesTable({
                                     onEdit={onEdit}
                                     onDelete={onDelete}
                                     onViewDetail={onViewDetail}
+                                    schools={schools}
+                                    majors={majors}
+                                    users={users}
                                 />
                             </TableCell>
                         ))}
