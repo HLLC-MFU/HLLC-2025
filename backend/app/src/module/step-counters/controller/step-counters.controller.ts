@@ -83,7 +83,6 @@ export class StepCountersController {
     const userId: string = user?._id ?? user?.id ?? '';
     const { deviceId, stepCount, date } = body;
 
-
     if (!userId || !deviceId || stepCount == null || !date) {
       logger.warn(
         `Missing fields: userId=${userId}, deviceId=${deviceId}, stepCount=${stepCount}, date=${date}`,
@@ -91,6 +90,12 @@ export class StepCountersController {
       throw new BadRequestException(
         'Missing userId, deviceId, stepCount, or date',
       );
+    }
+
+    // 🚫 Don't sync if stepCount is 0
+    if (stepCount === 0) {
+      logger.debug(`Step count is 0 — skipping sync for userId=${userId}`);
+      return { message: 'Step count is 0 — sync skipped' };
     }
 
     const result = await this.stepCountersService.collectStep(
@@ -101,9 +106,9 @@ export class StepCountersController {
     );
 
     logger.debug(`Step collection successful for userId=${userId}`);
-
     return result;
   }
+
 
   // ดึง leaderboard
   // ตัวอย่าง query: ?scope=all&page=1&pageSize=10
