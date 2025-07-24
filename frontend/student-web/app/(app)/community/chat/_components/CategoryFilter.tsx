@@ -17,7 +17,7 @@ export default function CategoryFilter({
     <div className="mb-6 px-2 sm:px-4">
       <div className="relative py-3 sm:py-4 bg-white/8 backdrop-blur-xl border border-white/40 shadow-2xl rounded-2xl transition-all duration-500 hover:bg-white/12 group overflow-hidden">
         <div
-          className="absolute inset-0 bg-white/20 backdrop-blur-sm border-2 border-white/50 transition-all duration-700 ease-out shadow-lg"
+          className="absolute inset-y-0 bg-white/20 backdrop-blur-sm border-2 border-white/50 transition-all duration-700 ease-out shadow-lg"
           style={{ 
             left: `${selectedIndex * pillWidth}%`,
             width: `${pillWidth}%`,
@@ -29,7 +29,7 @@ export default function CategoryFilter({
           }}
         />
         
-        <div className="grid grid-cols-5 relative z-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 relative z-10">
           {Categories.map(({ name }) => (
             <button
               key={name}

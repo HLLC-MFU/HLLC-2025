@@ -63,7 +63,7 @@ export async function middleware(req: NextRequest) {
 
   // Restrict SMO users to /checkin and /logout only
   if (role.startsWith("smo") && pathname !== "/checkin" && pathname !== "/logout") {
-    return NextResponse.redirect(new URL(`/checkin`, req.url));
+    return NextResponse.redirect(new URL(`${req.nextUrl.basePath}/checkin`, req.url));
   }
 
   return NextResponse.next();

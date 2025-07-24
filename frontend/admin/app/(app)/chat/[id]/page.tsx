@@ -49,6 +49,12 @@ export default function RoomDetailPage() {
     });
     const [showHistory, setShowHistory] = useState(false);
     const MEMBERS_PER_PAGE = 10;
+    // ดึง currentUserId (mock: localStorage หรือ context)
+    const [currentUserId, setCurrentUserId] = useState<string>("");
+    useEffect(() => {
+        // สมมติใช้ localStorage (หรือเปลี่ยนเป็น useAuth().user._id ถ้ามี)
+        setCurrentUserId(localStorage.getItem("userId") || "");
+    }, []);
 
     useEffect(() => {
         if (roomId) {
@@ -201,6 +207,7 @@ export default function RoomDetailPage() {
                             initialVisibleColumns={INITIAL_VISIBLE_COLUMNS}
                             pagination={pagination}
                             onPageChange={handlePageChange}
+                            currentUserId={currentUserId}
                         />
                     )}
                 </div>

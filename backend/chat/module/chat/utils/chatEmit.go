@@ -3,6 +3,7 @@ package utils
 import (
 	"chat/module/chat/model"
 	restrictionModel "chat/module/restriction/model"
+	roomModel "chat/module/room/room/model"
 	userModel "chat/module/user/model"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
@@ -19,18 +20,20 @@ import (
 )
 
 type ChatEventEmitter struct {
-	hub   *Hub
-	bus   *kafka.Bus
-	redis *redis.Client
-	mongo *mongo.Database
+	hub      *Hub
+	bus      *kafka.Bus
+	redis    *redis.Client
+	mongo    *mongo.Database
+	mcHelper *MCRoomHelper
 }
 
 func NewChatEventEmitter(hub *Hub, bus *kafka.Bus, redis *redis.Client, mongo *mongo.Database) *ChatEventEmitter {
 	return &ChatEventEmitter{
-		hub:   hub,
-		bus:   bus,
-		redis: redis,
-		mongo: mongo,
+		hub:      hub,
+		bus:      bus,
+		redis:    redis,
+		mongo:    mongo,
+		mcHelper: NewMCRoomHelper(mongo),
 	}
 }
 
@@ -257,49 +260,49 @@ func (e *ChatEventEmitter) EmitTyping(ctx context.Context, roomID, userID string
 	return nil
 }
 
-func (e *ChatEventEmitter) EmitUserJoined(ctx context.Context, roomID, userID string) error {
-	event := ChatEvent{
-		Type: "user_joined",
-		Payload: map[string]string{
-			"roomId": roomID,
-			"userId": userID,
-		},
-	}
+// func (e *ChatEventEmitter) EmitUserJoined(ctx context.Context, roomID, userID string) error {
+// 	event := ChatEvent{
+// 		Type: "user_joined",
+// 		Payload: map[string]string{
+// 			"roomId": roomID,
+// 			"userId": userID,
+// 		},
+// 	}
 
-	eventBytes, _ := json.Marshal(event)
-	e.hub.BroadcastToRoom(roomID, eventBytes)
+// 	eventBytes, _ := json.Marshal(event)
+// 	e.hub.BroadcastToRoom(roomID, eventBytes)
 
-	roomTopic := getRoomTopic(roomID)
-	if err := e.bus.Emit(ctx, roomTopic, roomID, eventBytes); err != nil {
-		log.Printf("[WARN] Failed to emit user_joined to Kafka (continuing without Kafka): %v", err)
-		// Don't return error - continue without Kafka
-	}
+// 	roomTopic := getRoomTopic(roomID)
+// 	if err := e.bus.Emit(ctx, roomTopic, roomID, eventBytes); err != nil {
+// 		log.Printf("[WARN] Failed to emit user_joined to Kafka (continuing without Kafka): %v", err)
+// 		// Don't return error - continue without Kafka
+// 	}
 
-	log.Printf("[Kafka] Successfully published user_joined to topic %s", roomTopic)
-	return nil
-}
+// 	log.Printf("[Kafka] Successfully published user_joined to topic %s", roomTopic)
+// 	return nil
+// }
 
-func (e *ChatEventEmitter) EmitUserLeft(ctx context.Context, roomID, userID string) error {
-	event := ChatEvent{
-		Type: "user_left",
-		Payload: map[string]string{
-			"roomId": roomID,
-			"userId": userID,
-		},
-	}
+// func (e *ChatEventEmitter) EmitUserLeft(ctx context.Context, roomID, userID string) error {
+// 	event := ChatEvent{
+// 		Type: "user_left",
+// 		Payload: map[string]string{
+// 			"roomId": roomID,
+// 			"userId": userID,
+// 		},
+// 	}
 
-	eventBytes, _ := json.Marshal(event)
-	e.hub.BroadcastToRoom(roomID, eventBytes)
+// 	eventBytes, _ := json.Marshal(event)
+// 	e.hub.BroadcastToRoom(roomID, eventBytes)
 
-	roomTopic := getRoomTopic(roomID)
-	if err := e.bus.Emit(ctx, roomTopic, roomID, eventBytes); err != nil {
-		log.Printf("[WARN] Failed to emit user_left to Kafka (continuing without Kafka): %v", err)
-		// Don't return error - continue without Kafka
-	}
+// 	roomTopic := getRoomTopic(roomID)
+// 	if err := e.bus.Emit(ctx, roomTopic, roomID, eventBytes); err != nil {
+// 		log.Printf("[WARN] Failed to emit user_left to Kafka (continuing without Kafka): %v", err)
+// 		// Don't return error - continue without Kafka
+// 	}
 
-	log.Printf("[Kafka] Successfully published user_left to topic %s", roomTopic)
-	return nil
-}
+// 	log.Printf("[Kafka] Successfully published user_left to topic %s", roomTopic)
+// 	return nil
+// }
 
 // Helper methods for mobile event structure
 
@@ -425,20 +428,53 @@ func (e *ChatEventEmitter) getReplyToMessage(ctx context.Context, replyToID prim
 	}, nil
 }
 
-// emitEventStructured handles the new unified Event structure
+// emitEventStructured handles the new unified Event structure with MC room filtering
 func (e *ChatEventEmitter) emitEventStructured(ctx context.Context, msg *model.ChatMessage, event model.Event) error {
 	if msg == nil || msg.RoomID.IsZero() || msg.ID.IsZero() {
 		return fmt.Errorf("invalid message data: RoomID=%s, MessageID=%s",
 			msg.RoomID.Hex(), msg.ID.Hex())
 	}
+
 	// For WebSocket broadcasting, marshal to bytes (needed for WebSocket protocol)
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal structured event: %w", err)
 	}
 
-	// Broadcast directly to room instead of using BroadcastEvent
-	e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventBytes)
+	// Check if this is an MC room
+	if e.mcHelper.IsMCRoom(ctx, msg.RoomID) {
+		log.Printf("[ChatEventEmitter] MC Room detected: %s, applying visibility filtering", msg.RoomID.Hex())
+
+		// Get all online users in the room
+		onlineUsers := e.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
+
+		// Send message to each user based on MC room rules
+		for _, userIDStr := range onlineUsers {
+			userID, err := primitive.ObjectIDFromHex(userIDStr)
+			if err != nil {
+				log.Printf("[ChatEventEmitter] Invalid user ID: %s", userIDStr)
+				continue
+			}
+
+			// Check if this user should see this message
+			shouldShow, err := e.mcHelper.ShouldShowMessage(ctx, msg.UserID, userID, msg.RoomID)
+			if err != nil {
+				log.Printf("[ChatEventEmitter] Error checking message visibility for user %s: %v", userIDStr, err)
+				continue
+			}
+
+			if shouldShow {
+				log.Printf("[ChatEventEmitter] Sending message to user %s in MC room", userIDStr)
+				e.hub.BroadcastToUser(userIDStr, eventBytes)
+			} else {
+				log.Printf("[ChatEventEmitter] Hiding message from user %s in MC room", userIDStr)
+			}
+		}
+	} else {
+		// Regular room - broadcast to all users
+		log.Printf("[ChatEventEmitter] Regular room: %s, broadcasting to all users", msg.RoomID.Hex())
+		e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventBytes)
+	}
 
 	// For Kafka, send structured payload directly (no double marshaling)
 	roomTopic := getRoomTopic(msg.RoomID.Hex())
@@ -640,11 +676,11 @@ func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.C
 	return nil
 }
 
-func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, restriction *restrictionModel.UserRestriction) error {
-	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s",
-		restriction.ID.Hex(), restriction.RoomID.Hex())
+func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, restriction *restrictionModel.UserRestriction, action string) error {
+	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s Action=%s",
+		restriction.ID.Hex(), restriction.RoomID.Hex(), action)
 
-	//Create sender info
+	// Create sender info
 	senderInfo := model.UserInfo{
 		ID:       sender.ID.Hex(),
 		Username: sender.Username,
@@ -655,7 +691,7 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 		},
 	}
 
-	//Create restriction info
+	// Create restriction info
 	restrictionInfo := model.RestrictionInfo{
 		ID:          restriction.ID.Hex(),
 		RoomID:      restriction.RoomID.Hex(),
@@ -663,21 +699,50 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 		Restriction: restriction.Restriction,
 	}
 
-	//Create message info (use msg.ID, msg.Timestamp, msg.Message)
+	// Get room data (with name and image)
+	roomInfo, err := e.getRoomInfo(ctx, restriction.RoomID)
+	if err != nil {
+		log.Printf("[WARN] Failed to get room info for restriction message: %v", err)
+		roomInfo = model.RoomInfo{ID: restriction.RoomID.Hex()}
+	}
+
 	messageInfo := model.MessageInfo{
 		ID:        msg.ID.Hex(),
-		Type:      model.MessageTypeRestriction,
-		Message:   msg.Message,
 		Timestamp: msg.Timestamp,
 	}
 
-	// Create Structured Restriction notice event
+	// Handle different actions using a switch and determine specific event type
+	var eventType string
+	switch action {
+	case "ban":
+		eventType = model.EventTypeRestrictionBan
+		messageInfo.Type = "ban"
+		messageInfo.Message = fmt.Sprintf("User %s was banned for %s", sender.Username, restriction.Reason)
+	case "unban":
+		eventType = model.EventTypeRestrictionUnban
+		messageInfo.Type = "unban"
+		messageInfo.Message = fmt.Sprintf("User %s was unbanned", sender.Username)
+	case "mute":
+		eventType = model.EventTypeRestrictionMute
+		messageInfo.Type = "mute"
+		messageInfo.Message = fmt.Sprintf("User %s was muted for %s", sender.Username, restriction.Reason)
+	case "unmute":
+		eventType = model.EventTypeRestrictionUnmute
+		messageInfo.Type = "unmute"
+		messageInfo.Message = fmt.Sprintf("User %s was unmuted", sender.Username)
+	case "kick":
+		eventType = model.EventTypeRestrictionKick
+		messageInfo.Type = "kick"
+		messageInfo.Message = fmt.Sprintf("User %s was kicked out of the room for %s", sender.Username, restriction.Reason)
+	default:
+		return fmt.Errorf("unknown action: %s", action)
+	}
+
+	// Create Structured Restriction notice event with specific event type
 	restrictionEvent := model.Event{
-		Type: model.EventTypeRestriction,
+		Type: eventType,
 		Payload: map[string]interface{}{
-			"room": map[string]interface{}{
-				"_id": restrictionInfo.RoomID,
-			},
+			"room": e.buildRoomPayload(roomInfo),
 			"user": map[string]interface{}{
 				"_id":      senderInfo.ID,
 				"username": senderInfo.Username,
@@ -734,4 +799,60 @@ func (e *ChatEventEmitter) EmitEvent(ctx context.Context, msg *model.ChatMessage
 // GetHub returns the chat hub (for use in restriction/event helpers)
 func (e *ChatEventEmitter) GetHub() *Hub {
 	return e.hub
+}
+
+// buildRoomPayload creates a complete room payload with all available information
+func (e *ChatEventEmitter) buildRoomPayload(roomInfo model.RoomInfo) map[string]interface{} {
+	payload := map[string]interface{}{
+		"_id": roomInfo.ID,
+	}
+
+	// Add name if available
+	if roomInfo.Name.Th != "" || roomInfo.Name.En != "" {
+		payload["name"] = map[string]interface{}{
+			"th": roomInfo.Name.Th,
+			"en": roomInfo.Name.En,
+		}
+	}
+
+	// Add image if available
+	if roomInfo.Image != "" {
+		payload["image"] = roomInfo.Image
+	}
+
+	return payload
+}
+
+// getRoomInfo gets room information from database including name and image
+func (e *ChatEventEmitter) getRoomInfo(ctx context.Context, roomID primitive.ObjectID) (model.RoomInfo, error) {
+	log.Printf("[DEBUG] Getting room info for ID: %s", roomID.Hex())
+
+	roomService := queries.NewBaseService[roomModel.Room](e.mongo.Collection("rooms"))
+	result, err := roomService.FindOne(ctx, bson.M{"_id": roomID})
+
+	if err != nil {
+		log.Printf("[WARN] Failed to query room %s: %v, using fallback", roomID.Hex(), err)
+		// Return fallback with just ID
+		return model.RoomInfo{
+			ID: roomID.Hex(),
+		}, nil
+	}
+
+	if len(result.Data) == 0 {
+		log.Printf("[WARN] Room %s not found in database, using fallback", roomID.Hex())
+		return model.RoomInfo{
+			ID: roomID.Hex(),
+		}, nil
+	}
+
+	room := result.Data[0]
+
+	log.Printf("[DEBUG] Successfully retrieved room: ID=%s, Name.Th='%s', Name.En='%s', Image='%s'",
+		room.ID.Hex(), room.Name.Th, room.Name.En, room.Image)
+
+	return model.RoomInfo{
+		ID:    room.ID.Hex(),
+		Name:  room.Name,
+		Image: room.Image,
+	}, nil
 }

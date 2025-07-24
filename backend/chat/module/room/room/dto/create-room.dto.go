@@ -12,7 +12,7 @@ import (
 type (
 	CreateRoomDto struct {
 		Name           common.LocalizedName `form:"name" validate:"notEmpty"`
-		Type           string               `form:"type" validate:"roomType"`  // ประเภทห้อง (normal, readonly)
+		Type           string               `form:"type" validate:"oneof=normal readonly mc announcement private"`  // ประเภทห้อง (normal, readonly, mc, ...)
 		Capacity       int                  `form:"capacity" validate:"gte=0"` // 0 = unlimited
 		Members        []string             `form:"members" validate:"mongoId,optional"`
 		CreatedBy      string               `form:"createdBy" validate:"mongoId,optional"` // Optional - will extract from JWT if not provided
@@ -23,7 +23,7 @@ type (
 
 	UpdateRoomDto struct {
 		Name           common.LocalizedName `form:"name" validate:"notEmpty"`
-		Type           string               `form:"type" validate:"roomType"`     // ประเภทห้อง (normal, readonly)
+		Type           string               `form:"type" validate:"oneof=normal readonly mc announcement private"`     // ประเภทห้อง (normal, readonly, mc, ...)
 		Status         string               `form:"status" validate:"roomStatus"` // สถานะห้อง (active, inactive)
 		Capacity       int                  `form:"capacity" validate:"notEmpty"`
 		Members        []string             `form:"members" validate:"mongoId,optional"`

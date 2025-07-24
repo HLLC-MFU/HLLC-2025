@@ -50,7 +50,7 @@ const rawNavMenuItems: NavSection[] = [
       { label: "Assessment ", href: "/assessments", icon: BookCheck, permission: "assessment:read" },
       { label: "Reports", href: "/reports", icon: ShieldAlert, permission: "reports:read" },
       { label: "Step Counters", href: "/step-counters", icon: Footprints, permission: "step-counters:read" },
-      { label: "Coin Hungting", href: "/coin-hunting", icon: Coins, permission: "coin-hunting:read" },
+      { label: "Coin Hunting", href: "/coin-hunting", icon: Coins, permission: "coin-hunting:read" },
     ],
   },
   {

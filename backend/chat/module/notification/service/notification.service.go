@@ -9,8 +9,11 @@ import (
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	"context"
+	"fmt"
 	"log"
 	"strings"
+
+	roomModel "chat/module/room/room/model"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -36,6 +39,7 @@ type SimpleRoom struct {
 	ID     string
 	NameTh string
 	NameEn string
+	Image  string
 }
 
 func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService *userService.RoleService) *NotificationService {
@@ -54,6 +58,30 @@ func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService
 // NotifyUsersInRoom sends notifications to offline users in a room only (not online users)
 func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *model.ChatMessage, onlineUsers []string) {
 	log.Printf(" Starting offline notification process for room %s", message.RoomID.Hex())
+
+	// โหลด room เต็ม (metadata)
+	fullRoom, err := ns.getFullRoomById(ctx, message.RoomID)
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get full room: %v", err)
+		// fallback เดิม
+		roomType, err := ns.getRoomType(ctx, message.RoomID)
+		if err != nil {
+			log.Printf("[NotificationService] Failed to get room type: %v", err)
+			return
+		}
+		if roomType == "normal" {
+			log.Printf("[NotificationService] Room %s has type 'normal', skipping all notifications", message.RoomID.Hex())
+			return
+		}
+	} else {
+		roomType := fullRoom.Type
+		groupType := fullRoom.GetGroupType()
+		if roomType == "normal" && !(groupType == "school" || groupType == "major") {
+			log.Printf("[NotificationService] Room %s is type 'normal' and not groupType school/major, skipping ALL notifications", message.RoomID.Hex())
+			log.Printf("[NotificationService] Notification summary: 0 offline users notified (room type: normal)")
+			return
+		}
+	}
 
 	// **NEW: Check if this is an evoucher message**
 	if message.EvoucherInfo != nil {
@@ -103,6 +131,13 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 	offlineCount := 0
 	totalMembers := 0
 
+	// **NEW: Check if room type is "normal" - skip all notifications for normal rooms**
+	if ns.isNormalRoomType(ctx, message.RoomID) {
+		log.Printf("[NotificationService] Room %s is type 'normal', skipping ALL notifications", message.RoomID.Hex())
+		log.Printf("[NotificationService] Notification summary: 0 offline users notified (room type: normal)")
+		return
+	}
+
 	// Send notification to offline members only (except sender)
 	for _, memberID := range roomMembers {
 		memberIDStr := memberID.Hex()
@@ -138,7 +173,7 @@ func (ns *NotificationService) createAndSendNotification(ctx context.Context, re
 	log.Printf("[NotificationService] Creating %s notification for receiver %s", messageType, receiverID)
 
 	// สร้างส่วนประกอบ notification
-	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn)
+	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn, room.Image)
 	notificationSender := chatModel.CreateNotificationSender(sender.ID, sender.Username, sender.FirstName, sender.LastName, role)
 	notificationMessage := chatModel.CreateNotificationMessage(message.ID.Hex(), message.Message, messageType, message.Timestamp)
 
@@ -155,10 +190,12 @@ func (ns *NotificationService) createAndSendNotification(ctx context.Context, re
 		payload = ns.createMentionNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
 	case chatModel.MessageTypeReply:
 		payload = ns.createReplyNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
-	case chatModel.MessageTypeRestriction:
-		payload = ns.createRestrictionNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
 	case chatModel.MessageTypeUnsend:
 		payload = ns.createUnsendNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
+	case chatModel.MessageTypeRestriction:
+		// Determine specific restriction type from message content
+		restrictionType := ns.determineRestrictionType(message)
+		payload = ns.createSpecificRestrictionNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID, restrictionType)
 	default:
 		payload = ns.createTextNotification(notificationRoom, notificationSender, notificationMessage, message, receiverID)
 	}
@@ -245,11 +282,6 @@ func (ns *NotificationService) createReplyNotification(room chatModel.Notificati
 	}, receiverID)
 }
 
-// createRestrictionNotification creates a restriction notification
-func (ns *NotificationService) createRestrictionNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string) chatModel.NotificationPayload {
-	return chatModel.NewRestrictionNotification(room, sender, message, receiverID)
-}
-
 // createUnsendNotification creates an unsend notification with custom message
 func (ns *NotificationService) createUnsendNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string) chatModel.NotificationPayload {
 	// Custom message for unsend
@@ -269,6 +301,24 @@ func (ns *NotificationService) createUnsendNotification(room chatModel.Notificat
 func (ns *NotificationService) SendOfflineNotification(ctx context.Context, receiverID string, message *model.ChatMessage, messageType string) {
 	log.Printf("[NotificationService] Legacy SendOfflineNotification: receiver=%s, message=%s, type=%s",
 		receiverID, message.ID.Hex(), messageType)
+
+	fullRoom, err := ns.getFullRoomById(ctx, message.RoomID)
+	if err != nil {
+		roomType, err := ns.getRoomType(ctx, message.RoomID)
+		if err != nil {
+			log.Printf("[NotificationService] Failed to get room type: %v", err)
+			return
+		}
+		if roomType == "normal" {
+			log.Printf("[NotificationService] (Legacy) Room %s has type 'normal', skipping notification for user %s", message.RoomID.Hex(), receiverID)
+			return
+		}
+	} else {
+		if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
+			log.Printf("[NotificationService] (Legacy) Room %s is type 'normal' and not groupType school/major, skipping notification for user %s", message.RoomID.Hex(), receiverID)
+			return
+		}
+	}
 
 	// Get sender info
 	sender, err := ns.getUserById(ctx, message.UserID.Hex())
@@ -351,6 +401,19 @@ func (ns *NotificationService) sendNotificationToKafka(ctx context.Context, rece
 // NotifyOfflineUsersOnly sends notifications ONLY to users who are currently offline
 func (ns *NotificationService) NotifyOfflineUsersOnly(ctx context.Context, message *model.ChatMessage, onlineUsers []string, roomMembers []primitive.ObjectID) {
 	log.Printf("[NotificationService] Notifying OFFLINE users only for message %s", message.ID.Hex())
+
+	fullRoom, err := ns.getFullRoomById(ctx, message.RoomID)
+	if err != nil {
+		if ns.isNormalRoomType(ctx, message.RoomID) {
+			log.Printf("[NotificationService] Room %s is type 'normal', skipping ALL offline notifications", message.RoomID.Hex())
+			return
+		}
+	} else {
+		if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
+			log.Printf("[NotificationService] Room %s is type 'normal' and not groupType school/major, skipping ALL offline notifications", message.RoomID.Hex())
+			return
+		}
+	}
 
 	// Create online user lookup map
 	onlineUserMap := make(map[string]bool)
@@ -485,8 +548,9 @@ func (ns *NotificationService) getRoomById(ctx context.Context, roomID string) (
 
 	roomCollection := ns.collection.Database().Collection("rooms")
 	var room struct {
-		ID   primitive.ObjectID `bson:"_id"`
-		Name map[string]string  `bson:"name"`
+		ID    primitive.ObjectID `bson:"_id"`
+		Name  map[string]string  `bson:"name"`
+		Image string             `bson:"image"`
 	}
 
 	err = roomCollection.FindOne(ctx, bson.M{"_id": roomObjID}).Decode(&room)
@@ -498,6 +562,7 @@ func (ns *NotificationService) getRoomById(ctx context.Context, roomID string) (
 		ID:     room.ID.Hex(),
 		NameTh: room.Name["th"],
 		NameEn: room.Name["en"],
+		Image:  room.Image,
 	}, nil
 }
 
@@ -552,7 +617,7 @@ func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Contex
 	}
 
 	// Create notification components
-	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn)
+	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn, room.Image)
 	notificationSender := chatModel.CreateNotificationSender(sender.ID, sender.Username, sender.FirstName, sender.LastName, nil)
 	notificationMessage := chatModel.CreateNotificationMessage(message.ID.Hex(), message.Message, chatModel.MessageTypeMention, message.Timestamp)
 
@@ -568,4 +633,151 @@ func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Contex
 	ns.sendNotificationToKafka(ctx, receiverID, payload)
 
 	log.Printf("[NotificationService] ✅ Sent mention notification to user %s", receiverID)
+}
+
+// ==================== ROOM TYPE NOTIFICATION MANAGEMENT ====================
+
+// isNormalRoomType ตรวจสอบว่าห้องนี้เป็น type "normal" หรือไม่
+func (ns *NotificationService) isNormalRoomType(ctx context.Context, roomID primitive.ObjectID) bool {
+	fullRoom, err := ns.getFullRoomById(ctx, roomID)
+	if err != nil {
+		// fallback เดิม
+		roomCollection := ns.collection.Database().Collection("rooms")
+		var room struct {
+			Type string `bson:"type"`
+		}
+		err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+		if err != nil {
+			log.Printf("[NotificationService] Failed to get room type: %v", err)
+			return false // ถ้าไม่สามารถดึงข้อมูลได้ ให้ส่ง notification ตามปกติ
+		}
+		isNormal := room.Type == "normal"
+		log.Printf("[NotificationService] Room %s type: %s, isNormal: %v", roomID.Hex(), room.Type, isNormal)
+		return isNormal
+	}
+	// ถ้าเป็น normal + ไม่ใช่ school/major = true (ห้าม noti)
+	if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
+		return true
+	}
+	return false
+}
+
+// IsNormalRoomType (Public method) ตรวจสอบว่าห้องนี้เป็น type "normal" หรือไม่
+func (ns *NotificationService) IsNormalRoomType(ctx context.Context, roomID primitive.ObjectID) bool {
+	return ns.isNormalRoomType(ctx, roomID)
+}
+
+// GetRoomType ดึง room type
+func (ns *NotificationService) GetRoomType(ctx context.Context, roomID string) (string, error) {
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return "", fmt.Errorf("invalid room ID: %w", err)
+	}
+
+	roomCollection := ns.collection.Database().Collection("rooms")
+	var room struct {
+		Type string `bson:"type"`
+	}
+
+	err = roomCollection.FindOne(ctx, bson.M{"_id": roomObjID}).Decode(&room)
+	if err != nil {
+		return "", fmt.Errorf("failed to get room: %w", err)
+	}
+
+	return room.Type, nil
+}
+
+func (ns *NotificationService) createSpecificRestrictionNotification(room chatModel.NotificationRoom, sender chatModel.NotificationSender, message chatModel.NotificationMessage, chatMessage *model.ChatMessage, receiverID string, restrictionType string) chatModel.NotificationPayload {
+	// Set the specific restriction type in the message
+	message.Type = restrictionType
+
+	// Create specific notification based on restriction type
+	switch restrictionType {
+	case chatModel.MessageTypeRestrictionBan:
+		return chatModel.NewRestrictionBanNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionUnban:
+		return chatModel.NewRestrictionUnbanNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionMute:
+		return chatModel.NewRestrictionMuteNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionUnmute:
+		return chatModel.NewRestrictionUnmuteNotification(room, sender, message, receiverID)
+	case chatModel.MessageTypeRestrictionKick:
+		return chatModel.NewRestrictionKickNotification(room, sender, message, receiverID)
+	default:
+		// Fallback to generic restriction notification
+		return chatModel.NewRestrictionNotification(room, sender, message, receiverID)
+	}
+}
+
+// determineRestrictionType determines the specific restriction type from message content
+func (ns *NotificationService) determineRestrictionType(message *model.ChatMessage) string {
+	// Check message content to determine restriction type
+	msgContent := strings.ToLower(message.Message)
+
+	if strings.Contains(msgContent, "banned") {
+		return chatModel.MessageTypeRestrictionBan
+	} else if strings.Contains(msgContent, "unbanned") {
+		return chatModel.MessageTypeRestrictionUnban
+	} else if strings.Contains(msgContent, "muted") {
+		return chatModel.MessageTypeRestrictionMute
+	} else if strings.Contains(msgContent, "unmuted") {
+		return chatModel.MessageTypeRestrictionUnmute
+	} else if strings.Contains(msgContent, "kicked") {
+		return chatModel.MessageTypeRestrictionKick
+	}
+
+	// Default fallback
+	return chatModel.MessageTypeRestriction
+}
+
+// ==================== ROOM TYPE NOTIFICATION MANAGEMENT ====================
+
+// getRoomType gets the room type to determine notification behavior
+func (ns *NotificationService) getRoomType(ctx context.Context, roomID primitive.ObjectID) (string, error) {
+	roomCollection := ns.collection.Database().Collection("rooms")
+	var room struct {
+		Type string `bson:"type"`
+	}
+
+	err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get room type: %v", err)
+		return "", err
+	}
+
+	// Default to empty string if type is not set
+	if room.Type == "" {
+		log.Printf("[NotificationService] Room %s has no type field, defaulting to empty", roomID.Hex())
+		return "", nil
+	}
+
+	return room.Type, nil
+}
+
+// IsRoomNotificationEnabled checks if notifications are enabled for this room type
+func (ns *NotificationService) IsRoomNotificationEnabled(ctx context.Context, roomID primitive.ObjectID) bool {
+	fullRoom, err := ns.getFullRoomById(ctx, roomID)
+	if err != nil {
+		roomType, err := ns.getRoomType(ctx, roomID)
+		if err != nil {
+			log.Printf("[NotificationService] Failed to get room type, defaulting to enabled: %v", err)
+			return true // Default to enabled if we can't determine type
+		}
+		return roomType != "normal"
+	}
+	if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
+		return false
+	}
+	return true
+}
+
+// เพิ่ม helper สำหรับโหลด room เต็ม (metadata)
+func (ns *NotificationService) getFullRoomById(ctx context.Context, roomID primitive.ObjectID) (*roomModel.Room, error) {
+	roomCollection := ns.collection.Database().Collection("rooms")
+	var room roomModel.Room
+	err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+	if err != nil {
+		return nil, err
+	}
+	return &room, nil
 }

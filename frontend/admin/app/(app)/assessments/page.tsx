@@ -237,6 +237,7 @@ export default function AssessmentsPage() {
                                     <DropdownMenu 
                                         aria-label="Activity Selection"
                                         onAction={(key) => actions.setSelectedActivity(key as string)}
+                                        className="max-h-60 overflow-auto"
                                         items={[
                                             { key: "", label: "All Activities" },
                                             ...(activities?.map(activity => ({

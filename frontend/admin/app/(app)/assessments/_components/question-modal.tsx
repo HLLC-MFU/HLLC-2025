@@ -93,8 +93,9 @@ export default function QuestionModal({
         if (question && q._id === question._id) {
           return false;
         }
-        return q.order === formData.order;
+        return q.order === formData.order && q.assessmentType === formData.assessmentType;
       });
+      
 
       if (isOrderExists) {
         newErrors.order = "This order number is already in use. Please choose a different number.";

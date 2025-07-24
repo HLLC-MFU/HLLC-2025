@@ -20,6 +20,7 @@ interface ChatInputProps {
   handleMentionSelect?: (user: any) => void;
   // Add room prop for status and type validation
   room?: any;
+  user?: any;
 }
 
 const ChatInput = ({
@@ -42,18 +43,23 @@ const ChatInput = ({
   const [isFocused, setIsFocused] = useState(false);
   const hasText = messageText.trim().length > 0;
   
-  // Check if user has Administrator role
-  const isAdministrator = user?.role?.name === 'Administrator';
-  
+  // Check if user has Administrator role (case-insensitive)
+  const roleName = user?.role?.name?.toLowerCase?.() || '';
+  // const isAdministrator = roleName === 'administrator' || roleName === 'mentee' || roleName === 'mentor';
+  const isAdministrator = roleName === 'administrator';
+  // MC Room logic
+  const isMCRoom = room?.type === 'mc';
+  const isFresher = user?.role?.name === 'Fresher';
+  // Disable all but plain text for Fresher in MC room
+  const isFresherInMCRoom = false; // Allow Fresher to send text in MC room
   // Check if room is read-only
   const isReadOnlyRoom = room?.type === 'readonly';
-  
   // Check if room is inactive
   const isInactiveRoom = room?.status === 'inactive';
-  
   // Determine if input should be disabled
-  const isDisabled = !isMember || !isConnected || isInactiveRoom || (isReadOnlyRoom && !isAdministrator);
-  
+  // Administrator สามารถส่งข้อความใน readonly room ได้เสมอ
+  const isDisabled = !isMember || !isConnected || isInactiveRoom ||
+    (isReadOnlyRoom && !isAdministrator);
   // Determine if user can send messages
   const canSend = hasText && !isDisabled;
 
@@ -113,6 +119,30 @@ const ChatInput = ({
 
   return (
     <div className="relative mb-6 mx-4">
+      {/* MC Room Info Bar (styled like readonly) */}
+      {isMCRoom && (
+        <div className="mb-3 flex items-center gap-2 bg-blue-500/90 border border-blue-300/60 rounded-xl px-4 py-2 shadow text-white">
+          <svg className="w-5 h-5 mr-2 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
+          </svg>
+          <div className="flex flex-col">
+            <span className="font-bold text-sm">Master of Ceremonies Room</span>
+            <span className="text-xs font-medium text-white/90">This is a room for submitting questions to MCs. You will only see your own messages.</span>
+          </div>
+        </div>
+      )}
+      {/* Readonly Room Info Bar (styled like MC) */}
+      {isReadOnlyRoom && !isMCRoom && (
+        <div className="mb-3 flex items-center gap-2 bg-blue-400/90 border border-blue-200/60 rounded-xl px-4 py-2 shadow text-white">
+          <svg className="w-5 h-5 mr-2 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
+          </svg>
+          <div className="flex flex-col">
+            <span className="font-bold text-sm">Read-only Room</span>
+            <span className="text-xs font-medium text-white/90">This is a read-only room. Only administrators can send messages.</span>
+          </div>
+        </div>
+      )}
       {/* Mention Suggestions Dropdown */}
       {isMentioning && mentionSuggestions.length > 0 && (
         <div className="absolute left-0 right-0 bottom-16 z-50 bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 shadow-lg max-h-48 overflow-y-auto">
@@ -252,13 +282,13 @@ const ChatInput = ({
                 showStickerPicker 
                   ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 scale-110' 
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:scale-110'
-              } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow-md'}`}
-              onClick={() => setShowStickerPicker(!showStickerPicker)}
-              disabled={isDisabled}
+              } ${(isDisabled || isFresherInMCRoom) ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow-md'}`}
+              onClick={() => !isFresherInMCRoom && setShowStickerPicker(!showStickerPicker)}
+              disabled={isDisabled || isFresherInMCRoom}
               type="button"
             >
               <span className="text-lg transition-transform duration-200">
-                {showStickerPicker ? '😊' : '😊'}
+                {showStickerPicker ? '\ud83d\ude0a' : '\ud83d\ude0a'}
               </span>
             </button>
 
