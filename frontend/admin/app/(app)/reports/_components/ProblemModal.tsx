@@ -78,7 +78,7 @@ export function ProblemModal({
               <Select
                 label="Category"
                 selectedKeys={[categoryId]}
-                onChange={(e) => setCategoryId(e.target.value)}
+                onChange={(event) => setCategoryId(event.target.value)}
               >
                 {categories.map((category) => (
                   <SelectItem key={category._id}>
@@ -89,8 +89,8 @@ export function ProblemModal({
               <Select
                 label="Status"
                 selectedKeys={[status]}
-                onChange={(e) =>
-                  setStatus(e.target.value as Report["status"])
+                onChange={(event) =>
+                  setStatus(event.target.value as Report["status"])
                 }
               >
                 <SelectItem key="pending">Pending</SelectItem>

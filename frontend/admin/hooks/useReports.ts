@@ -74,7 +74,7 @@ const fetchReports = async () => {
     try {
       const res = await apiRequest(`/reports/${id}`, 'DELETE');
       if (res.statusCode === 200) {
-        setReports(prev => prev.filter(r => r._id !== id));
+        setReports(prev => prev.filter(res => res._id !== id));
         addToast({ title: 'Report deleted!', color: 'success' });
       }
     } catch (err: any) {

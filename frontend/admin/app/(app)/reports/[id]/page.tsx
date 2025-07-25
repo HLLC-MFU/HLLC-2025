@@ -26,11 +26,11 @@ export default function CategoryReportsPage() {
   const { reporttypes: categories } = useReportTypes();
   const { reports, updateReport } = useReports();
 
-  const selectedCategory = categories.find((cat) => cat._id === id);
+  const selectedCategory = categories.find((category) => category._id === id);
   const filteredReports = reports.filter((r) => r.category._id === id);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const reportsPerPage = 20;
+  const reportsPerPage = 10;
   const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
   const paginatedReports = filteredReports.slice(
     (currentPage - 1) * reportsPerPage,
@@ -85,7 +85,7 @@ export default function CategoryReportsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div className="flex-1">
                     <h4 className="font-medium">{report.reporter?.name.first ?? "Unknown"}</h4>
-                    <p className="text-sm text-gray-500">{report.status}</p>
+                    <p className="text-sm text-gray-500">{report.reporter?.username}</p>
                   </div>
                   <div className="flex items-center gap-2 self-start sm:self-auto">
                     <StatusDropdown

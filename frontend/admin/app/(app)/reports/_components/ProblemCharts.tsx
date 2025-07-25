@@ -63,18 +63,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export function ProblemCharts({ problems, reporttypes }: ProblemChartsProps) {
   const reporttypeData: ChartData[] = reporttypes.map((reporttype) => ({
     name: reporttype.name.en,
-    count: problems.filter((p) => p.category._id === reporttype._id).length,
+    count: problems.filter((problem) => problem.category._id === reporttype._id).length,
     color: reporttype.color,
   }));
 
   const statusData: ChartData[] = [
-    { name: 'Pending', value: problems.filter((p) => p.status === 'pending').length },
-    { name: 'In-Progress', value: problems.filter((p) => p.status === 'in-progress').length },
-    { name: 'Done', value: problems.filter((p) => p.status === 'done').length },
+    { name: 'Pending', value: problems.filter((problem) => problem.status === 'pending').length },
+    { name: 'In-Progress', value: problems.filter((problem) => problem.status === 'in-progress').length },
+    { name: 'Done', value: problems.filter((problem) => problem.status === 'done').length },
   ];
 
   const totalProblems = problems.length;
-  const doneProblems = problems.filter((p) => p.status === 'done').length;
+  const doneProblems = problems.filter((problem) => problem.status === 'done').length;
   const resolutionRate = totalProblems > 0 ? ((doneProblems / totalProblems) * 100).toFixed(1) : '0';
 
   return (

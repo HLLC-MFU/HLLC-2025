@@ -60,7 +60,7 @@ export function useReportTypes() {
     try {
       const res = await apiRequest(`/report-types/${id}`, 'DELETE');
       if (res.statusCode === 200) {
-        setReportTypes((prev) => prev.filter((r) => r._id !== id));
+        setReportTypes((prev) => prev.filter((res) => res._id !== id));
         addToast({ title: 'Category deleted!', color: 'success' });
       }
     } catch (err: any) {

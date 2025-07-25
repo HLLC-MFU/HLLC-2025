@@ -173,7 +173,7 @@ export default function ReportsPage() {
                               {report.reporter?.name.first ?? 'Unknown'}
                             </h4>
                             <p className="text-sm text-gray-500">
-                              {report.status}
+                              {report.reporter?.username}
                             </p>
                           </div>
                           <div className="flex flex-wrap sm:flex-nowrap gap-2 sm:justify-end">
