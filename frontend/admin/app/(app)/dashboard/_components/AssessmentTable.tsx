@@ -31,8 +31,46 @@ export default function AssessmentTable() {
       'Unknown'
     : 'All Activities';
 
+    // อยู่ใน component AssessmentTable
+const exportToCSV = () => {
+  if (!data || data.length === 0) return;
+
+  const headers = ['No', 'Question (TH)', 'Question (EN)', 'Type', 'Average', 'Count'];
+  const rows = data.map((item, index) => [
+    index + 1,
+    `"${item.assessment.question.th || ''}"`,
+    `"${item.assessment.question.en || ''}"`,
+    item.assessment.type,
+    item.average.toFixed(2),
+    item.count,
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map((row) => row.join(','))
+    .join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', 'assessment_data.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+
   return (
     <div className="space-y-4">
+                  <div className="flex justify-end mb-2">
+                <button
+                    onClick={exportToCSV}
+                    className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/80 transition"
+                >
+                    Export CSV
+                </button>
+            </div>
       {/* Dropdown Filter */}
       <div className="flex flex-row items-center gap-4">
         <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
