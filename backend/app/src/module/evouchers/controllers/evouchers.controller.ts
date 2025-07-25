@@ -21,6 +21,7 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 import { FastifyRequest } from 'fastify';
 import { EvoucherCodesService } from '../services/evoucher-codes.service';
 import { Types } from 'mongoose';
+import { KhantokDto } from '../dto/khantok.dto';
 
 @Controller('evouchers')
 export class EvouchersController {
@@ -86,5 +87,19 @@ export class EvouchersController {
   ) {
     const { roleId } = addEvoucherCodeByRoleDto;
     return this.evoucherCodesService.addEvoucherCodeByRole(roleId, evoucherId);
+  }
+
+  @Post(':id/add-khantok')
+  addEvoucherCodeKhantok(
+    @Param('id') evoucherId: string,
+    @Body() dto: KhantokDto,
+  ) {
+    console.log('Received usernames:', dto.username);
+    return this.evoucherCodesService.addEvoucherCodeKhantok(dto.username, evoucherId);
+  }
+
+  @Get(":evoucherId/without-evoucher")
+  async getUsersNoEvoucher(@Param('evoucherId') evoucherId: string) {
+    return this.evoucherCodesService.findUsersWithoutEvoucher(evoucherId);
   }
 }
