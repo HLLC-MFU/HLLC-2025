@@ -102,21 +102,25 @@ export const createQuestionHandlers = ({
     }
   },
 
-  handleDeleteQuestion: async (questionId: string, testQuestions: Question[], activityQuestions: Question[]) => {
+  handleDeleteQuestion: async (
+    questionId: string,
+    testQuestions: Question[],
+    activityQuestions: Question[]
+  ) => {
     try {
-      const question = [...testQuestions, ...activityQuestions].find(q => q._id === questionId);
-      if (!question) throw new Error("Question not found");
-
-      const isActivityQuestion = question.assessmentType === "activity" || question.activity || question.activityId;
-      
-      if (isActivityQuestion) {
-        await deleteActivityQuestion(questionId);
-        await fetchActivityQuestions(state.selectedActivityId || "activity");
-      } else {
+      const isTestQuestion = testQuestions.some((q) => q._id === questionId);
+      const isActivityQuestion = activityQuestions.some((q) => q._id === questionId);
+  
+      if (isTestQuestion) {
         await deleteTestQuestion(questionId);
         await fetchTestQuestions();
+      } else if (isActivityQuestion) {
+        await deleteActivityQuestion(questionId);
+        await fetchActivityQuestions(state.selectedActivityId || "");
+      } else {
+        throw new Error(`Delete failed, id ${questionId} not found`);
       }
-
+  
       addToast({
         title: "Success",
         description: "Question deleted successfully",
@@ -131,4 +135,5 @@ export const createQuestionHandlers = ({
       });
     }
   }
+  
 }); 
