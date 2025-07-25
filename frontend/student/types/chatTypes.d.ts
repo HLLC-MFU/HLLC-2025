@@ -52,6 +52,7 @@ export interface Message {
     };
     [key: string]: any;
   };
+  mention_info?: any[];
 }
 
 export interface ConnectedUser {
