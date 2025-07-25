@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 
 import { User } from "@/types/user";
 import { apiRequest } from "@/utils/api";
+import { addToast } from "@heroui/react";
 
 export function useUsers() {
     const [users, setUsers] = useState<User[]>([]);
@@ -62,6 +63,11 @@ export function useUsers() {
 
                         return updated;
                     });
+                    addToast({
+                        title: "User created successfully",
+                        description: "User created successfully",
+                        color: "success",
+                    })
                 });
             }
 
@@ -165,6 +171,11 @@ export function useUsers() {
 
             if (res.data) {
                 setUsers((prev) => prev.map((u) => (u._id === id ? res.data! : u)));
+                addToast({
+                    title: "User updated successfully",
+                    description: "User updated successfully",
+                    color: "success",
+                })
             }
 
             return res;
@@ -180,12 +191,14 @@ export function useUsers() {
         try {
             setLoading(true);
             const res = await apiRequest(`/users/${id}`, "DELETE");
+            if (!res) return; 
 
-            if (res.statusCode !== 200) {
-                throw new Error(res.message || "Failed to delete user.");
-            } else {
-                setUsers((prev) => prev.filter((u) => u._id !== id));
-            }
+            setUsers((prev) => prev.filter((u) => u._id !== id));
+            addToast({
+                title: "User deleted successfully",
+                description: "User deleted successfully",
+                color: "success",
+            })
 
             return res;
         } catch (err: any) {

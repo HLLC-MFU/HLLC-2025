@@ -72,7 +72,7 @@ const assessmentService = {
       // If activityId is "activity", fetch all activity questions
       // Otherwise, fetch questions for specific activity
       const url = activityId === "activity" 
-        ? `${API_BASE_URL}/assessments`
+        ? `${API_BASE_URL}/assessments?limit=0`
         : `${API_BASE_URL}/assessments?activity=${activityId}`;
 
       const response = await fetch(url, {

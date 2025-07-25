@@ -24,6 +24,19 @@ export type Leaderboard = {
     }
 }
 
+export type Normalboard = {
+    rank: number
+    coinCount: number
+    latestCollectedAt: string
+    userId: string
+    username: string,
+    name: {
+        first: string,
+        middle: string,
+        last: string,
+    }
+}
+
 export type Sponsorboard = {
     rank: number
     coinCount: number

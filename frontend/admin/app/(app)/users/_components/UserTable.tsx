@@ -55,9 +55,13 @@ export default function UsersTable({
   capitalize,
   columns,
   initialVisibleColumns,
+  selectedUser,
+  setSelectedUser,
   onAdd,
   onImport,
   onConfirm,
+  onRoleEdit,
+  onRoleDelete,
 }: {
   roleId: string;
   majors: Major[];
@@ -72,11 +76,14 @@ export default function UsersTable({
   capitalize: (s: string) => string;
   columns: ColumnProps[];
   initialVisibleColumns: string[],
-  onAdd: (user: Partial<User>, userAction: User) => Promise<void>;
+  selectedUser: User | null;
+  setSelectedUser: (user: User) => void;
+  onAdd: (user: Partial<User>, userAction?: User) => Promise<void>;
   onImport: (user: Partial<User>[]) => Promise<void>;
-  onConfirm: (selectedKeys: "all" | Set<string | number>, userAction: User) => Promise<void>;
+  onConfirm: () => void;
+  onRoleEdit?: () => void;
+  onRoleDelete?: () => void;
 }) {
-  const [userAction, setUserAction] = useState<User>(users[0]);
   const [filterValue, setFilterValue] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<"all" | Set<string | number>>(
     new Set([])
@@ -163,7 +170,7 @@ export default function UsersTable({
                   <DropdownItem
                     key="edit"
                     startContent={<Pen size="16px" />}
-                    onPress={() => { setActionMode("Edit"); setModal(prev => ({ ...prev, add: true })); setUserAction(item) }}
+                    onPress={() => { setActionMode("Edit"); setModal(prev => ({ ...prev, add: true })); setSelectedUser(item) }}
                   >
                     Edit
                   </DropdownItem>
@@ -172,7 +179,7 @@ export default function UsersTable({
                     className="text-danger"
                     color="danger"
                     startContent={<RotateCcw size="16px" />}
-                    onPress={() => { setConfirmMode("Reset"); setModal(prev => ({ ...prev, confirm: true })); setUserAction(item) }}
+                    onPress={() => { setConfirmMode("Reset"); setModal(prev => ({ ...prev, confirm: true })); setSelectedUser(item) }}
                   >
                     Reset Password
                   </DropdownItem>
@@ -181,7 +188,7 @@ export default function UsersTable({
                     className="text-danger"
                     color="danger"
                     startContent={<Trash size="16px" />}
-                    onPress={() => { setConfirmMode("Delete"); setModal(prev => ({ ...prev, confirm: true })); setUserAction(item); }}
+                    onPress={() => { setConfirmMode("Delete"); setModal(prev => ({ ...prev, confirm: true })); setSelectedUser(item); }}
                   >
                     Delete
                   </DropdownItem>
@@ -273,6 +280,8 @@ export default function UsersTable({
           setFilterValue(val);
           setPage(1);
         }}
+        onRoleEdit={onRoleEdit}
+        onRoleDelete={onRoleDelete}
       />
 
       {/* Add and Edit  */}
@@ -282,8 +291,8 @@ export default function UsersTable({
         majors={majors}
         roleId={roleId}
         schools={schools}
-        user={userAction}
-        userAction={userAction}
+        user={selectedUser}
+        userAction={selectedUser}
         onAdd={onAdd}
         onClose={() => setModal(prev => ({ ...prev, add: false }))}
       />
@@ -310,9 +319,7 @@ export default function UsersTable({
         body={`Are you sure you want to ${confirmMode.toLowerCase()} this user?`}
         confirmColor={'danger'}
         isOpen={modal.confirm}
-        selectedKeys={selectedKeys}
-        title={`${confirmMode} user ${userAction ? userAction.username : ""}`}
-        userAction={userAction}
+        title={`${confirmMode} user ${selectedUser ? selectedUser.username : ""}`}
         onClose={() => setModal(prev => ({ ...prev, confirm: false }))}
         onConfirm={onConfirm}
       />

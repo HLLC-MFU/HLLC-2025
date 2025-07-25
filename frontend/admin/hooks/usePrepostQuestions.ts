@@ -51,7 +51,7 @@ export function usePrepostQuestions(type: AssessmentType) {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: Question[] }>('/prepost-questions');
+            const res = await apiRequest<{ data: Question[] }>('/prepost-questions?limit=0');
 
             if (res.data?.data) {
                 const allQuestions = Array.isArray(res.data.data) ? res.data.data : [];
