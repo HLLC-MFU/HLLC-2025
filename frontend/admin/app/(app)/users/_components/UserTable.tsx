@@ -60,6 +60,8 @@ export default function UsersTable({
   onAdd,
   onImport,
   onConfirm,
+  onRoleEdit,
+  onRoleDelete,
 }: {
   roleId: string;
   majors: Major[];
@@ -79,6 +81,8 @@ export default function UsersTable({
   onAdd: (user: Partial<User>, userAction?: User) => Promise<void>;
   onImport: (user: Partial<User>[]) => Promise<void>;
   onConfirm: () => void;
+  onRoleEdit?: () => void;
+  onRoleDelete?: () => void;
 }) {
   const [filterValue, setFilterValue] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<"all" | Set<string | number>>(
@@ -276,6 +280,8 @@ export default function UsersTable({
           setFilterValue(val);
           setPage(1);
         }}
+        onRoleEdit={onRoleEdit}
+        onRoleDelete={onRoleDelete}
       />
 
       {/* Add and Edit  */}

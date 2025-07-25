@@ -38,6 +38,8 @@ type TableContentProps = {
     headerColumns: Array<{ uid: string; name: string; sortable?: boolean }>;
     sortedItems: User[];
     renderCell: (item: User, columnKey: Key, index: number) => ReactNode;
+    onRoleEdit?: () => void;
+    onRoleDelete?: () => void;
 }
 
 export default function TableContent({
@@ -63,6 +65,8 @@ export default function TableContent({
     headerColumns,
     sortedItems,
     renderCell,
+    onRoleEdit,
+    onRoleDelete,
 }: TableContentProps) {
     return (
         <Table
@@ -94,6 +98,8 @@ export default function TableContent({
                 visibleColumns={visibleColumns}
                 onClear={onClear}
                 onSearchChange={onSearchChange}
+                onEdit={onRoleEdit || (() => {})}
+                onDelete={onRoleDelete || (() => {})}
             />}
             topContentPlacement="outside"
             onSelectionChange={setSelectedKeys}

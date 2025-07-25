@@ -55,7 +55,7 @@ export default function ManagementPage() {
     deleteUser,
     deleteMultiple,
   } = useUsers();
-  const { roles, createRole, loading: rolesLoading } = useRoles();
+  const { roles, createRole, updateRole, deleteRole, loading: rolesLoading, fetchRoles } = useRoles();
   const { schools, loading: schoolsLoading } = useSchools();
   const { majors, loading: majorsLoading } = useMajors();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -72,6 +72,9 @@ export default function ManagementPage() {
   });
   const [actionMode, setActionMode] = useState<'Add' | 'Edit'>('Add');
   const [confirmMode, setConfirmMode] = useState<'Delete' | 'Reset'>('Delete');
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [roleModalMode, setRoleModalMode] = useState<'Add' | 'Edit'>('Add');
+  const [isDeleteRoleOpen, setIsDeleteRoleOpen] = useState(false);
 
   const isLoading =
     usersLoading || rolesLoading || schoolsLoading || majorsLoading;
@@ -92,9 +95,40 @@ export default function ManagementPage() {
     Mentee: <UserRoundSearch />,
   };
 
-  const handleAddRole = (roleData: Partial<Role>) => {
-    createRole(roleData);
+  const handleAddRole = async (roleData: Partial<Role>) => {
+    if (roleModalMode === 'Edit' && selectedRole?._id) {
+      await updateRole(selectedRole._id, roleData);
+      addToast({ title: "Role updated successfully", color: "success" });
+    } else {
+      await createRole(roleData);
+      addToast({ title: "Role created successfully", color: "success" });
+    }
     setIsRoleOpen(false);
+    setSelectedRole(null);
+    setRoleModalMode('Add');
+    await fetchRoles();
+  };
+
+  const handleEditRole = (role: Role) => {
+    console.log('Editing role:', role); // Debug log
+    setSelectedRole(role);
+    setRoleModalMode('Edit');
+    setIsRoleOpen(true);
+  };
+
+  const handleDeleteRole = async () => {
+    if (selectedRole?._id) {
+      await deleteRole(selectedRole._id);
+      addToast({ title: "Role deleted successfully", color: "success" });
+      setIsDeleteRoleOpen(false);
+      setSelectedRole(null);
+      await fetchRoles();
+    }
+  };
+
+  const handleDeleteRoleClick = (role: Role) => {
+    setSelectedRole(role);
+    setIsDeleteRoleOpen(true);
   };
 
   const handleAdd = async (user: Partial<User>, userAction?: User) => {
@@ -231,6 +265,8 @@ export default function ManagementPage() {
                       onImport={handleImport}
                       selectedUser={selectedUser}
                       setSelectedUser={setSelectedUser}
+                      onRoleEdit={() => handleEditRole(role)}
+                      onRoleDelete={() => handleDeleteRoleClick(role)}
                     />
                   </AccordionItem>
                 );
@@ -259,11 +295,31 @@ export default function ManagementPage() {
         <AddRoleModal
           isOpen={isRoleOpen}
           onAddRole={handleAddRole}
-          onClose={() => setIsRoleOpen(false)}
+          onClose={() => {
+            setIsRoleOpen(false);
+            setSelectedRole(null);
+            setRoleModalMode('Add');
+          }}
           schools={schools}
           majors={majors}
           users={users}
+          editingRole={selectedRole}
+          mode={roleModalMode}
         />
+        
+        {/* Delete Role Confirmation Modal */}
+        {isDeleteRoleOpen && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30">
+            <div className="bg-white rounded-lg p-6 shadow-lg flex flex-col gap-4 min-w-[300px]">
+              <div className="text-lg font-semibold">Confirm Role Deletion</div>
+              <div>Are you sure you want to delete the role <span className="font-bold">{selectedRole?.name}</span>?</div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="light" onPress={() => setIsDeleteRoleOpen(false)}>Cancel</Button>
+                <Button color="danger" onPress={handleDeleteRole}>Delete</Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

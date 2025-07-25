@@ -47,6 +47,38 @@ export function useRoles() {
         }
     };
 
+    // Update role
+    const updateRole = async (id: string, roleData: Partial<Role>) => {
+        try {
+            setLoading(true);
+            const res = await apiRequest<Role>(`/roles/${id}`, "PATCH", roleData);
+            if (res.data) {
+                setRoles((prev) => prev.map((r) => (r._id === id ? res.data! : r)));
+            }
+            return res;
+        } catch (err: any) {
+            setError(err.message || "Failed to update role.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Delete role
+    const deleteRole = async (id: string) => {
+        try {
+            setLoading(true);
+            const res = await apiRequest(`/roles/${id}`, "DELETE");
+            if (res.statusCode === 200) {
+                setRoles((prev) => prev.filter((r) => r._id !== id));
+            }
+            return res;
+        } catch (err: any) {
+            setError(err.message || "Failed to delete role.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchRoles();
     }, [])
@@ -57,5 +89,7 @@ export function useRoles() {
         error,
         fetchRoles,
         createRole,
+        updateRole,
+        deleteRole,
     }
 };
