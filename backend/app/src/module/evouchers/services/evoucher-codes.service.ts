@@ -16,6 +16,7 @@ import { UpdateEvoucherCodeDto } from '../dto/update-evouchercodes.dto';
 import { queryAll } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { NotificationsService } from 'src/module/notifications/notifications.service';
+import { KhantokDto } from '../dto/khantok.dto';
 
 @Injectable()
 export class EvoucherCodesService {
@@ -95,6 +96,13 @@ export class EvoucherCodesService {
   }
 
   async claimEvoucherCode(evoucherId: string, userId: string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException(`Invalid userId: ${userId}`);
+    }
+
+    if (!Types.ObjectId.isValid(evoucherId)) {
+      throw new BadRequestException(`Invalid evoucherId: ${evoucherId}`);
+    }
     const existing = await this.codeModel.findOne({
       evoucher: new Types.ObjectId(evoucherId),
       user: new Types.ObjectId(userId),
@@ -243,4 +251,79 @@ export class EvoucherCodesService {
       results,
     };
   }
+
+  async addEvoucherCodeKhantok(usernames: string[], evoucherId: string) {
+    if (!Array.isArray(usernames)) {
+      throw new Error(`usernames is not an array. Got: ${typeof usernames}`);
+    }
+    const users = await this.userModel.find({
+      username: { $in: usernames },
+    }).lean();
+
+    const usernameToIdMap = new Map(users.map(u => [u.username, u._id.toString()]));
+
+    const results: {
+      username: string;
+      userId?: string;
+      status: string;
+      code?: string;
+    }[] = [];
+
+    for (const username of usernames) {
+      const userId = usernameToIdMap.get(username);
+
+      if (!userId) {
+        results.push({
+          username,
+          status: 'failed',
+          code: 'User not found',
+        });
+        continue;
+      }
+
+      try {
+        const claimed = await this.claimEvoucherCode(evoucherId, userId);
+        results.push({
+          username,
+          userId,
+          status: 'success',
+          code: claimed.code,
+        });
+      } catch (err) {
+        results.push({
+          username,
+          userId,
+          status: 'failed',
+          code: err.message,
+        });
+      }
+    }
+
+    return {
+      message: `Evoucher processed for ${usernames.length} usernames`,
+      total: usernames.length,
+      results,
+    };
+  }
+
+ async findUsersWithoutEvoucher(evoucherId: string) {
+  const codes = await this.codeModel
+    .find({ evoucher: new Types.ObjectId(evoucherId) })
+    .select('user')
+    .lean();
+
+  const userIdsWithEvoucher = codes.map(code => code.user?.toString());
+  const users = await this.userModel
+    .find({ _id: { $nin: userIdsWithEvoucher } })
+    .populate({
+      path: 'role',
+      select: 'name',
+    }).lean<{ username: string; role: { name: string } }[]>();
+  const fresherUsers = users.filter(user => user.role?.name.toLowerCase() === 'fresher');
+  const usernames = fresherUsers.map(user => user.username);
+
+  return {
+    usernames,
+  };
+}
 }
