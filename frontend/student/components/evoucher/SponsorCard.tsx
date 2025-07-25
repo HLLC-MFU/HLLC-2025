@@ -17,27 +17,33 @@ export const SponsorCard = ({
     evoucherCount = 0,
 }: SponsorCardProps) => {
     return (
-        <TouchableOpacity style={styles.card} onPress={onPress}>
-            <Image source={imageSource} style={styles.cardImage} />
+        <View style={styles.cardWrapper}>
+            <TouchableOpacity style={styles.card} onPress={onPress}>
+                <Image source={imageSource} style={styles.cardImage} />
+            </TouchableOpacity>
             {evoucherCount > 0 && (
                 <View style={styles.evoucherIndicator}>
                     <Text style={styles.indicatorText}>{evoucherCount}</Text>
                 </View>
             )}
-        </TouchableOpacity>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    card: {
+    cardWrapper: {
         width: '46%',
-        height: 100,
+        aspectRatio: 1,
+        marginBottom: 15,
+        position: 'relative',
+    },
+    card: {
+        flex: 1,
         backgroundColor: '#ffffff20',
         borderRadius: 20,
         borderWidth: 2,
         borderColor: '#818181',
-        marginBottom: 15,
-        overflow: 'visible',
+        overflow: 'hidden',
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
@@ -48,8 +54,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
         elevation: 5,
-        position: 'relative',
-        aspectRatio:1
     },
     cardImage: {
         width: '100%',
@@ -60,7 +64,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: -10,
         right: -10,
-        backgroundColor: '#FF3B30', // Red
+        backgroundColor: '#FF3B30',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 16,
@@ -69,7 +73,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
-        borderColor: '#fff', // White border for contrast
+        borderColor: '#fff',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.18,
@@ -86,4 +90,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default SponsorCard; 
+export default SponsorCard;
