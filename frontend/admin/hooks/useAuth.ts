@@ -133,7 +133,6 @@ const useAuth = create<AuthStore>()(
 
             return false;
           }
-
         } catch (err) {
           set({ error: (err as Error).message });
 

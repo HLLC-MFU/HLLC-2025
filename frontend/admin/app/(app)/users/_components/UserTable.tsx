@@ -316,9 +316,9 @@ export default function UsersTable({
 
       {/* Delete & Reset */}
       <ConfirmationModal
+        isOpen={modal.confirm}
         body={`Are you sure you want to ${confirmMode.toLowerCase()} this user?`}
         confirmColor={'danger'}
-        isOpen={modal.confirm}
         title={`${confirmMode} user ${selectedUser ? selectedUser.username : ""}`}
         onClose={() => setModal(prev => ({ ...prev, confirm: false }))}
         onConfirm={onConfirm}

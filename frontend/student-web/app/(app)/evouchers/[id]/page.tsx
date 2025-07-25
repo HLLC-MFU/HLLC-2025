@@ -3,17 +3,19 @@
 import useEvouchers from "@/hooks/useEvouchers";
 import useSponsors from "@/hooks/useSponsors";
 import { Input, Image, ScrollShadow } from "@heroui/react";
-import { ArrowLeft, SearchIcon } from "lucide-react";
+import { ArrowLeft, Search, SearchIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react";
 import EvoucherModal from "./_components/EvoucherModal";
 import { EvoucherCodes } from "@/types/evouchers";
 import { ConfirmationModal } from "@/components/Modal/ConfirmationModal";
 import EvoucherCodesSkeleton from "./_components/EvoucherCodesSkeleton";
+import { useTranslation } from "react-i18next";
 
 export default function EvoucherDetailPage() {
     const router = useRouter();
     const { id } = useParams();
+    const { t } = useTranslation();
     const [searchText, setSearchText] = useState('')
     const [sponsorName, setSponsorName] = useState<string>("E-Vouchers");
     const [selectedCode, setSelectedCode] = useState<EvoucherCodes | null>(null)
@@ -49,7 +51,7 @@ export default function EvoucherDetailPage() {
         <div className="flex flex-col gap-6">
             <div className="flex items-center gap-4 animate-pulse">
                 <ArrowLeft size={28} color="white" onClick={router.back} />
-                <div className="w-[200px] h-[30px] rounded-2xl shadow-xl bg-white/20"/>
+                <div className="w-[200px] h-[30px] rounded-2xl shadow-xl bg-white/20" />
             </div>
             <Input
                 aria-label="Search"
@@ -83,22 +85,19 @@ export default function EvoucherDetailPage() {
 
             {/* Search Bar */}
             <Input
-                aria-label="Search"
+                aria-label="Search e-vouchers"
+                placeholder={t('evoucher.searchPlaceholder')}
                 classNames={{
-                    inputWrapper: 'bg-default-100',
-                    input: 'text-sm',
+                    input: "text-white placeholder:text-white/60",
+                    inputWrapper: "border-2 border-white/40",
+                    clearButton: "text-white"
                 }}
-                labelPlacement="outside"
-                placeholder="Search for E-Voucher..."
-                startContent={
-                    <SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
-                }
-                type="search"
+                size="lg"
+                startContent={<Search className="text-white/60" size={20} />}
                 onValueChange={setSearchText}
                 value={searchText}
-                radius="full"
-                size="lg"
-                variant="faded"
+                type="search"
+                variant="bordered"
             />
 
             {/* User Evoucher */}

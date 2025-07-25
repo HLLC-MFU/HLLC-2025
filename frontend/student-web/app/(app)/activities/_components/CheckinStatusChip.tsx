@@ -11,6 +11,7 @@ import {
   HelpCircle,
   XCircle,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type CheckinStatusMeta = {
   label: string;
@@ -24,27 +25,29 @@ const getCheckinStatusMeta = (
   status: number,
   assessmentStatus: boolean,
 ): CheckinStatusMeta => {
+  const { t } = useTranslation();
+
   switch (status) {
     case 0:
       return {
-        label: 'Not yet open',
-        message: 'Not yet open for check-in',
+        label: t('activity.timeline.notOpenYet'),
+        message: t('activity.timeline.notOpenYetMessage'),
         color: '#4b5563',
         backgroundColor: '#f3f4f6',
         icon: <Clock size={16} stroke="#4b5563" />,
       };
     case 1:
       return {
-        label: 'Check-in Available',
-        message: 'Check-in available now',
+        label: t('activity.timeline.checkinAvailable'),
+        message: t('activity.timeline.checkinAvailableMessage'),
         color: '#854d0e',
         backgroundColor: '#fef9c3',
         icon: <AlertCircle size={16} stroke="#854d0e" />,
       };
     case 2:
       return {
-        label: 'Checked in',
-        message: 'You have already checked in',
+        label: t('activity.timeline.checkedIn'),
+        message: t('activity.timeline.checkedInMessage'),
         color: '#1d4ed8',
         backgroundColor: '#dbeafe',
         icon: <CheckCircle2 size={16} stroke="#1d4ed8" />,
@@ -52,23 +55,23 @@ const getCheckinStatusMeta = (
     case 3:
       return assessmentStatus
         ? {
-            label: 'Success',
-            message: 'You have successfully completed the activity',
+            label: t('activity.timeline.success'),
+            message: t('activity.timeline.successMessage'),
             color: '#008000',
             backgroundColor: '#dcfce7',
             icon: <CheckCheck size={16} stroke="#008000" />,
           }
         : {
-            label: 'Waiting for Assessment',
-            message: 'Waiting for assessment to be completed',
+            label: t('activity.timeline.waitingForAssessment'),
+            message: t('activity.timeline.waitingForAssessmenMessage'),
             color: '#101010',
             backgroundColor: '#f59e0b',
             icon: <FileText size={16} stroke="#101010" />,
           };
     case -1:
       return {
-        label: 'Missed',
-        message: 'You missed the check-in time',
+        label: t('activity.timeline.missed'),
+        message: t('activity.timeline.missedMessage'),
         color: '#b91c1c',
         backgroundColor: '#fee2e2',
         icon: <XCircle size={16} stroke="#b91c1c" />,

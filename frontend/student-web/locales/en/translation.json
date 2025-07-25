@@ -2,6 +2,9 @@
   "download": {
     "banner": "Get our mobile app for the best experience!"
   },
+  "global": {
+    "back": "Back"
+  },
   "coinHunting": {
     "guardianCrystals": "14 Guardian Crystals",
     "specialRewards": "Special Rewards",
@@ -19,13 +22,104 @@
     "checkinFailed": "Check in failed",
     "success": "Success",
     "scanFailed": "Scan failed: {{error}}",
-    "showTab": "Show QR Code",
-    "scanTab": "Scan QR Code",
+    "showTab": "QR Code",
+    "scanTab": "Camera",
     "yourName": "Your Name",
     "studentId": "Student ID",
     "showBeforeJoin": "Please show your QR Code before joining the activity.",
     "notFound": "QR not found or camera issue",
     "result": "Result",
-    "pleaseScan": "Please scan QR Code"
+    "pleaseScan": "Please scan QR Code",
+    "download": "Download QR Code"
+  },
+  "nav": {
+    "home": "HOME",
+    "activity": "ACTIVITY",
+    "qrcode": "QR CODE",
+    "evoucher": "E-VOUCHER",
+    "community": "COMMUNITY"
+  },
+  "activity": {
+    "title": "Activities",
+    "subtitle": "Coming soon...",
+    "upcoming": "Upcoming Activities",
+    "searchPlaceholder": "Search for activities...",
+    "allActivities": "All Activities",
+    "activityTitle": "ACTIVITY",
+    "details": "Details",
+    "activityMap": "Open in Google Maps",
+    "timeline": {
+      "title": "Timeline",
+      "notOpenYet": "Not open yet",
+      "notOpenYetMessage": "Not yet open for check-in.",
+      "checkinAvailable": "Check-in available",
+      "checkinAvailableMessage": "Check-in available now.",
+      "checkedIn": "Checked in",
+      "checkedInMessage": "You have already checked in.",
+      "success": "Success",
+      "successMessage": "You have successfully completed the activity.",
+      "waitingForAssessment": "Waiting for Assessment",
+      "waitingForAssessmentMessage": "Waiting for assessment to be completed.",
+      "missed": "Missed",
+      "missedMessage": "You missed the check-in time.",
+      "activityBeginAt": "Activity begins at {{startAt}} Please be ready to participate and enjoy our activity.",
+      "missedDescription": "You missed the activity. If you were unable to check in due to a technical problem or other reason, please reach out to MFU Activity.",
+      "waitingToStart": "Waiting to Start",
+      "started": "Activity Started",
+      "ongoing": "Activity Ongoing",
+      "ended": "Activity Ended",
+      "assessmentCheckinDescription": "Scan the QR code at the event location or visit the designated check-in point to confirm your attendance.",
+      "openQrScanner": "Open QR Scanner",
+      "openCheckin": "Available for Check-in",
+      "successfullyCheckedIn": "Successfully Checked In",
+      "successfullyCheckedInMessage": "You have successfully checked in. Enjoy the activity!",
+      "cannotCheckIn": "Cannot Check-In",
+      "notOpenforCheckin": "Not open for Check-in",
+      "assessmentComplete": "Complete Assessment",
+      "assessmentTitle": "Evaluation",
+      "assessmentPrompt": "Help us improve by sharing your experience and feedback about this activity.",
+      "assessmentEncouragement": "💭 Your feedback is valuable and helps us create better experiences for everyone."
+    }
+  },
+  "evoucher": {
+    "title": "E-Voucher",
+    "subtitle": "Coming soon...",
+    "noSponsors": "No sponsors found",
+    "searchPlaceholder": "Search for E-Vouchers...",
+    "clickFlip": "Click Voucher to Flip",
+    "useEvoucher": "Use",
+    "usedEvoucher": "Used"
+  },
+  "profile": {
+    "name": "NAME",
+    "studentid": "STUDENT ID",
+    "school": "SCHOOL",
+    "major": "MAJOR"
+  },
+  "lamduanflower": {
+    "title": "Lamduan Flower"
+  },
+  "notification": {
+    "title": "Notifications",
+    "markAllAsRead": "Mark all as read",
+    "markingAsRead": "Marking as read...",
+    "read": "Read",
+    "unread": "Unread",
+    "noNotifications": "No notifications available",
+    "noNotificationsSubtext": "We'll notify you when something arrives"
+  },
+  "settings": {
+    "title": "Settings",
+    "logout": "Logout",
+    "back": "Back"
+  },
+  "report": {
+    "title": "Report",
+    "topic": "Topic",
+    "topicChoose": "Choose topic",
+    "description": "Description",
+    "descriptionText": "Description",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
   }
 }

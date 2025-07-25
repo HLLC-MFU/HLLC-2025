@@ -1,9 +1,7 @@
 // src/contexts/LanguageContext.tsx
-'use client';
-
-import React, { createContext, useContext, useEffect, useState } from 'react';
 import i18n from '@/locales/i18n';
 import { useLanguageStore } from '@/stores/language';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type LanguageContextType = {
   language: 'en' | 'th';

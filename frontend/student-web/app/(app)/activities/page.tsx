@@ -8,8 +8,10 @@ import ActivityCard from './_components/ActivitiesCard';
 import ActivityCardSkeleton from './_components/ActivityCardSkeleton';
 
 import { useActivities } from '@/hooks/useActivities';
+import { useTranslation } from 'react-i18next';
 
 export default function ActivitiesPage() {
+  const { t } = useTranslation();
   const { activities, loading } = useActivities(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');
@@ -80,13 +82,13 @@ export default function ActivitiesPage() {
   }, [activities, searchQuery]);
 
   return (
-    <div className="flex flex-col w-full gap-4 pt-4">
-      <p className="text-3xl text-white font-bold">Activities</p>
+    <div className="flex flex-col w-full gap-6 pt-6">
+      <p className="text-3xl text-white font-bold">{t('activity.title')}</p>
       {/* Search Input */}
-      <div className="mb-6">
+      <div>
         <Input
           aria-label="Search activities"
-          placeholder="Search activities..."
+          placeholder={t('activity.searchPlaceholder')}
           classNames={{
             input: "text-white placeholder:text-white/60",
             inputWrapper: "border-2 border-white/40",
@@ -102,6 +104,7 @@ export default function ActivitiesPage() {
       </div>
 
       <div className="flex flex-col gap-5">
+        <p className="text-3xl text-white font-bold">{t('activity.allActivities')}</p>
         {upcomingActivity && !loading && (
           <div>
             <ActivityCard
@@ -129,7 +132,7 @@ export default function ActivitiesPage() {
 
       {!loading && filteredAndSortedActivities?.length === 0 && (
         <p className="text-center text-sm text-white/80">
-          No activities found.
+          {t('activity.subtitle')}
         </p>
       )}
     </div>

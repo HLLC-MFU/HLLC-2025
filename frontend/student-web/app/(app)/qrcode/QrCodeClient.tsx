@@ -243,7 +243,7 @@ export default function QrCodeClient() {
                   onPress={handleDownload}
                 >
                   <Save className="mr-2" />
-                  Download QR Code
+                  {t('qrcode.download')}
                 </Button>
               </div>
             </div>

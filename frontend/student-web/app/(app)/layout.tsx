@@ -179,8 +179,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div
           className="absolute inset-0 z-10 pointer-events-none transition-all duration-500"
           style={{
-            backdropFilter: `blur(${shouldBlur ? 8 : 0}px)`,
-            WebkitBackdropFilter: `blur(${shouldBlur ? 8 : 0}px)`,
+            backdropFilter: `blur(${shouldBlur ? 16 : 0}px)`,
+            WebkitBackdropFilter: `blur(${shouldBlur ? 16 : 0}px)`,
             backgroundColor: shouldBlur ? 'rgba(0,0,0,0.4)' : 'transparent',
             opacity: shouldBlur ? 1 : 0,
           }}
