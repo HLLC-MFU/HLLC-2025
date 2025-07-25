@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 
 import { apiRequest } from "@/utils/api";
 import { Role } from "@/types/role";
+import { addToast } from "@heroui/react";
 
 export function useRoles() {
     const [roles, setRoles] = useState<Role[]>([]);
@@ -38,6 +39,11 @@ export function useRoles() {
 
                         return updated;
                     });
+                    addToast({
+                        title: "Role created successfully",
+                        description: "Role created successfully",
+                        color: "success",
+                    })
                 });
             }
         } catch (err: any) {
@@ -54,6 +60,11 @@ export function useRoles() {
             const res = await apiRequest<Role>(`/roles/${id}`, "PATCH", roleData);
             if (res.data) {
                 setRoles((prev) => prev.map((r) => (r._id === id ? res.data! : r)));
+                addToast({
+                    title: "Role updated successfully",
+                    description: "Role updated successfully",
+                    color: "success",
+                })
             }
             return res;
         } catch (err: any) {
@@ -70,6 +81,11 @@ export function useRoles() {
             const res = await apiRequest(`/roles/${id}`, "DELETE");
             if (res.statusCode === 200) {
                 setRoles((prev) => prev.filter((r) => r._id !== id));
+                addToast({
+                    title: "Role deleted successfully",
+                    description: "Role deleted successfully",
+                    color: "success",
+                })
             }
             return res;
         } catch (err: any) {

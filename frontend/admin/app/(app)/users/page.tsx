@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Accordion, AccordionItem, addToast, Button } from '@heroui/react';
+import { Accordion, AccordionItem, Button } from '@heroui/react';
 import {
   MonitorSmartphone,
   Plus,
@@ -98,10 +98,8 @@ export default function ManagementPage() {
   const handleAddRole = async (roleData: Partial<Role>) => {
     if (roleModalMode === 'Edit' && selectedRole?._id) {
       await updateRole(selectedRole._id, roleData);
-      addToast({ title: "Role updated successfully", color: "success" });
     } else {
       await createRole(roleData);
-      addToast({ title: "Role created successfully", color: "success" });
     }
     setIsRoleOpen(false);
     setSelectedRole(null);
@@ -110,7 +108,6 @@ export default function ManagementPage() {
   };
 
   const handleEditRole = (role: Role) => {
-    console.log('Editing role:', role); // Debug log
     setSelectedRole(role);
     setRoleModalMode('Edit');
     setIsRoleOpen(true);
@@ -119,7 +116,6 @@ export default function ManagementPage() {
   const handleDeleteRole = async () => {
     if (selectedRole?._id) {
       await deleteRole(selectedRole._id);
-      addToast({ title: "Role deleted successfully", color: "success" });
       setIsDeleteRoleOpen(false);
       setSelectedRole(null);
       await fetchRoles();
@@ -143,11 +139,6 @@ export default function ManagementPage() {
 
     if (response) {
       await fetchUsers();
-      addToast({
-        title: 'Add Successfully',
-        description: 'Data has added successfully',
-        color: 'success',
-      });
     }
   };
 
@@ -158,11 +149,6 @@ export default function ManagementPage() {
 
     if (response) {
       await fetchUsers();
-      addToast({
-        title: 'Import Successfully',
-        description: 'Data has imported successfully',
-        color: 'success',
-      });
     }
   };
 
@@ -171,23 +157,14 @@ export default function ManagementPage() {
     let response = null;
 
     if (confirmMode === 'Delete') {
-      // response = Array.from(selectedKeys).length > 1
-      //   ? await deleteMultiple(Array.from(selectedKeys) as string[])
-      //   : await deleteUser(userAction._id);
       response = await deleteUser(selectedUser._id);
     } else {
-      // await removePassword(userAction.username);
+      response = await removePassword(selectedUser.username);
     }
     setModal((prev) => ({ ...prev, confirm: false }));
 
-    // console.log("ทำไหมไม่ fetch", response);
     if (response) {
       await fetchUsers();
-      addToast({
-        title: `${confirmMode} Successfully`,
-        description: `Data has ${confirmMode.toLowerCase()} successfully`,
-        color: 'success',
-      });
     }
   };
 

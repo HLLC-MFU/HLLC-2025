@@ -50,6 +50,17 @@ export default function TopContent({
                     onValueChange={onSearchChange}
                 />
                 <div className="flex gap-3">
+                    <Button
+                        color="primary"
+                        size="sm"
+                        startContent={<Plus size={16} />}
+                        onPress={() => {
+                            setActionMode('Add');
+                            setModal((prev) => ({ ...prev, add: true }));
+                        }}
+                    >
+                        Add User
+                    </Button>
                     {/* Only render ellipsis dropdown if onEdit/onDelete are present */}
                     {onEdit && onDelete && (
                         <Dropdown>
