@@ -23,7 +23,7 @@ export function useReports() {
           updatedAt?: string;
           category?: { _id: string };
         }[];
-      }>("/reports", "GET");
+      }>("/reports?limit=0", "GET");
 
       const data = (res.data?.data || []).map((r): Problem => ({
         id: r._id,

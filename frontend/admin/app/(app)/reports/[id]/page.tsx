@@ -16,12 +16,15 @@ import { ProblemCharts } from "../_components/ProblemCharts";
 
 import { useReportTypes } from "@/hooks/useReportTypes";
 import { useReports } from "@/hooks/useReports";
+import { Pagination } from "@heroui/react";
+import { useState } from "react";
+
 
 export default function CategoryReportsPage() {
   const { id } = useParams();
   const router = useRouter();
 
-  const { reporttypes: categories } = useReportTypes(); 
+  const { reporttypes: categories } = useReportTypes();
   const {
     problems,
     updateStatus,
@@ -29,6 +32,15 @@ export default function CategoryReportsPage() {
 
   const selectedCategory = categories.find((cat) => cat.id === id);
   const filteredProblems = problems.filter((p) => p.categoryId === id);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  const paginatedProblems = filteredProblems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
 
   if (!selectedCategory) {
     return (
@@ -70,7 +82,7 @@ export default function CategoryReportsPage() {
         </CardHeader>
         <CardBody>
           <div className="space-y-4">
-            {filteredProblems.map((problem) => (
+            {paginatedProblems.map((problem) => (
               <div
                 key={problem.id}
                 className="p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
@@ -94,6 +106,19 @@ export default function CategoryReportsPage() {
           </div>
         </CardBody>
       </Card>
+      {/* Pagination */}
+      {filteredProblems.length > itemsPerPage && (
+        <div className="flex justify-center pt-4">
+          <Pagination
+            total={Math.ceil(filteredProblems.length / itemsPerPage)}
+            initialPage={1}
+            page={currentPage}
+            onChange={setCurrentPage}
+            isCompact
+            showControls
+          />
+        </div>
+      )}
     </div>
   );
 }
