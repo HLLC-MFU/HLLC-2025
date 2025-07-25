@@ -254,13 +254,20 @@ export class EvoucherCodesService {
 
   async addEvoucherCodeKhantok(usernames: string[], evoucherId: string) {
     if (!Array.isArray(usernames)) {
-      throw new Error(`usernames is not an array. Got: ${typeof usernames}`);
+      throw new BadRequestException(`usernames is not an array. Got: ${typeof usernames}`);
     }
     const users = await this.userModel.find({
       username: { $in: usernames },
     }).lean();
 
-    const usernameToIdMap = new Map(users.map(u => [u.username, u._id.toString()]));
+    const usernameToIdMap = new Map(users.map(u => [u.username, u._id]));
+
+    const availableCodes = await this.codeModel.find({
+      evoucher: new Types.ObjectId(evoucherId),
+      isUsed: false,
+      user: null,
+    }).limit(usernames.length).lean<{ _id: Types.ObjectId, code: string, isUsed: boolean, usedAt: Date | null, user: Types.ObjectId | null, evoucher: Types.ObjectId }[]>();
+    const bulkOps: any[] = [];
 
     const results: {
       username: string;
@@ -268,6 +275,7 @@ export class EvoucherCodesService {
       status: string;
       code?: string;
     }[] = [];
+    let codeIndex = 0;
 
     for (const username of usernames) {
       const userId = usernameToIdMap.get(username);
@@ -281,27 +289,45 @@ export class EvoucherCodesService {
         continue;
       }
 
-      try {
-        const claimed = await this.claimEvoucherCode(evoucherId, userId);
+      const code = availableCodes[codeIndex++];
+      if (!code) {
         results.push({
           username,
-          userId,
-          status: 'success',
-          code: claimed.code,
-        });
-      } catch (err) {
-        results.push({
-          username,
-          userId,
+          userId: userId.toString(),
           status: 'failed',
-          code: err.message,
+          code: 'No available code',
         });
+        continue;
       }
+
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: code._id },
+          update: {
+            $set: {
+              user: new Types.ObjectId(userId),
+              isUsed: false,
+              usedAt: null,
+            },
+          },
+        },
+      });
+
+      results.push({
+        username,
+        userId: userId.toString(),
+        status: 'success',
+        code: code.code,
+      });
+    }
+
+    if (bulkOps.length) {
+      await this.codeModel.bulkWrite(bulkOps);
     }
 
     return {
-      message: `Evoucher processed for ${usernames.length} usernames`,
-      total: usernames.length,
+      message: `Evoucher processed for ${results.length} usernames`,
+      total: results.length,
       results,
     };
   }
