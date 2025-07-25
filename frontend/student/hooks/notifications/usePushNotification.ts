@@ -3,6 +3,7 @@ import { getMessaging, AuthorizationStatus } from '@react-native-firebase/messag
 import { useCallback, useEffect, useState } from 'react';
 import useDevice from '@/hooks/useDevice';
 import { Alert, Linking } from 'react-native';
+import notifee, { AndroidImportance } from '@notifee/react-native';
 
 const TOKEN_KEY = 'fcmToken';
 
@@ -41,16 +42,16 @@ export default function usePushNotification() {
           'You have disabled notifications. If you want to receive alerts, please enable Allow Notifications in the Settings.',
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Go to settings', onPress: () => Linking.openSettings()},
+            { text: 'Go to settings', onPress: () => Linking.openSettings() },
           ]
         );
-        
+
         return false;
       }
 
       if (currentStatus === AuthorizationStatus.NOT_DETERMINED) {
         const authStatus = await messaging.requestPermission();
-        
+
         const granted =
           authStatus === AuthorizationStatus.AUTHORIZED ||
           authStatus === AuthorizationStatus.PROVISIONAL;
@@ -71,7 +72,7 @@ export default function usePushNotification() {
   const registerToken = useCallback(async () => {
     const newToken = await messaging.getToken();
     const oldToken = await getToken(TOKEN_KEY);
-    
+
     if (newToken && newToken !== oldToken) {
       await saveToken(TOKEN_KEY, newToken);
       await registerDevice();
@@ -79,8 +80,36 @@ export default function usePushNotification() {
   }, []);
 
   const listenForegroundNotifications = useCallback(() => {
-    return messaging.onMessage(async remoteMessage => {
-      // Alert.alert('Notification', JSON.stringify(remoteMessage?.notification) ?? 'New message');
+    return messaging.onMessage(async (remoteMessage) => {
+      const { title, body } = remoteMessage?.notification ?? {};
+
+      if (title || body) {
+        // Ensure channel exists (only needed once)
+        await notifee.createChannel({
+          id: 'default',
+          name: 'Default Channel',
+          importance: AndroidImportance.HIGH,
+        });
+
+        await notifee.displayNotification({
+          title: title ?? 'New Notification',
+          body: body ?? '',
+          android: {
+            channelId: 'default',
+            pressAction: {
+              id: 'default',
+            },
+          },
+          ios: {
+            foregroundPresentationOptions: {
+              badge: true,
+              sound: true,
+              banner: true,
+              list: true,
+            }
+          }
+        });
+      }
     });
   }, []);
 
@@ -89,7 +118,7 @@ export default function usePushNotification() {
     if (granted) {
       await registerToken();
     }
-    
+
     return granted;
   }, [requestPermission, registerToken]);
 
