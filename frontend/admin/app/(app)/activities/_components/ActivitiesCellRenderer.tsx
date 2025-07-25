@@ -2,6 +2,9 @@ import { Button, Chip, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } f
 import { Activities } from "@/types/activities";
 import { EllipsisVertical, Eye, Pen, Trash } from "lucide-react";
 import { Lang } from "@/types/lang";
+import { School } from "@/types/school";
+import { Major } from "@/types/major";
+import { User } from "@/types/user";
 
 export type ActivitiesColumnKey =
     | "acronym"
@@ -9,6 +12,7 @@ export type ActivitiesColumnKey =
     | "location"
     | "startAt"
     | "endAt"
+    | "scope"
     | "isOpen"
     | "isVisible"
     | "isProgressCount"
@@ -20,6 +24,9 @@ type Props = {
     onEdit: (activity: Activities) => void;
     onDelete: (activity: Activities) => void;
     onViewDetail: (activity: Activities) => void;
+    schools: School[];
+    majors: Major[];
+    users: User[];
 };
 
 export default function ActivitiesCellRenderer({
@@ -28,6 +35,9 @@ export default function ActivitiesCellRenderer({
     onEdit,
     onDelete,
     onViewDetail,
+    schools,
+    majors,
+    users,
 }: Props) {
     switch (columnKey) {
         case "acronym":
@@ -77,6 +87,48 @@ export default function ActivitiesCellRenderer({
             ) : (
                 <span>N/A</span>
             );
+
+        case "scope":
+            const schoolNames = activity.metadata?.scope?.school?.length
+                ? activity.metadata.scope.school
+                    .map(s => schools.find(school => school._id === s.toString())?.name.en ?? "N/A")
+                    .join(", ")
+                : "";
+
+            const majorNames = activity.metadata?.scope?.major?.length
+                ? activity.metadata.scope.major
+                    .map(m => majors.find(major => major._id === m.toString())?.name.en ?? "N/A")
+                    .join(", ")
+                : "";
+
+            const userNames = activity.metadata?.scope?.user?.length
+                ? activity.metadata.scope.user
+                    .map(u => {
+                        const user = users.find(user => user._id === u.toString());
+                        if (!user) return "N/A";
+                        const name = user.name;
+                        return [name?.first, name?.middle, name?.last].filter(Boolean).join(" ") || "N/A";
+                    })
+                    .join(", ")
+                : "";
+
+            return (
+                <div className="flex flex-col gap-1 text-sm">
+                    <div>
+                        <span className="font-medium text-default-400">School:</span>{" "}
+                        {schoolNames || "-"}
+                    </div>
+                    <div>
+                        <span className="font-medium text-default-400">Major:</span>{" "}
+                        {majorNames || "-"}
+                    </div>
+                    <div>
+                        <span className="font-medium text-default-400">User:</span>{" "}
+                        {userNames || "-"}
+                    </div>
+                </div>
+            );
+
 
         case "isOpen":
             return (

@@ -37,7 +37,7 @@ export function SettingLamduanFlowers({
     if (!isoStr) return null;
     const d = new Date(isoStr);
     // ถ้าต้องปรับเวลา timezone เพิ่ม 7 ชม. เช่นในเดิม ก็ใส่
-    d.setHours(d.getHours() + 7);
+    // d.setHours(d.getHours() + 7);
     return d;
   };
 
