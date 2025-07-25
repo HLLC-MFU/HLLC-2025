@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { ImageBackground, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
@@ -11,19 +11,43 @@ export default function BackgroundScreen({
 }) {
   const [loaded, setLoaded] = useState(false);
 
-  const uri = background
-    ? { uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${background}` }
-    : require('@/assets/images/lobby_3.jpeg');
+  if (!background) {
+    return (
+      <View style={[StyleSheet.absoluteFill, styles.loading]}>
+        <ActivityIndicator size="large" color="#fff" />
+      </View>
+    );
+  }
 
-  const isVideo = background?.endsWith('.mp4');
+  // Static video map (only known videos you bundled)
+  const videoMap: Record<string, any> = {
+    ADT: require('@/assets/images/lobby/ADT.mp4'),
+    AI: require('@/assets/images/lobby/AI.mp4'),
+    CSC: require('@/assets/images/lobby/CSC.mp4'),
+    DENT: require('@/assets/images/lobby/DENT.mp4'),
+    HS: require('@/assets/images/lobby/HS.mp4'),
+    IM: require('@/assets/images/lobby/IM.mp4'),
+    LAW: require('@/assets/images/lobby/LAW.mp4'),
+    LA: require('@/assets/images/lobby/LA.mp4'),
+    SOM: require('@/assets/images/lobby/SOM.mp4'),
+    MED: require('@/assets/images/lobby/MED.mp4'),
+    NS: require('@/assets/images/lobby/NS.mp4'),
+    SCI: require('@/assets/images/lobby/SCI.mp4'),
+    SINO: require('@/assets/images/lobby/SINO.mp4'),
+    SOCIN: require('@/assets/images/lobby/SOCIN.mp4'),
+    // Add more here
+  };
 
-  const player = useVideoPlayer(uri, player => {
+  const fallbackImage = require('@/assets/images/lobby/MED.mp4');
+
+  const isVideo = background in videoMap;
+  const uri = isVideo ? videoMap[background] : fallbackImage;
+
+  const player = useVideoPlayer(isVideo ? uri : undefined, (player) => {
     player.loop = true;
     player.play();
+    setLoaded(true);
   });
-
-  // Show loading spinner or blank while loading background
-  const onLoadEnd = () => setLoaded(true);
 
   return (
     <View style={[StyleSheet.absoluteFill, { flex: 1, backgroundColor: '#000' }]}>
@@ -35,8 +59,7 @@ export default function BackgroundScreen({
             pointerEvents="none"
             contentFit="cover"
           />
-          {loaded && children}
-          {!loaded && (
+          {loaded ? children : (
             <View style={[StyleSheet.absoluteFill, styles.loading]}>
               <ActivityIndicator size="large" color="#fff" />
             </View>
@@ -47,7 +70,7 @@ export default function BackgroundScreen({
           source={uri}
           resizeMode="cover"
           style={[StyleSheet.absoluteFill, { flex: 1 }]}
-          onLoadEnd={onLoadEnd}
+          onLoadEnd={() => setLoaded(true)}
         >
           {loaded ? children : (
             <View style={[StyleSheet.absoluteFill, styles.loading]}>

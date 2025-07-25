@@ -118,10 +118,9 @@ export default function AppLayout() {
     (/^\/community(\/.*)?$/.test(pathname) && pathname !== '/community/chat') ||
     /^\/activities\/[^/]+$/.test(pathname);
 
-
   return (
     <View style={{ flex: 1 }}>
-      <BackgroundScreen background={assets?.background ?? null}>
+      <BackgroundScreen background={user?.data[0].metadata.major.school.acronym.toUpperCase() ?? null}>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity }]}>
           <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
         </Animated.View>
