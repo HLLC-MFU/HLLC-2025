@@ -113,10 +113,10 @@ export default function CategoryReportsPage() {
         </CardBody>
       </Card>
       {/* Pagination */}
-      {filteredProblems.length > itemsPerPage && (
+      {filteredReports.length > reportsPerPage && (
         <div className="flex justify-center pt-4">
           <Pagination
-            total={Math.ceil(filteredProblems.length / itemsPerPage)}
+            total={Math.ceil(filteredReports.length / reportsPerPage)}
             initialPage={1}
             page={currentPage}
             onChange={setCurrentPage}
