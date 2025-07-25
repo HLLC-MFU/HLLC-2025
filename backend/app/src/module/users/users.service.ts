@@ -278,7 +278,7 @@ export class UsersService {
       throw new BadRequestException('Password is required');
     }
 
-    // หาทุก role ที่ขึ้นต้นว่า "smo" (ไม่สน case)
+    // Find roles that start with "smo" (case-insensitive)
     const smoRoles = await this.roleModel.find({
       name: { $regex: /^smo/i },
     });
@@ -289,25 +289,35 @@ export class UsersService {
 
     const smoRoleIds = smoRoles.map(role => role._id);
 
+    // Find users with those roles
     const smoUsers = await this.userModel.find({ role: { $in: smoRoleIds } });
 
     if (!smoUsers.length) {
       throw new NotFoundException('No users found with SMO roles');
     }
 
-    const updatedUsers = await Promise.all(
-      smoUsers.map(async (user) => {
-        user.password = password;
-        const hashedSecret = await bcrypt.hash('Chiang Rai', 10);
-        user.metadata = {
-          ...user.metadata,
-          secret: hashedSecret,
-        };
-        await user.save();
-        return user.toObject();
-      }),
-    );
+    const hashedSecret = await bcrypt.hash('Chiang Rai', 10);
 
+    // Pre-generate hash for the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Bulk update all users
+    const bulkOps = smoUsers.map(user => ({
+      updateOne: {
+        filter: { _id: user._id },
+        update: {
+          $set: {
+            password: hashedPassword,
+            'metadata.secret': hashedSecret,
+          },
+        },
+      },
+    }));
+
+    await this.userModel.bulkWrite(bulkOps);
+
+    // Return updated users
+    const updatedUsers = await this.userModel.find({ role: { $in: smoRoleIds } });
     return updatedUsers;
   }
 

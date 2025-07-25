@@ -60,7 +60,7 @@ export function EvoucherCodeModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleCancel} isDismissable={false}>
+    <Modal isOpen={isOpen} onClose={handleCancel} isDismissable={false} placement='top-center'>
       <ModalContent>
         <Form onSubmit={handleSubmit}>
           <ModalHeader>Add Evoucher Code</ModalHeader>
