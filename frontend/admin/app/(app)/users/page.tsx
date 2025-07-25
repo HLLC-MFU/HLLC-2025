@@ -260,6 +260,9 @@ export default function ManagementPage() {
           isOpen={isRoleOpen}
           onAddRole={handleAddRole}
           onClose={() => setIsRoleOpen(false)}
+          schools={schools}
+          majors={majors}
+          users={users}
         />
       </div>
     </>

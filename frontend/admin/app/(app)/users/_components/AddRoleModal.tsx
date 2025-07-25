@@ -1,4 +1,3 @@
-"use client";
 import React, { FormEvent, useState } from "react";
 import {
     Button,
@@ -23,6 +22,9 @@ type AddRoleProps = {
     isOpen: boolean;
     onClose: () => void;
     onAddRole: (role: Partial<Role>) => void;
+    schools: any[];
+    majors: any[];
+    users: any[];
 };
 
 type Field = {
@@ -34,9 +36,12 @@ type Field = {
 
 const typeOptions = ["string", "number", "boolean", "date"];
 
-export default function AddRoleModal({ isOpen, onClose, onAddRole }: AddRoleProps) {
+export default function AddRoleModal({ isOpen, onClose, onAddRole, schools, majors, users }: AddRoleProps) {
     const [fields, setFields] = useState<Field[]>([]);
     const [roleName, setRoleName] = useState<string>("");
+    const [selectedMajors, setSelectedMajors] = useState<string[]>([]);
+    const [selectedSchools, setSelectedSchools] = useState<string[]>([]);
+    const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -54,11 +59,18 @@ export default function AddRoleModal({ isOpen, onClose, onAddRole }: AddRoleProp
         const formData: Partial<Role> = {
             name: roleName,
             metadataSchema,
+            ...(selectedMajors.length > 0 && { selectedMajors }),
+            ...(selectedSchools.length > 0 && { selectedSchools }),
+            ...(selectedUsers.length > 0 && { selectedUsers })
         };
+
 
         onAddRole(formData);
         setFields([]);
         setRoleName("");
+        setSelectedMajors([]);
+        setSelectedSchools([]);
+        setSelectedUsers([]);
     };
 
     const handleAddField = () => {
@@ -77,6 +89,15 @@ export default function AddRoleModal({ isOpen, onClose, onAddRole }: AddRoleProp
 
             return updated;
         });
+    };
+
+    const getOptionsForKey = (key: string) => {
+        switch (key) {
+            case 'school': return schools || [];
+            case 'major': return majors || [];
+            case 'user': return users || [];
+            default: return [];
+        }
     };
 
     return (
@@ -149,6 +170,102 @@ export default function AddRoleModal({ isOpen, onClose, onAddRole }: AddRoleProp
                                     </div>
                                 </div>
                             ))}
+                        </Card>
+
+                                               {/* Metadata Select Fields Card */}
+                                               <Card shadow="none">
+                            <CardHeader className="flex flex-row justify-between items-center">
+                                <p className="text-sm font-semibold">Metadata Select Fields</p>
+                            </CardHeader>
+                            
+                            <div className="p-4 space-y-4">
+                                {/* Major Selection */}
+                                <div className="flex flex-row gap-2 items-end">
+                                    <Input
+                                        className="w-32"
+                                        label="Field"
+                                        value="major"
+                                        variant="underlined"
+                                        isReadOnly
+                                    />
+                                    <Select
+                                        className="flex-1"
+                                        label="Select Major(s)"
+                                        placeholder="Choose majors..."
+                                        selectionMode="multiple"
+                                        variant="underlined"
+                                        selectedKeys={new Set(selectedMajors)}
+                                        onSelectionChange={(val) => {
+                                            const selected = Array.from(val) as string[];
+                                            setSelectedMajors(selected);
+                                        }}
+                                    >
+                                        {majors.map((major: any) => (
+                                            <SelectItem key={major.id}>
+                                                {major.name.th}
+                                            </SelectItem>
+                                        ))}
+                                    </Select>
+                                </div>
+
+                                {/* School Selection */}
+                                <div className="flex flex-row gap-2 items-end">
+                                    <Input
+                                        className="w-32"
+                                        label="Field"
+                                        value="school"
+                                        variant="underlined"
+                                        isReadOnly
+                                    />
+                                    <Select
+                                        className="flex-1"
+                                        label="Select School(s)"
+                                        placeholder="Choose schools..."
+                                        selectionMode="multiple"
+                                        variant="underlined"
+                                        selectedKeys={new Set(selectedSchools)}
+                                        onSelectionChange={(val) => {
+                                            const selected = Array.from(val) as string[];
+                                            setSelectedSchools(selected);
+                                        }}
+                                    >
+                                        {schools.map((school: any) => (
+                                            <SelectItem key={school.id}>
+                                                {school.name.en}
+                                            </SelectItem>
+                                        ))}
+                                    </Select>
+                                </div>
+
+                                {/* User Selection */}
+                                <div className="flex flex-row gap-2 items-end">
+                                    <Input
+                                        className="w-32"
+                                        label="Field"
+                                        value="user"
+                                        variant="underlined"
+                                        isReadOnly
+                                    />
+                                    <Select
+                                        className="flex-1"
+                                        label="Select User(s)"
+                                        placeholder="Choose users..."
+                                        selectionMode="multiple"
+                                        variant="underlined"
+                                        selectedKeys={new Set(selectedUsers)}
+                                        onSelectionChange={(val) => {
+                                            const selected = Array.from(val) as string[];
+                                            setSelectedUsers(selected);
+                                        }}
+                                    >
+                                        {users.map((user: any) => (
+                                            <SelectItem key={user.id}>
+                                                {user.name.en}
+                                            </SelectItem>
+                                        ))}
+                                    </Select>
+                                </div>
+                            </div>
                         </Card>
 
                     </ModalBody>
