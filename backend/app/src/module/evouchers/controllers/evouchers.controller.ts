@@ -97,4 +97,9 @@ export class EvouchersController {
     console.log('Received usernames:', dto.username);
     return this.evoucherCodesService.addEvoucherCodeKhantok(dto.username, evoucherId);
   }
+
+  @Get(":evoucherId/without-evoucher")
+  async getUsersNoEvoucher(@Param('evoucherId') evoucherId: string) {
+    return this.evoucherCodesService.findUsersWithoutEvoucher(evoucherId);
+  }
 }
