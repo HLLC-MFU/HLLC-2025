@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { User, EyeClosed, Eye, Lock } from "lucide-react";
@@ -8,6 +8,7 @@ import { Button, Checkbox, Form, Input } from "@heroui/react";
 
 import background from "@/public/images/background.png";
 import useAuth from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useProfile();
 
   const toggleVisibility = () => setIsVisible((prev) => !prev);
 
@@ -32,6 +34,12 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
 
   return (
     <div className="h-full w-full relative md:flex items-center justify-between overflow-y-hidden md:p-2">

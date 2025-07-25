@@ -276,6 +276,61 @@ export class CoinCollectionsService {
     }));
   }
 
+  async getLeaderboardwithSponsor(query: Record<string, string>) {
+  const limit = Number(query.limit) || 1000;
+
+  const collections = await this.coinCollectionModel.find({})
+    .populate({
+      path: 'user',
+      select: ['username', 'name'],
+    })
+    .populate({
+      path: 'landmarks.landmark',
+      model: 'Landmark',
+      select: 'type',
+    })
+    .lean();
+
+  const leaderboard = collections.map(c => {
+    const user = c.user as any;
+    const allLandmarks = c.landmarks;
+
+    const latestCollectedAt = allLandmarks.reduce((latest, curr) => {
+      return !latest || new Date(curr.collectedAt) > latest
+        ? new Date(curr.collectedAt)
+        : latest;
+    }, null as Date | null);
+
+    // นับจำนวนเหรียญทั้งหมด (ไม่กรอง type)
+    return {
+      userId: user._id,
+      username: user.username,
+      name: user.name,
+      coinCount: allLandmarks.length, // <-- นับทั้งหมด
+      latestCollectedAt,
+    };
+  });
+
+  // จัดอันดับตาม coinCount รวม (และเวลาเก็บล่าสุด)
+  leaderboard.sort((a, b) => {
+    if (b.coinCount !== a.coinCount) return b.coinCount - a.coinCount;
+    const aTime = a.latestCollectedAt?.getTime() ?? 0;
+    const bTime = b.latestCollectedAt?.getTime() ?? 0;
+    return aTime - bTime;
+  });
+
+  const leaderboardWithRank = leaderboard.slice(0, limit).map((entry, index) => ({
+    ...entry,
+    rank: index + 1,
+  }));
+
+  return {
+    message: 'Leaderboard fetched successfully (ALL types of landmarks included)',
+    data: leaderboardWithRank,
+  };
+}
+
+
   async dropEvoucherRate(landmarkId: Types.ObjectId, userId: Types.ObjectId) {
     const collectedCount = await this.coinCollectionModel.countDocuments({
       landmarks: { $elemMatch: { landmark: landmarkId } }
