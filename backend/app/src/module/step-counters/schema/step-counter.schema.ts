@@ -13,6 +13,7 @@ class Step {
   @Prop({ required: true, type: Number })
   step: number;
 
+
   @Prop({ type: Date })
   createdAt?: Date;
 
@@ -41,6 +42,9 @@ export class StepCounter {
 
   @Prop({ type: Number })
   rank: number;
+
+  @Prop({ type: Number, default: null })
+  initialStepCount?: number;
 
   @Prop({
     type: [

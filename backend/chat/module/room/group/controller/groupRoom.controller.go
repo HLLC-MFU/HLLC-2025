@@ -9,6 +9,9 @@ import (
 	"chat/pkg/decorators"
 	"chat/pkg/middleware"
 	"chat/pkg/utils"
+	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -60,9 +63,85 @@ func (c *GroupRoomController) setupRoutes() {
 // CreateRoomByGroup สร้างห้องใหม่โดยแบ่งตาม group
 func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 	var groupDto dto.CreateRoomByGroupDto
-	if err := ctx.BodyParser(&groupDto); err != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+
+	// Log form values for debug
+	form, _ := ctx.MultipartForm()
+	if form != nil {
+		for k, v := range form.Value {
+			fmt.Printf("FORM KEY: %s, VALUE: %v\n", k, v)
+		}
 	}
+
+	groupDto.Name.En = ctx.FormValue("name.en")
+	groupDto.Name.Th = ctx.FormValue("name.th")
+	groupDto.Type = ctx.FormValue("type")
+	groupDto.Status = ctx.FormValue("status")
+	groupDto.GroupType = ctx.FormValue("groupType")
+	groupDto.GroupValue = ctx.FormValue("groupValue")
+	groupDto.CreatedBy = ctx.FormValue("createdBy")
+
+	// Fallback: ถ้า key ปกติว่าง ให้หา key ที่ลงท้ายด้วย _status/_capacity/_type/_groupType/_groupValue
+	if groupDto.Status == "" && form != nil {
+		for k, v := range form.Value {
+			if strings.HasSuffix(k, "_status") && len(v) > 0 {
+				groupDto.Status = v[0]
+				break
+			}
+		}
+	}
+	if groupDto.Type == "" && form != nil {
+		for k, v := range form.Value {
+			if strings.HasSuffix(k, "_type") && len(v) > 0 {
+				groupDto.Type = v[0]
+				break
+			}
+		}
+	}
+	if groupDto.GroupType == "" && form != nil {
+		for k, v := range form.Value {
+			if strings.HasSuffix(k, "_groupType") && len(v) > 0 {
+				groupDto.GroupType = v[0]
+				break
+			}
+		}
+	}
+	if groupDto.GroupValue == "" && form != nil {
+		for k, v := range form.Value {
+			if strings.HasSuffix(k, "_groupValue") && len(v) > 0 {
+				groupDto.GroupValue = v[0]
+				break
+			}
+		}
+	}
+
+	// Parse capacity
+	capacityStr := ctx.FormValue("capacity")
+	if capacityStr == "" && form != nil {
+		for k, v := range form.Value {
+			if strings.HasSuffix(k, "_capacity") && len(v) > 0 {
+				capacityStr = v[0]
+				break
+			}
+		}
+	}
+	if capacityStr != "" {
+		if capacity, err := strconv.Atoi(capacityStr); err == nil {
+			groupDto.Capacity = capacity
+		}
+	}
+
+	// Parse members from form-data (support multiple members)
+	if form != nil {
+		if memberVals, ok := form.Value["members"]; ok && len(memberVals) > 0 {
+			groupDto.Members = memberVals
+		}
+	}
+
+	fmt.Println("DEBUG STATUS:", groupDto.Status)
+
+	// Debug: log received data
+	fmt.Printf("Received DTO: %+v\n", groupDto)
+	fmt.Printf("Raw form values - status: '%s', capacity: '%s'\n", ctx.FormValue("status"), ctx.FormValue("capacity"))
 
 	// Extract user ID from JWT context if CreatedBy is not provided
 	if groupDto.CreatedBy == "" {
@@ -83,7 +162,7 @@ func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 
-	// If image was uploaded, update room with UpdateRoomDto
+	// หลังอัปโหลดรูป (ถ้ามี image)
 	if filename != "" {
 		stringMembers := make([]string, len(room.Members))
 		for i, m := range room.Members {
@@ -92,6 +171,7 @@ func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 		updateRoomDto := &roomDto.UpdateRoomDto{
 			Name:     room.Name,
 			Type:     room.Type,
+			Status:   room.Status, // <--- เพิ่มบรรทัดนี้!
 			Capacity: room.Capacity,
 			Members:  stringMembers,
 			Image:    filename,

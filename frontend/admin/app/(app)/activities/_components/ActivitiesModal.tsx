@@ -14,14 +14,17 @@ import {
     Form,
     Select,
     SelectItem,
+    DatePicker,
+    addToast,
 } from "@heroui/react";
 import { useState, useEffect } from "react";
+import { fromDate } from "@internationalized/date";
+
 import { Activities } from "@/types/activities";
 import { School } from "@/types/school";
 import { Major } from "@/types/major";
 import { User } from "@/types/user";
 import ImageInput from "@/components/ui/imageInput";
-
 
 type ActivitiesModalProps = {
     isOpen: boolean;
@@ -62,9 +65,9 @@ export default function ActivitiesModal({
     const [isOpenMeta, setIsOpenMeta] = useState(true);
     const [isVisibleMeta, setIsVisibleMeta] = useState(true);
     const [isProgressCount, setIsProgressCount] = useState(true);
-    const [startAt, setStartAt] = useState("");
-    const [endAt, setEndAt] = useState("");
-    const [checkinStartAt, setCheckinStartAt] = useState("");
+    const [startAt, setStartAt] = useState<Date | null>(null);
+    const [endAt, setEndAt] = useState<Date | null>(null);
+    const [checkinStartAt, setCheckinStartAt] = useState<Date | null>(null);
     const [bannerPhotoFile, setBannerPhotoFile] = useState<File | null>(null);
     const [bannerPhotoUrl, setBannerPhotoUrl] = useState<string | null>(null);
     const [logoPhotoFile, setLogoPhotoFile] = useState<File | null>(null);
@@ -72,7 +75,25 @@ export default function ActivitiesModal({
     const [scopeMajor, setScopeMajor] = useState<string[]>([]);
     const [scopeSchool, setScopeSchool] = useState<string[]>([]);
     const [scopeUser, setScopeUser] = useState<string[]>([]);
+    const [showImageError, setShowImageError] = useState(false);
 
+    const toLocalDatetime = (utcString: string | undefined | null) => {
+        if (!utcString) return "";
+        const date = new Date(utcString);
+
+        date.setHours(date.getHours() + 7);
+
+        return date.toISOString().slice(0, 16);
+    };
+
+    const parseISOToDate = (isoStr?: string | null) => {
+        if (!isoStr) return null;
+        const d = new Date(isoStr);
+
+        // ถ้าต้องปรับเวลา timezone เพิ่ม 7 ชม. เช่นในเดิม ก็ใส่
+        // d.setHours(d.getHours() + 7);
+        return d;
+    };
 
     useEffect(() => {
         if (mode === "edit" && activity) {
@@ -109,9 +130,9 @@ export default function ActivitiesModal({
                     typeof u === "string" ? u : u._id
                 )
             );
-            setStartAt(activity.metadata?.startAt?.slice(0, 16) ?? "");
-            setEndAt(activity.metadata?.endAt?.slice(0, 16) ?? "");
-            setCheckinStartAt(activity.metadata?.checkinStartAt?.slice(0, 16) ?? "");
+            setStartAt(parseISOToDate(activity.metadata?.startAt) ?? null);
+            setEndAt(parseISOToDate(activity.metadata?.endAt) ?? null);
+            setCheckinStartAt(parseISOToDate(activity.metadata?.checkinStartAt) ?? null);
             setBannerPhotoFile(null);
             setBannerPhotoUrl(
                 activity.photo?.bannerPhoto
@@ -142,20 +163,34 @@ export default function ActivitiesModal({
             setScopeMajor([]);
             setScopeSchool([]);
             setScopeUser([]);
-            setStartAt("");
-            setEndAt("");
-            setCheckinStartAt("");
+            const now = new Date();
+            const tomorrow = new Date();
+
+            tomorrow.setDate(now.getDate() + 1);
+
+            setStartAt(now);
+            setEndAt(tomorrow);
+            setCheckinStartAt(now);
             setBannerPhotoFile(null);
             setLogoPhotoFile(null);
             setBannerPhotoUrl(null);
             setLogoPhotoUrl(null);
         }
-    }, [activity, mode, typeId]);
-
+    }, [activity, mode, typeId, isOpen]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const formData = new FormData();
+
+        if (mode === "add" && (!bannerPhotoFile || !logoPhotoFile)) {
+            setShowImageError(true);
+            addToast({
+                title: "Please upload both Banner and Logo photos.",
+                color: "danger",
+            });
+
+            return;
+        }
 
         formData.append("name[th]", nameTh);
         formData.append("name[en]", nameEn);
@@ -171,19 +206,13 @@ export default function ActivitiesModal({
         formData.append("metadata[isOpen]", String(isOpenMeta));
         formData.append("metadata[isVisible]", String(isVisibleMeta));
         formData.append("metadata[isProgressCount]", String(isProgressCount));
-        scopeMajor.forEach((id) =>
-            formData.append("metadata[scope][major][]", id)
-        );
-        scopeSchool.forEach((id) =>
-            formData.append("metadata[scope][school][]", id)
-        );
-        scopeUser.forEach((id) =>
-            formData.append("metadata[scope][user][]", id)
-        );
+        formData.append("metadata[scope][major][]", scopeMajor.join(" , "))
+        formData.append("metadata[scope][school][]", scopeSchool.join(" , "))
+        formData.append("metadata[scope][user][]", scopeUser.join(" , "))
 
-        formData.append("metadata[startAt]", startAt);
-        formData.append("metadata[endAt]", endAt);
-        formData.append("metadata[checkinStartAt]", checkinStartAt);
+        if (startAt) formData.append("metadata[startAt]", startAt.toISOString());
+        if (endAt) formData.append("metadata[endAt]", endAt.toISOString());
+        if (checkinStartAt) formData.append("metadata[checkinStartAt]", checkinStartAt.toISOString());
 
         if (bannerPhotoFile) {
             formData.append("photo[bannerPhoto]", bannerPhotoFile);
@@ -191,17 +220,19 @@ export default function ActivitiesModal({
         if (logoPhotoFile) {
             formData.append("photo[logoPhoto]", logoPhotoFile);
         }
-
+        formData.forEach((value, key) => {
+            console.log(key, "=>", value);
+        });
         onSubmit(formData, mode);
     };
 
     return (
-        <Modal isOpen={isOpen} size="3xl" onClose={onClose}>
-            <ModalContent>
+        <Modal isDismissable={false} isOpen={isOpen} size="3xl" onClose={onClose} >
+            <ModalContent className="max-w-[60vw]">
                 <Form onSubmit={handleSubmit}>
                     <ModalHeader>{mode === "add" ? "Add New Activity" : "Edit Activity"}</ModalHeader>
                     <Divider />
-                    <ModalBody className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto w-full p-4 flex">
+                    <ModalBody className="grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto w-full p-4 flex">
                         <div className="space-y-8 flex-col w-full">
                             {/* Basic Information Section */}
                             <div className="space-y-4 w-full flex-col">
@@ -210,39 +241,45 @@ export default function ActivitiesModal({
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <Input
-                                        label="Name (Thai)"
-                                        value={nameTh}
-                                        onChange={(e) => setNameTh(e.target.value)}
+                                        isRequired
                                         required
-                                        variant="bordered"
-                                    />
-                                    <Input
                                         label="Name (English)"
                                         value={nameEn}
-                                        onChange={(e) => setNameEn(e.target.value)}
-                                        required
                                         variant="bordered"
+                                        onChange={(e) => setNameEn(e.target.value)}
+                                    />
+                                    <Input
+                                        isRequired
+                                        required
+                                        label="Name (Thai)"
+                                        value={nameTh}
+                                        variant="bordered"
+                                        onChange={(e) => setNameTh(e.target.value)}
                                     />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <Input
+                                        isRequired
+                                        required
                                         label="Acronym"
                                         value={acronym}
-                                        onChange={(e) => setAcronym(e.target.value)}
-                                        required
                                         variant="bordered"
+                                        onChange={(e) => setAcronym(e.target.value)}
                                     />
-                                    <div className="flex items-end">
-                                        <div className="flex gap-4 w-full">
-                                            <Switch isSelected={isOpenMeta} onValueChange={setIsOpenMeta} size="sm">
-                                                Is Open
-                                            </Switch>
-                                            <Switch isSelected={isVisibleMeta} onValueChange={setIsVisibleMeta} size="sm">
-                                                Is Visible
-                                            </Switch>
-                                            <Switch isSelected={isProgressCount} onValueChange={setIsProgressCount} size="sm">
-                                                Progress Count
-                                            </Switch>
+                                    <div className="flex items-center">
+                                        <div className="flex justify-between gap-8">
+                                            <div className="flex flex-col items-center">
+                                                <Switch isSelected={isOpenMeta} size="md" onValueChange={setIsOpenMeta} />
+                                                <span className="text-md mt-1">Open</span>
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <Switch isSelected={isVisibleMeta} size="md" onValueChange={setIsVisibleMeta} />
+                                                <span className="text-md mt-1">Visible</span>
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <Switch isSelected={isProgressCount} size="md" onValueChange={setIsProgressCount} />
+                                                <span className="text-md mt-1">Count</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -253,34 +290,38 @@ export default function ActivitiesModal({
                                 <h3 className="text-lg font-medium text-foreground-700 border-b border-divider pb-2">Details</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <Textarea
-                                        label="Short Details (Thai)"
-                                        value={shortDetailsTh}
-                                        onChange={(e) => setShortDetailsTh(e.target.value)}
-                                        variant="bordered"
+                                        isRequired
+                                        label="Short Details (English)"
                                         minRows={3}
+                                        value={shortDetailsEn}
+                                        variant="bordered"
+                                        onChange={(e) => setShortDetailsEn(e.target.value)}
                                     />
                                     <Textarea
-                                        label="Short Details (English)"
-                                        value={shortDetailsEn}
-                                        onChange={(e) => setShortDetailsEn(e.target.value)}
-                                        variant="bordered"
+                                        isRequired
+                                        label="Short Details (Thai)"
                                         minRows={3}
+                                        value={shortDetailsTh}
+                                        variant="bordered"
+                                        onChange={(e) => setShortDetailsTh(e.target.value)}
                                     />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <Textarea
-                                        label="Full Details (Thai)"
-                                        value={fullDetailsTh}
-                                        onChange={(e) => setFullDetailsTh(e.target.value)}
-                                        variant="bordered"
+                                        isRequired
+                                        label="Full Details (English)"
                                         minRows={4}
+                                        value={fullDetailsEn}
+                                        variant="bordered"
+                                        onChange={(e) => setFullDetailsEn(e.target.value)}
                                     />
                                     <Textarea
-                                        label="Full Details (English)"
-                                        value={fullDetailsEn}
-                                        onChange={(e) => setFullDetailsEn(e.target.value)}
-                                        variant="bordered"
+                                        isRequired
+                                        label="Full Details (Thai)"
                                         minRows={4}
+                                        value={fullDetailsTh}
+                                        variant="bordered"
+                                        onChange={(e) => setFullDetailsTh(e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -290,24 +331,27 @@ export default function ActivitiesModal({
                                 <h3 className="text-lg font-medium text-foreground-700 border-b border-divider pb-2">Location</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <Input
-                                        label="Location (Thai)"
-                                        value={locationTh}
-                                        onChange={(e) => setLocationTh(e.target.value)}
-                                        variant="bordered"
-                                    />
-                                    <Input
+                                        isRequired
                                         label="Location (English)"
                                         value={locationEn}
-                                        onChange={(e) => setLocationEn(e.target.value)}
                                         variant="bordered"
+                                        onChange={(e) => setLocationEn(e.target.value)}
+                                    />
+                                    <Input
+                                        isRequired
+                                        label="Location (Thai)"
+                                        value={locationTh}
+                                        variant="bordered"
+                                        onChange={(e) => setLocationTh(e.target.value)}
                                     />
                                 </div>
                                 <Input
+                                    isRequired
+                                    className="w-full"
                                     label="Map URL"
                                     value={mapUrl}
-                                    onChange={(e) => setMapUrl(e.target.value)}
                                     variant="bordered"
-                                    className="w-full"
+                                    onChange={(e) => setMapUrl(e.target.value)}
                                 />
                             </div>
 
@@ -315,26 +359,22 @@ export default function ActivitiesModal({
                             <div className="space-y-4">
                                 <h3 className="text-lg font-medium text-foreground-700 border-b border-divider pb-2">Schedule</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <Input
-                                        type="datetime-local"
+                                    <DatePicker
+                                        isRequired
                                         label="Start Date & Time"
-                                        value={startAt}
-                                        onChange={(e) => setStartAt(e.target.value)}
-                                        variant="bordered"
+                                        value={startAt ? fromDate(startAt, "Asia/Bangkok") : undefined}
+                                        onChange={(date) => setStartAt(date?.toDate() ?? startAt)}
                                     />
-                                    <Input
-                                        type="datetime-local"
+                                    <DatePicker
                                         label="Check-in Start"
-                                        value={checkinStartAt}
-                                        onChange={(e) => setCheckinStartAt(e.target.value)}
-                                        variant="bordered"
+                                        value={checkinStartAt ? fromDate(checkinStartAt, "Asia/Bangkok") : undefined}
+                                        onChange={(date) => setCheckinStartAt(date?.toDate() ?? checkinStartAt)}
                                     />
-                                    <Input
-                                        type="datetime-local"
+                                    <DatePicker
+                                        isRequired
                                         label="End Date & Time"
-                                        value={endAt}
-                                        onChange={(e) => setEndAt(e.target.value)}
-                                        variant="bordered"
+                                        value={endAt ? fromDate(endAt, "Asia/Bangkok") : undefined}
+                                        onChange={(date) => setEndAt(date?.toDate() ?? endAt)}
                                     />
                                 </div>
                             </div>
@@ -345,10 +385,13 @@ export default function ActivitiesModal({
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <Select
                                         label="Scope Major"
-                                        selectionMode="multiple"
                                         selectedKeys={new Set<string>(scopeMajor)}
-                                        onSelectionChange={(keys) => setScopeMajor(Array.from(keys as Set<string>))}
+                                        selectionMode="multiple"
                                         variant="bordered"
+
+                                        onSelectionChange={(keys) => {
+                                            setScopeMajor(Array.from(keys as Set<string>));
+                                        }}
                                     >
                                         {majors.map((major) => (
                                             <SelectItem key={major._id}>{major.name.en}</SelectItem>
@@ -356,10 +399,10 @@ export default function ActivitiesModal({
                                     </Select>
                                     <Select
                                         label="Scope School"
-                                        selectionMode="multiple"
                                         selectedKeys={new Set<string>(scopeSchool)}
-                                        onSelectionChange={(keys) => setScopeSchool(Array.from(keys as Set<string>))}
+                                        selectionMode="multiple"
                                         variant="bordered"
+                                        onSelectionChange={(keys) => setScopeSchool(Array.from(keys as Set<string>))}
                                     >
                                         {schools.map((school) => (
                                             <SelectItem key={school._id}>{school.name.en}</SelectItem>
@@ -367,10 +410,10 @@ export default function ActivitiesModal({
                                     </Select>
                                     <Select
                                         label="Scope User"
-                                        selectionMode="multiple"
                                         selectedKeys={new Set<string>(scopeUser)}
-                                        onSelectionChange={(keys) => setScopeUser(Array.from(keys as Set<string>))}
+                                        selectionMode="multiple"
                                         variant="bordered"
+                                        onSelectionChange={(keys) => setScopeUser(Array.from(keys as Set<string>))}
                                     >
                                         {users.map((user) => (
                                             <SelectItem key={user._id}>{user.username || user.username}</SelectItem>
@@ -385,35 +428,41 @@ export default function ActivitiesModal({
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-3">
                                         <ImageInput
-                                            title="Upload Banner Photo"
+                                            fileAccept="image/*"
                                             image={activity?.photo?.bannerPhoto || undefined}
-                                            onChange={(file) => {
-                                                setBannerPhotoFile(file)
-                                                setBannerPhotoUrl(URL.createObjectURL(file))
-                                            }}
+                                            sizeLimit={1024 * 1024}
+                                            title="Upload Banner Photo"
                                             onCancel={() => {
                                                 setBannerPhotoFile(null)
                                                 setBannerPhotoUrl(null)
                                             }}
-                                            fileAccept="image/*"
-                                            sizeLimit={1024 * 1024}
+                                            onChange={(file) => {
+                                                setBannerPhotoFile(file)
+                                                setBannerPhotoUrl(URL.createObjectURL(file))
+                                            }}
                                         />
+                                        {showImageError && !bannerPhotoFile && (
+                                            <p className="text-sm text-danger">Please upload Banner</p>
+                                        )}
                                     </div>
                                     <div className="space-y-3">
                                         <ImageInput
-                                            title="Upload Logo Photo"
+                                            fileAccept="image/*"
                                             image={activity?.photo?.logoPhoto || undefined}
-                                            onChange={(file) => {
-                                                setLogoPhotoFile(file)
-                                                setLogoPhotoUrl(URL.createObjectURL(file))
-                                            }}
+                                            sizeLimit={1024 * 1024}
+                                            title="Upload Logo Photo"
                                             onCancel={() => {
                                                 setLogoPhotoFile(null)
                                                 setLogoPhotoUrl(null)
                                             }}
-                                            fileAccept="image/*"
-                                            sizeLimit={1024 * 1024}
+                                            onChange={(file) => {
+                                                setLogoPhotoFile(file)
+                                                setLogoPhotoUrl(URL.createObjectURL(file))
+                                            }}
                                         />
+                                        {showImageError && !bannerPhotoFile && (
+                                            <p className="text-sm text-danger">Please upload Logo</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -421,10 +470,10 @@ export default function ActivitiesModal({
                     </ModalBody>
                     <Divider />
                     <ModalFooter className="gap-3">
-                        <Button variant="light" onPress={onClose} size="md">
+                        <Button size="md" variant="light" onPress={onClose}>
                             Cancel
                         </Button>
-                        <Button color="primary" type="submit" size="md">
+                        <Button color="primary" size="md" type="submit">
                             {mode === "add" ? "Create Activity" : "Save Changes"}
                         </Button>
                     </ModalFooter>

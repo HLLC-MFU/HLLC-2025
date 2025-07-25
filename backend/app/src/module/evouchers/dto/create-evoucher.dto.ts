@@ -9,6 +9,7 @@ import {
   IsMongoId,
   IsObject,
 } from 'class-validator';
+import { EvoucherType } from '../enum/evoucher-type.enum';
 
 class LocalizationDto {
   @IsString()
@@ -65,6 +66,9 @@ export class CreateEvoucherDto {
 
   @IsString()
   sponsor: string;
+
+  @IsOptional()
+  type: EvoucherType;
 
   @IsOptional()
   @IsObject()

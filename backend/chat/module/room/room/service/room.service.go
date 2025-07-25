@@ -147,7 +147,7 @@ func (s *RoomServiceImpl) GetRoomsByType(ctx context.Context, roomType string, p
 	var filter map[string]interface{}
 	
 	switch roomType {
-	case "normal", "readonly":
+	case "normal", "readonly", "mc":
 		// Regular room types
 		filter = map[string]interface{}{
 			"type": roomType,
@@ -592,7 +592,7 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 	// Get rooms of type "normal" and "readonly", excluding group rooms
 	opts := queries.QueryOptions{
 		Filter: map[string]interface{}{
-			"type": map[string]interface{}{"$in": []string{"normal", "readonly"}},
+			"type": map[string]interface{}{"$in": []string{"normal", "readonly", "mc"}},
 			"$or": []map[string]interface{}{
 				{"metadata.isGroupRoom": map[string]interface{}{"$ne": true}},
 				{"metadata.isGroupRoom": map[string]interface{}{"$exists": false}},
@@ -660,7 +660,7 @@ func (s *RoomServiceImpl) GetRoomsForMe(ctx context.Context, userID string) ([]d
 	opts := queries.QueryOptions{
 		Filter: map[string]interface{}{
 			"members": userObjID,
-			"type":    map[string]interface{}{"$in": []string{"normal", "readonly"}},
+			"type":    map[string]interface{}{"$in": []string{"normal", "readonly", "mc"}},
 		},
 	}
 	resp, err := s.FindAll(ctx, opts)

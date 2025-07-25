@@ -28,7 +28,7 @@ export class StepCountersService {
     @InjectModel(StepAchievement.name)
     private stepAchievementModel: Model<StepAchievementDocument>,
     @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
-  ) {}
+  ) { }
 
   async getRegisteredDevices(userId: string) {
     const user = await findOrThrow(this.userModel, userId, 'User not found');
@@ -176,9 +176,18 @@ export class StepCountersService {
     stepCount: number,
     date: string | Date,
   ) {
-    // Validate user existence
-    const user = await findOrThrow(this.userModel, userId, 'User not found');
-    if (!user) throw new NotFoundException('User not found');
+    // Populate user and role
+    const user = await this.userModel
+      .findById(userId)
+      .populate({
+        path: 'role',
+        select: 'name',
+      })
+      .orFail(() => new NotFoundException('User not found'));
+
+    const isFresher = (user.role as any)?.name?.toLowerCase() === 'fresher';
+    console.log('user.role:', user.role);
+
 
     // Find all step counters for user
     const stepCounters = await this.stepCounterModel.find({ user: user._id });
@@ -192,11 +201,20 @@ export class StepCountersService {
       throw new BadRequestException('Invalid deviceId for this user');
     }
 
+    // Set initialStepCount if not already set
+    if (stepCounter.initialStepCount == null) {
+      stepCounter.initialStepCount = stepCount;
+    }
+
+    // Adjust step count to start from 0
+    const adjustedStepCount = stepCount - stepCounter.initialStepCount;
+    const finalStep = Math.max(adjustedStepCount, 0);
+
     // Normalize date to midnight
     const targetDate = new Date(date);
     targetDate.setHours(0, 0, 0, 0);
 
-    // Check if a step entry for this date exists
+    // Update or push new step entry
     const existingIndex = stepCounter.steps.findIndex((entry) => {
       const entryDate = new Date(entry.date);
       entryDate.setHours(0, 0, 0, 0);
@@ -204,13 +222,11 @@ export class StepCountersService {
     });
 
     if (existingIndex !== -1) {
-      // Update existing step entry
-      stepCounter.steps[existingIndex].step = stepCount;
+      stepCounter.steps[existingIndex].step = finalStep;
       stepCounter.steps[existingIndex].updatedAt = new Date();
     } else {
-      // Push new step entry
       stepCounter.steps.push({
-        step: stepCount,
+        step: finalStep,
         totalStep: 0,
         date: targetDate,
         createdAt: new Date(),
@@ -218,10 +234,9 @@ export class StepCountersService {
       });
     }
 
-    // Sort steps by date ascending
+    // Sort steps by date and recalculate total
     stepCounter.steps.sort((a, b) => +new Date(a.date) - +new Date(b.date));
 
-    // Recalculate running total steps
     let runningTotal = 0;
     for (const s of stepCounter.steps) {
       runningTotal += s.step;
@@ -230,34 +245,33 @@ export class StepCountersService {
 
     const totalStep = runningTotal;
 
-    // Check achievement if stepCounter is not complete or rank not set
-    if (!stepCounter.completeStatus || typeof stepCounter.rank !== 'number') {
-      // Validate achievement ID before querying
-      if (
-        stepCounter.achievement &&
-        Types.ObjectId.isValid(stepCounter.achievement)
-      ) {
-        const achievement = await this.stepAchievementModel
-          .findById(stepCounter.achievement)
-          .lean();
+    // Assign rank only if not complete and no rank, and user is fresher
+    if (
+      isFresher &&
+      (!stepCounter.completeStatus || typeof stepCounter.rank !== 'number') &&
+      stepCounter.achievement &&
+      Types.ObjectId.isValid(stepCounter.achievement)
+    ) {
+      const achievement = await this.stepAchievementModel
+        .findById(stepCounter.achievement)
+        .lean();
 
-        if (achievement && totalStep >= achievement.achievement) {
-          // Count how many completed with rank for this achievement
-          const alreadyCompleted = await this.stepCounterModel.countDocuments({
-            achievement: stepCounter.achievement,
-            completeStatus: true,
-            rank: { $ne: null },
-          });
+      if (achievement && totalStep >= achievement.achievement) {
+        const alreadyCompleted = await this.stepCounterModel.countDocuments({
+          achievement: stepCounter.achievement,
+          completeStatus: true,
+          rank: { $ne: null },
+        });
 
-          stepCounter.completeStatus = true;
-          stepCounter.rank = alreadyCompleted + 1;
-        }
+        stepCounter.completeStatus = true;
+        stepCounter.rank = alreadyCompleted + 1;
       }
     }
 
-    // Save updated stepCounter and return
     return await stepCounter.save();
   }
+
+
 
   async leaderboard(
     scope: 'all' | 'school' | 'date',
@@ -349,56 +363,77 @@ export class StepCountersService {
     };
   }
 
+
   async getUserRankSummary(userId: string) {
+
     const user = await this.userModel
       .findById(userId)
       .select('_id metadata.major')
       .lean()
       .then((u) => {
-        if (!u) throw new NotFoundException('User not found');
+        if (!u) {
+          throw new NotFoundException('User not found');
+        }
         return u;
       });
 
     const allStepCounters = await this.stepCounterModel
       .find()
-      .populate({
-        path: 'user',
-        select: 'name username _id',
-      })
+      .populate({ path: 'user', select: 'name username _id' })
       .lean();
 
-    /* Find User's Total Step */
-    const myStepCounter = allStepCounters.find(
-      (sc) => sc.user._id.toString() === user._id.toString(),
-    );
-    if (!myStepCounter) throw new NotFoundException('Step counter not found');
+
+    const myStepCounter = allStepCounters.find((sc) => {
+      if (!sc.user || !sc.user._id) {
+        return false;
+      }
+      return sc.user._id.toString() === user._id.toString();
+    });
+
+    if (!myStepCounter) {
+      throw new NotFoundException('Step counter not found');
+    }
 
     const myTotalSteps = myStepCounter.steps?.at(-1)?.totalStep || 0;
 
-    /* For Individual Rank */
     const globalRanked = allStepCounters
+      .filter((sc) => sc.user && sc.user._id)
       .map((sc) => ({
         user: sc.user,
         totalStep: sc.steps?.at(-1)?.totalStep || 0,
       }))
       .sort((a, b) => b.totalStep - a.totalStep);
+
     const computedRank =
-      globalRanked.findIndex(
-        (r) => r.user._id.toString() === user._id.toString(),
-      ) + 1;
-    const archeivementRank = allStepCounters.filter(
-      (sc) =>
-        sc.achievement &&
-        sc.completeStatus &&
-        sc.rank &&
-        sc.rank > 0 &&
-        sc.achievement.toString() === myStepCounter.achievement?.toString(),
-    );
+      globalRanked.findIndex((r) => {
+        if (!r.user || !r.user._id) return false;
+        return r.user._id.toString() === user._id.toString();
+      }) + 1;
+
+    const archeivementRank = allStepCounters
+      .filter((sc) => {
+        const match =
+          sc.achievement &&
+          sc.completeStatus &&
+          sc.rank &&
+          sc.rank > 0 &&
+          sc.achievement?.toString() === myStepCounter.achievement?.toString();
+        return match;
+      })
+      .map((sc) => {
+        const totalStep = (sc.steps || []).reduce((sum, s) => sum + (s.step ?? 0), 0);
+        return {
+          ...sc,
+          totalStep,
+        };
+      });
+
+
     let schoolRank: number | null = null;
     let schoolId: string | null = null;
     let schoolSorted: { user: Types.ObjectId; totalStep: number }[] = [];
 
-    if (user.metadata && user.metadata.major) {
+    if (user.metadata?.major) {
       const major = await this.majorModel
         .findById(user.metadata.major)
         .select('_id school')
@@ -406,26 +441,27 @@ export class StepCountersService {
 
       if (major && major.school) {
         schoolId = major.school.toString();
-
-        /*
-        Find Matched School Rank From User
-        */
         const schoolRanked = globalRanked.filter((sc) => {
-          const match = allStepCounters.find(
-            (full) => full.user._id.toString() === sc.user._id.toString(),
-          );
-          return match?.school?.toString() === schoolId;
+          if (!sc.user || !sc.user._id) return false;
+          const match = allStepCounters.find((full) => {
+            if (!full.user || !full.user._id) return false;
+            return full.user._id.toString() === sc.user._id.toString();
+          });
+          return match?.school?.toString?.() === schoolId;
         });
 
         schoolSorted = schoolRanked.sort((a, b) => b.totalStep - a.totalStep);
 
         schoolRank =
-          schoolSorted.findIndex(
-            (r) => r.user._id.toString() === user._id.toString(),
-          ) + 1;
+          schoolSorted.findIndex((r) => {
+            if (!r.user || !r.user._id) return false;
+            return r.user._id.toString() === user._id.toString();
+          }) + 1;
+      } else {
       }
     }
-    return {
+
+    const result = {
       individualRank: globalRanked.slice(0, 20),
       schoolRank: schoolSorted.slice(0, 20),
       archeivementRank: archeivementRank.slice(0, 20),
@@ -437,5 +473,8 @@ export class StepCountersService {
         totalStep: myTotalSteps,
       },
     };
+
+    return result;
   }
+
 }

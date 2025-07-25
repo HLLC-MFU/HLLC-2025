@@ -1,4 +1,7 @@
 {
+  "download": {
+    "banner": "Get our mobile app for the best experience!"
+  },
   "coinHunting": {
     "guardianCrystals": "14 Guardian Crystals",
     "specialRewards": "Special Rewards",
@@ -25,4 +28,4 @@
     "result": "Result",
     "pleaseScan": "Please scan QR Code"
   }
-} 
+}

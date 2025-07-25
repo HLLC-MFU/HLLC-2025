@@ -2,7 +2,7 @@
 
 import { useDisclosure, Button, Form, Input } from '@heroui/react';
 import { Eye, EyeClosed, LockIcon, UserIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -44,9 +44,38 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    handleResize(); // initial check
+    window.addEventListener('resize', handleResize);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <div className="min-h-screen flex">
+      {isMobile && (
+        <div className="fixed bottom-0 inset-x-0 z-50 bg-primary text-white text-center py-2 px-4 shadow-md flex items-center justify-between">
+          <span className="text-sm font-medium">
+            Get our mobile app for the best experience!
+          </span>
+          <Button
+            className="ml-4 text-xs font-semibold"
+            radius="full"
+            onPress={() => {
+              router.push('/download'); // Adjust the route as needed
+            }}
+          >
+            Download
+          </Button>
+        </div>
+      )}
+
       {/* Left Illustration */}
       <div className="hidden md:flex w-1/2 items-center justify-center bg-[#f5f5f5]">
         <div className="relative w-full h-full">

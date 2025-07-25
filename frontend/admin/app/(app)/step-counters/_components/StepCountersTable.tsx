@@ -23,7 +23,7 @@ export default function StepContersTable({
   ];
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: 'rank',
+    column: isOverall ? 'computedRank' : 'rank',
     direction: 'ascending',
   });
 

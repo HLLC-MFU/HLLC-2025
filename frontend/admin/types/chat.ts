@@ -1,7 +1,7 @@
-import type { Room, RoomType, RoomSchedule, Name, RoomMetadata } from './room';
+import type { Room, RoomType, Name, RoomMetadata } from './room';
 
 // Re-export commonly used types for convenience
-export type { Room, RoomType, RoomSchedule, Name, RoomMetadata };
+export type { Room, RoomType, Name, RoomMetadata };
 
 export type Members = {
     _id: string;
@@ -108,4 +108,3 @@ export type ChatStats = {
     activeUsers: number;
     totalMembers: number;
 };
-

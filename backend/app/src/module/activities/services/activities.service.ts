@@ -49,7 +49,7 @@ export class ActivitiesService {
     @InjectModel(Major.name)
     private majorsModel: Model<MajorDocument>,
     private readonly assessmentsService: AssessmentsService,
-  ) {}
+  ) { }
 
   async create(createActivitiesDto: CreateActivitiesDto) {
     const metadata = createActivitiesDto.metadata || {};
@@ -120,103 +120,114 @@ export class ActivitiesService {
     }
   }
 
-  async findCanCheckinActivities(userId: Types.ObjectId | string) {
-    if (!Types.ObjectId.isValid(userId)) {
-      throw new NotFoundException('Invalid user ID');
-    }
+async findCanCheckinActivities(userId: Types.ObjectId | string) {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new NotFoundException('Invalid user ID');
+  }
 
-    const userDoc = (await this.userModel
-      .findById(userId)
-      .populate('role')
-      .exec()) as unknown as Omit<UserDocument, 'role'> & {
-        role: Omit<RoleDocument, 'metadata'> & {
-          metadata: {
-            canCheckin: {
-              user: string[];
-              major: string[];
-              school: string[];
-            };
+  const userDoc = (await this.userModel
+    .findById(userId)
+    .populate('role')
+    .exec()) as unknown as Omit<UserDocument, 'role'> & {
+      role: Omit<RoleDocument, 'metadata'> & {
+        metadata: {
+          canCheckin: {
+            user: string[];
+            major: string[];
+            school: string[];
           };
         };
       };
-    if (!userDoc) {
-      throw new NotFoundException('User not found');
-    }
-
-    const currentDate = new Date();
-    const roleMajor = userDoc.role?.metadata?.canCheckin?.major ?? [];
-    const roleSchool = userDoc.role?.metadata?.canCheckin?.school ?? [];
-    const roleUser = userDoc.role?.metadata?.canCheckin?.user ?? [];
-
-    const userMajorId = userDoc.metadata?.major;
-
-    let userMajorSchoolId: string | undefined;
-
-    if (userMajorId) {
-      const majorDoc = await this.majorsModel
-        .findById(userMajorId)
-        .populate('school')
-        .lean();
-
-      if (majorDoc && majorDoc.school && majorDoc.school._id) {
-        userMajorSchoolId = majorDoc.school._id.toString();
-      }
-    }
-
-    if (roleUser.includes('*')) {
-      const activities = await this.activitiesModel
-        .find({ 'metadata.isOpen': true, 'metadata.isVisible': true })
-        .populate('type')
-        .lean();
-
-      return {
-        data: activities,
-        meta: {
-          total: activities.length,
-          totalPages: 1,
-          page: 1,
-          limit: activities.length,
-          lastUpdatedAt: new Date().toISOString(),
-        },
-        message: 'All activities available for check-in',
-      };
-    }
-
-    const query = {
-      'metadata.isOpen': true,
-      'metadata.isVisible': true,
-      'metadata.checkinStartAt': { $lte: currentDate },
-      'metadata.endAt': { $gte: currentDate },
-      $or: [
-        { 'metadata.scope.user': { $in: roleUser } },
-        { 'metadata.scope.major': { $in: roleMajor } },
-        { 'metadata.scope.school': { $in: roleSchool } },
-        {
-          $and: [
-            { 'metadata.scope.user': { $size: 0 } },
-            { 'metadata.scope.major': { $size: 0 } },
-            { 'metadata.scope.school': { $size: 0 } },
-          ],
-        },
-      ],
     };
+  if (!userDoc) {
+    throw new NotFoundException('User not found');
+  }
 
-    const result = await queryAll<Activities>({
-      model: this.activitiesModel,
-      query: query as FilterQuery<Activities>,
-      filterSchema: {},
-      populateFields: () => Promise.resolve([{ path: 'type' }]),
-    });
+  const currentDate = new Date();
+  const roleMajor = userDoc.role?.metadata?.canCheckin?.major ?? [];
+  const roleSchool = userDoc.role?.metadata?.canCheckin?.school ?? [];
+  const roleUser = userDoc.role?.metadata?.canCheckin?.user ?? [];
+
+  const userMajorId = userDoc.metadata?.major;
+
+  let userMajorSchoolId: string | undefined;
+
+  if (userMajorId) {
+    const majorDoc = await this.majorsModel
+      .findById(userMajorId)
+      .populate('school')
+      .lean();
+
+    if (majorDoc && majorDoc.school && majorDoc.school._id) {
+      userMajorSchoolId = majorDoc.school._id.toString();
+    }
+  }
+
+  if (roleUser.includes('*')) {
+    const activities = await this.activitiesModel
+      .find({ 'metadata.isOpen': true, 'metadata.isVisible': true })
+      .populate('type')
+      .lean();
 
     return {
-      ...result,
+      data: activities,
       meta: {
-        ...result.meta,
+        total: activities.length,
+        totalPages: 1,
+        page: 1,
+        limit: activities.length,
         lastUpdatedAt: new Date().toISOString(),
       },
-      message: 'Fetched activities successfully',
+      message: 'All activities available for check-in',
     };
   }
+
+const roleSchoolIds = roleSchool.map((id) => new Types.ObjectId(id));
+
+const validMajorIdsFromSchool = await this.majorsModel.find({
+  school: { $in: roleSchoolIds },
+}, { _id: 1 }).lean();
+
+const validMajorIds = validMajorIdsFromSchool.map((m) => m._id.toString());
+
+
+  // ✅ query สำหรับหา activities ที่สามารถ checkin ได้
+  const query: FilterQuery<Activities> = {
+    'metadata.isOpen': true,
+    'metadata.isVisible': true,
+    'metadata.checkinStartAt': { $lte: currentDate },
+    'metadata.endAt': { $gte: currentDate },
+  $or: [
+    { 'metadata.scope.user': { $in: roleUser } },
+    { 'metadata.scope.major': { $in: roleMajor } },
+    { 'metadata.scope.school': { $in: roleSchool } },
+    { 'metadata.scope.major': { $in: validMajorIds } }, // << สำคัญ
+    {
+      $and: [
+        { 'metadata.scope.user': { $size: 0 } },
+        { 'metadata.scope.major': { $size: 0 } },
+        { 'metadata.scope.school': { $size: 0 } },
+      ],
+    },
+  ],
+  };
+
+  const result = await queryAll<Activities>({
+    model: this.activitiesModel,
+    query,
+    filterSchema: {},
+    populateFields: () => Promise.resolve([{ path: 'type' }]),
+  });
+
+  return {
+    ...result,
+    meta: {
+      ...result.meta,
+      lastUpdatedAt: new Date().toISOString(),
+    },
+    message: 'Fetched activities successfully',
+  };
+}
 
   async findOne(id: string) {
     return this.activitiesModel.findById(id).lean();
@@ -349,31 +360,49 @@ export class ActivitiesService {
   }
 
   async update(id: string, updateActivityDto: UpdateActivityDto) {
+    const originActivity = await this.activitiesModel.findById(id).lean();
+    if (!originActivity) throw new NotFoundException('Activity not found');
     if (updateActivityDto.metadata?.scope) {
       const scope = updateActivityDto.metadata.scope;
-      const convertedScope = {
-        major: Array.isArray(scope.major)
-          ? scope.major.map((id) => new Types.ObjectId(id))
-          : scope.major
-            ? [Types.ObjectId.createFromHexString(scope.major)]
-            : [],
-        school: Array.isArray(scope.school)
-          ? scope.school.map((id) => new Types.ObjectId(id))
-          : scope.school
-            ? [Types.ObjectId.createFromHexString(scope.school)]
-            : [],
-        user: Array.isArray(scope.user)
-          ? scope.user.map((id) => new Types.ObjectId(id))
-          : scope.user
-            ? [Types.ObjectId.createFromHexString(scope.user)]
-            : [],
+
+      function parseIds(value?: string | string[]): string[] {
+        if (!value) return [];
+        if (Array.isArray(value)) return value;
+        return value.split(',').map((id) => id.trim());
+      }
+
+      const parsedScope = {
+        major: parseIds(scope.major),
+        school: parseIds(scope.school),
+        user: parseIds(scope.user),
       };
+
+      const convertedScope = {
+        major: parsedScope.major
+          .filter((id) => Types.ObjectId.isValid(id))
+          .map((id) => new Types.ObjectId(id)),
+        school: parsedScope.school
+          .filter((id) => Types.ObjectId.isValid(id))
+          .map((id) => new Types.ObjectId(id)),
+        user: parsedScope.user
+          .filter((id) => Types.ObjectId.isValid(id))
+          .map((id) => new Types.ObjectId(id)),
+      };
+
       updateActivityDto.metadata.scope = {
         major: convertedScope.major.map((id) => id.toString()),
         school: convertedScope.school.map((id) => id.toString()),
         user: convertedScope.user.map((id) => id.toString()),
       };
     }
+
+    if (updateActivityDto.photo) {
+      updateActivityDto.photo = {
+        ...originActivity.photo,
+        ...updateActivityDto.photo,
+      };
+    }
+
     const activity = await this.activitiesModel
       .findByIdAndUpdate(id, updateActivityDto, { new: true })
       .lean();
@@ -384,6 +413,7 @@ export class ActivitiesService {
 
     return activity;
   }
+
 
   async remove(id: string) {
     await this.activitiesModel.findByIdAndDelete(id).lean();

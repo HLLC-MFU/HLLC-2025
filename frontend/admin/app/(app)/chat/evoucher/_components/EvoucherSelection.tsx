@@ -117,7 +117,6 @@ export function EvoucherSelection({
                                             </div>
                                             <div className="flex items-center gap-4 text-sm text-default-500">
                                                 <span className="flex items-center gap-1">
-                                                    <Percent size={12} />
                                                     {evoucher.amount} THB
                                                 </span>
                                                 <span className="flex items-center gap-1">

@@ -61,6 +61,8 @@ export const useChatRooms = () => {
         case 'school':
           // Check if it's a group room with school type
           return room.metadata?.isGroupRoom === true && room.metadata?.groupType === 'school';
+        case 'mc':
+          return room.type === 'mc';
         default:
           return false;
       }

@@ -46,7 +46,7 @@ export function ActivitiesTypeModal({ isOpen, onClose, onSubmit, mode, activityT
                         {mode === 'add' ? 'Add New Activity Type' : 'Edit Activity Type'}
                     </ModalHeader>
                     <Divider />
-                    <ModalBody className="gap-4">
+                    <ModalBody className="gap-4 w-full">
                         <Input
                             autoFocus
                             isRequired

@@ -30,15 +30,6 @@ export function useSchools(id?: string) {
 
 			setSchools(Array.isArray(res.data?.data) ? res.data.data : []);
 		} catch (err) {
-			addToast({
-				title: 'Failed to fetch schools. Please try again.',
-				color: 'danger',
-			});
-			setError(
-				err && typeof err === 'object' && 'message' in err
-					? (err as { message?: string }).message || 'Failed to fetch schools.'
-					: 'Failed to fetch schools.',
-			);
 		} finally {
 			setLoading(false);
 		}

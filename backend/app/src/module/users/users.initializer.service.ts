@@ -18,7 +18,7 @@ export class UserInitializerService implements OnModuleInit {
   }
 
   private async createAdminUser() {
-    const username = 'admin';
+    const username = process.env.ADMIN_USERNAME || 'admin';
 
     const existing = await this.userModel.findOne({ username });
     if (existing) return;
@@ -29,7 +29,7 @@ export class UserInitializerService implements OnModuleInit {
 
     await this.userModel.create({
       username,
-      password: 'user1234',
+      password: process.env.ADMIN_PASSWORD || 'admin123',
       name: {
         first: 'Admin',
         last: 'User',

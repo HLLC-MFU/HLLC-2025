@@ -19,14 +19,14 @@ type TableContentProps = {
     onClear: () => void;
     setVisibleColumns: (columns: Set<string>) => void;
     capitalize: (value: string) => string;
-    selectedKeys: "all" | Set<string | number>;
+    // selectedKeys: "all" | Set<string | number>; // ลบ
     filteredItems: RoomMember[];
     pages: number;
     page: number;
     setPage: (page: number) => void;
     onPreviousPage: () => void;
     onNextPage: () => void;
-    setSelectedKeys: (keys: "all" | Set<string | number>) => void;
+    // setSelectedKeys: (keys: "all" | Set<string | number>) => void; // ลบ
     sortDescriptor: SortDescriptor;
     setSortDescriptor: (sortDescriptor: SortDescriptor) => void;
     headerColumns: Array<{ uid: string; name: string; sortable?: boolean }>;
@@ -51,14 +51,14 @@ export default function TableContent({
     onClear,
     setVisibleColumns,
     capitalize,
-    selectedKeys,
+    // selectedKeys, // ลบ
     filteredItems,
     pages,
     page,
     setPage,
     onPreviousPage,
     onNextPage,
-    setSelectedKeys,
+    // setSelectedKeys, // ลบ
     sortDescriptor,
     setSortDescriptor,
     headerColumns,
@@ -77,7 +77,6 @@ export default function TableContent({
                     filteredItems={filteredItems}
                     page={page}
                     pages={pages}
-                    selectedKeys={selectedKeys}
                     setPage={setPage}
                     onNextPage={onNextPage}
                     onPreviousPage={onPreviousPage}
@@ -89,8 +88,8 @@ export default function TableContent({
             classNames={{
                 wrapper: "max-h-[382px]",
             }}
-            selectedKeys={selectedKeys}
-            selectionMode="multiple"
+            // selectedKeys={selectedKeys} // ลบ
+            // selectionMode="multiple" // ลบ
             sortDescriptor={sortDescriptor}
             topContent={
                 <TopContent
@@ -105,7 +104,7 @@ export default function TableContent({
                 />
             }
             topContentPlacement="outside"
-            onSelectionChange={setSelectedKeys}
+            // onSelectionChange={setSelectedKeys} // ลบ
             onSortChange={setSortDescriptor}
         >
             <TableHeader columns={headerColumns}>
