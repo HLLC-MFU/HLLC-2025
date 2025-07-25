@@ -242,7 +242,7 @@ export default function AssessmentsPage() {
                                             { key: "", label: "All Activities" },
                                             ...(activities?.map(activity => ({
                                                 key: activity._id,
-                                                label: activity.name.en
+                                                label: activity.acronym
                                             })) || [])
                                         ]}
                                     >
