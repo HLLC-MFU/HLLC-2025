@@ -79,11 +79,11 @@ export class LamduanFlowersService {
       setting: new Types.ObjectId(createLamduanFlowerDto.setting),
     });
     const activity = await this.activityModel.findOne({
-      'name.en': { $regex: '^Lamduan Flowers$', $options: 'i' },
+      'name.en': { $regex: '^Lamduan Flower$', $options: 'i' },
     });
 
     if (!activity) {
-      throw new Error('Activity "Lamduan Flowers" not found');
+      throw new Error('Activity "Lamduan Flower" not found');
     }
 
     const checkin = new this.checkinModel({
@@ -129,11 +129,11 @@ export class LamduanFlowersService {
     };
 
     const activity = await this.activityModel.findOne({
-      'name.en': { $regex: '^Lamduan Flowers$', $options: 'i' },
+      'name.en': { $regex: '^Lamduan Flower$', $options: 'i' },
     });
 
     if (!activity) {
-      throw new Error('Activity "Lamduan Flowers" not found');
+      throw new Error('Activity "Lamduan Flower" not found');
     }
 
     // ตรวจสอบว่ามี checkin อยู่แล้วหรือยัง
@@ -161,11 +161,11 @@ export class LamduanFlowersService {
 
   async remove(id: string) {
     const lamduan = await this.lamduanflowersModel.findById(id);
-    if (!lamduan) throw new Error('LamduanFlowers entry not found');
+    if (!lamduan) throw new Error('LamduanFlower entry not found');
 
     // Get the activity ID for "Lamduan Flowers"
     const activity = await this.activityModel.findOne({
-      'name.en': { $regex: '^Lamduan Flowers$', $options: 'i' },
+      'name.en': { $regex: '^Lamduan Flower$', $options: 'i' },
     });
 
     if (activity) {
