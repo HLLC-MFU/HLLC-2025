@@ -97,11 +97,11 @@ export default function ManagementPage() {
     setIsRoleOpen(false);
   };
 
-  const handleAdd = async (user: Partial<User>, userAction: User) => {
+  const handleAdd = async (user: Partial<User>, userAction?: User) => {
     const response =
       actionMode === 'Add'
         ? await createUser(user)
-        : actionMode === 'Edit'
+        : actionMode === 'Edit' && userAction
           ? await updateUser(userAction._id, user)
           : null;
 
@@ -132,17 +132,15 @@ export default function ManagementPage() {
     }
   };
 
-  const handleConfirm = async (
-    selectedKeys: 'all' | Set<string | number>,
-    userAction: User,
-  ) => {
+  const handleConfirm = async () => {
+    if (!selectedUser) return;
     let response = null;
 
     if (confirmMode === 'Delete') {
-      response =
-        Array.from(selectedKeys).length > 1
-          ? await deleteMultiple(Array.from(selectedKeys) as string[])
-          : await deleteUser(userAction._id);
+      // response = Array.from(selectedKeys).length > 1
+      //   ? await deleteMultiple(Array.from(selectedKeys) as string[])
+      //   : await deleteUser(userAction._id);
+      response = await deleteUser(selectedUser._id);
     } else {
       // await removePassword(userAction.username);
     }
@@ -231,6 +229,8 @@ export default function ManagementPage() {
                       onAdd={handleAdd}
                       onConfirm={handleConfirm}
                       onImport={handleImport}
+                      selectedUser={selectedUser}
+                      setSelectedUser={setSelectedUser}
                     />
                   </AccordionItem>
                 );
