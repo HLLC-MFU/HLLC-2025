@@ -7,6 +7,7 @@ import {
   CardHeader,
   Button,
   Chip,
+  Pagination,
 } from "@heroui/react";
 import { ArrowLeft } from "lucide-react";
 
@@ -16,19 +17,25 @@ import { ProblemCharts } from "../_components/ProblemCharts";
 
 import { useReportTypes } from "@/hooks/useReportTypes";
 import { useReports } from "@/hooks/useReports";
+import { useState } from "react";
 
 export default function CategoryReportsPage() {
   const { id } = useParams();
   const router = useRouter();
 
-  const { reporttypes: categories } = useReportTypes(); 
-  const {
-    problems,
-    updateStatus,
-  } = useReports();
+  const { reporttypes: categories } = useReportTypes();
+  const { reports, updateReport } = useReports();
 
-  const selectedCategory = categories.find((cat) => cat.id === id);
-  const filteredProblems = problems.filter((p) => p.categoryId === id);
+  const selectedCategory = categories.find((cat) => cat._id === id);
+  const filteredReports = reports.filter((r) => r.category._id === id);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const reportsPerPage = 20;
+  const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
+  const paginatedReports = filteredReports.slice(
+    (currentPage - 1) * reportsPerPage,
+    currentPage * reportsPerPage
+  );
 
   if (!selectedCategory) {
     return (
@@ -40,7 +47,7 @@ export default function CategoryReportsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white">
+      <Card className="bg">
         <CardHeader className="flex justify-between items-center">
           <div className="text-start flex gap-4 items-center">
             <Button
@@ -56,41 +63,52 @@ export default function CategoryReportsPage() {
             </div>
           </div>
           <Chip size="sm" style={{ backgroundColor: selectedCategory.color }}>
-            {filteredProblems.length} Problems
+            {filteredReports.length} Reports
           </Chip>
         </CardHeader>
         <CardBody>
-          <ProblemCharts problems={filteredProblems} reporttypes={[selectedCategory]} />
+          <ProblemCharts problems={filteredReports} reporttypes={[selectedCategory]} />
         </CardBody>
       </Card>
 
-      <Card className="bg-white">
+      <Card className="bg">
         <CardHeader>
-          <h3 className="text-lg font-semibold">Problem List</h3>
+          <h3 className="text-lg font-semibold">Report List</h3>
         </CardHeader>
         <CardBody>
           <div className="space-y-4">
-            {filteredProblems.map((problem) => (
+            {paginatedReports.map((report) => (
               <div
-                key={problem.id}
+                key={report._id}
                 className="p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div className="flex-1">
-                    <h4 className="font-medium">{problem.title.en}</h4>
-                    <p className="text-sm text-gray-500">{problem.title.th}</p>
+                    <h4 className="font-medium">{report.reporter?.name.first ?? "Unknown"}</h4>
+                    <p className="text-sm text-gray-500">{report.status}</p>
                   </div>
                   <div className="flex items-center gap-2 self-start sm:self-auto">
                     <StatusDropdown
-                      status={problem.status}
-                      onChange={(newStatus) => updateStatus(problem.id, newStatus)}
+                      status={report.status}
+                      onChange={(newStatus) => updateReport(report._id, { status: newStatus })}
                     />
                     <SendNotiButton />
                   </div>
                 </div>
-                <p className="text-sm text-gray-600 mt-2">{problem.description.en}</p>
+                <p className="text-sm text-gray-600 mt-2">{report.message}</p>
               </div>
             ))}
+            {totalPages > 1 && (
+              <div className="flex justify-center pt-6">
+                <Pagination
+                  isCompact
+                  showControls
+                  total={totalPages}
+                  page={currentPage}
+                  onChange={setCurrentPage}
+                />
+              </div>
+            )}
           </div>
         </CardBody>
       </Card>

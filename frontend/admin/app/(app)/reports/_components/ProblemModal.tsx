@@ -1,4 +1,6 @@
-import type { Problem, ReportTypes } from "@/types/report";
+"use client";
+
+import type { Report, ReportTypes } from "@/types/report";
 
 import {
   Modal,
@@ -7,124 +9,79 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  Input,
   Textarea,
   Select,
   SelectItem,
 } from "@heroui/react";
 import { useState, useEffect } from "react";
 
-interface ProblemModalProps {
+interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (problem: Problem) => void;
-  problem?: Problem;
+  onSubmit: (report: Report) => void;
+  report?: Report;
   categories: ReportTypes[];
-  mode: "add" | "edit";
 }
 
 export function ProblemModal({
   isOpen,
   onClose,
   onSubmit,
-  problem,
+  report,
   categories,
-  mode,
-}: ProblemModalProps) {
-  const [titleEn, setTitleEn] = useState("");
-  const [titleTh, setTitleTh] = useState("");
-  const [descriptionEn, setDescriptionEn] = useState("");
-  const [descriptionTh, setDescriptionTh] = useState("");
+}: ReportModalProps) {
+  const [message, setMessage] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [status, setStatus] = useState<Problem["status"]>("pending");
+  const [status, setStatus] = useState<Report["status"]>("pending");
 
   useEffect(() => {
-    if (problem) {
-      setTitleEn(problem.title.en);
-      setTitleTh(problem.title.th);
-      setDescriptionEn(problem.description.en);
-      setDescriptionTh(problem.description.th);
-      setCategoryId(problem.categoryId);
-      setStatus(problem.status);
+    if (report) {
+      setMessage(report.message);
+      setCategoryId(report.category._id);
+      setStatus(report.status);
     } else {
-      setTitleEn("");
-      setTitleTh("");
-      setDescriptionEn("");
-      setDescriptionTh("");
-      setCategoryId(categories[0]?.id || "");
+      setMessage("");
+      setCategoryId(categories[0]?._id ?? "");
       setStatus("pending");
     }
-  }, [problem, categories]);
+  }, [report, categories]);
 
   const handleSubmit = () => {
-    if (!titleEn.trim() || !titleTh.trim() || !categoryId) return;
+    if (!message.trim() || !categoryId || !report) return;
 
-    const newProblem: Problem = {
-      id: problem?.id || `problem-${Date.now()}`,
-      title: {
-        en: titleEn.trim(),
-        th: titleTh.trim(),
-      },
-      description: {
-        en: descriptionEn.trim(),
-        th: descriptionTh.trim(),
-      },
-      categoryId,
+    const updatedReport: Report = {
+      ...report,
+      message: message.trim(),
+      category: categories.find((category) => category._id === categoryId)!,
       status,
-      createdAt: problem?.createdAt || new Date(),
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
-    onSubmit(newProblem);
+    onSubmit(updatedReport);
     onClose();
   };
 
   return (
     <Modal isOpen={isOpen} size="2xl" onClose={onClose}>
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">
-          {mode === "add" ? "Add New Problem" : "Edit Problem"}
-        </ModalHeader>
+        <ModalHeader className="flex flex-col gap-1">Edit Report</ModalHeader>
         <ModalBody>
           <div className="flex flex-col gap-4">
+            <Textarea
+              label="Message"
+              minRows={4}
+              placeholder="Enter report message"
+              value={message}
+              onValueChange={setMessage}
+            />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                label="Problem Title (English)"
-                placeholder="Enter problem title in English"
-                value={titleEn}
-                onValueChange={setTitleEn}
-              />
-              <Input
-                label="Problem Title (Thai)"
-                placeholder="Enter problem title in Thai"
-                value={titleTh}
-                onValueChange={setTitleTh}
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Textarea
-                label="Description (English)"
-                minRows={3}
-                placeholder="Enter description in English"
-                value={descriptionEn}
-                onValueChange={setDescriptionEn}
-              />
-              <Textarea
-                label="Description (Thai)"
-                minRows={3}
-                placeholder="Enter description in Thai"
-                value={descriptionTh}
-                onValueChange={setDescriptionTh}
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Select
                 label="Category"
                 selectedKeys={[categoryId]}
                 onChange={(e) => setCategoryId(e.target.value)}
               >
                 {categories.map((category) => (
-                  <SelectItem key={category.id}>
+                  <SelectItem key={category._id}>
                     {category.name.en}
                   </SelectItem>
                 ))}
@@ -133,12 +90,12 @@ export function ProblemModal({
                 label="Status"
                 selectedKeys={[status]}
                 onChange={(e) =>
-                  setStatus(e.target.value as Problem["status"])
+                  setStatus(e.target.value as Report["status"])
                 }
               >
-                <SelectItem key="Pending">Pending</SelectItem>
-                <SelectItem key="In-Progress">In-Progress</SelectItem>
-                <SelectItem key="Done">Done</SelectItem>
+                <SelectItem key="pending">Pending</SelectItem>
+                <SelectItem key="in-progress">In-Progress</SelectItem>
+                <SelectItem key="done">Done</SelectItem>
               </Select>
             </div>
           </div>
@@ -147,8 +104,8 @@ export function ProblemModal({
           <Button color="danger" variant="light" onPress={onClose}>
             Cancel
           </Button>
-          <Button color="primary" onPress={handleSubmit}>
-            {mode === "add" ? "Add" : "Save"}
+          <Button color="primary" onPress={handleSubmit} isDisabled={!report}>
+            Save
           </Button>
         </ModalFooter>
       </ModalContent>

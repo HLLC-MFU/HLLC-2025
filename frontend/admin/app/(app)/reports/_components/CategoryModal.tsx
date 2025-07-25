@@ -58,8 +58,8 @@ export function CategoryModal({
     try {
       let saved;
 
-      if (mode === 'edit' && reporttypes?.id) {
-        saved = await onUpdate(reporttypes.id, payload);
+      if (mode === 'edit' && reporttypes?._id) {
+        saved = await onUpdate(reporttypes._id, payload);
       } else {
         saved = await onAdd(payload);
       }
@@ -71,16 +71,14 @@ export function CategoryModal({
       }
 
       const updatedCategory: ReportTypes = {
-        id: saved._id,
-        name: saved.name,
-        createdAt: new Date(saved.createdAt ?? Date.now()),
-        updatedAt: new Date(saved.updatedAt ?? Date.now()),
-        description: {
-          en: '',
-          th: '',
+        _id: saved._id,
+        name: {
+          en: saved.en,
+          th: saved.th,
         },
         color: '',
       };
+
 
       onSubmit(updatedCategory);
       onClose();

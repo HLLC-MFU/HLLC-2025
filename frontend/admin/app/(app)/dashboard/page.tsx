@@ -30,7 +30,7 @@
     const combinedCheckins = Object.values(allCheckins).flat()
     const { sponsors } = useSponsors()
     const { evouchers } = useEvoucher()
-    const { problems } = useReports()
+    const { reports } = useReports()
     const { reporttypes } = useReportTypes()
     const { Userstats } = useUserStatistics()
 
@@ -142,7 +142,7 @@
             className="mb-4"
           >
             <div className="p-4">
-              <ReportCharts problems={problems} reporttypes={reporttypes} />
+              <ReportCharts reports={reports} reporttypes={reporttypes} />
             </div>
           </AccordionItem>
         </Accordion>

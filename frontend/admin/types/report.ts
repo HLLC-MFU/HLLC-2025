@@ -15,9 +15,10 @@ export interface Reporter {
   name: ReporterName;
 }
 
-export interface ReportCategory {
+export interface ReportTypes {
   _id: string;
   name: CategoryName;
+  color?: string;
 }
 
 export type ReportStatus = "pending" | "in-progress" | "done";
@@ -25,7 +26,7 @@ export type ReportStatus = "pending" | "in-progress" | "done";
 export interface Report {
   _id: string;
   reporter: Reporter | null;
-  category: ReportCategory;
+  category: ReportTypes;
   message: string;
   status: ReportStatus;
   createdAt: string;
@@ -33,6 +34,6 @@ export interface Report {
 }
 
 export interface ReportsByCategory {
-  category: ReportCategory;
+  category: ReportTypes;
   reports: Report[];
 }
