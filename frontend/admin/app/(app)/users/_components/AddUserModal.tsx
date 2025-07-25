@@ -21,13 +21,13 @@ type UserForm = {
 type AddModalProps = {
     isOpen: boolean;
     onClose: () => void;
-    onAdd: (user: Partial<User>, userAction: User) => void;
+    onAdd: (user: Partial<User>, userAction?: User) => void;
     action: "Add" | "Edit";
-    user: Partial<User>;
+    user: User | null;
     roleId: string;
     schools: School[];
     majors: Major[];
-    userAction: User;
+    userAction: User | null;
 };
 
 export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId, schools, majors, userAction }: AddModalProps) {
@@ -53,8 +53,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
         if (action === "Add") {
             setField(resetField);
             setField(prev => ({ ...prev, role: roleId }))
-        }
-        if (action === "Edit" && typeof user.metadata?.major === "object") {
+        } else if (user && action === "Edit" && typeof user.metadata?.major === "object") {
             setField({
                 name: {
                     first: user.name?.first!,
@@ -89,7 +88,11 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
             }
         };
 
-        onAdd(formData, userAction);
+        if (userAction) {
+            onAdd(formData, userAction);
+        } else {
+            onAdd(formData);
+        }
     };
 
     return (

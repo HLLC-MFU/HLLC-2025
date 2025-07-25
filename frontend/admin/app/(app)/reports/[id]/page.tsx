@@ -112,6 +112,19 @@ export default function CategoryReportsPage() {
           </div>
         </CardBody>
       </Card>
+      {/* Pagination */}
+      {filteredProblems.length > itemsPerPage && (
+        <div className="flex justify-center pt-4">
+          <Pagination
+            total={Math.ceil(filteredProblems.length / itemsPerPage)}
+            initialPage={1}
+            page={currentPage}
+            onChange={setCurrentPage}
+            isCompact
+            showControls
+          />
+        </div>
+      )}
     </div>
   );
 }

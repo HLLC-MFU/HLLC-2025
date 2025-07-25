@@ -1,34 +1,35 @@
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/utils/api";
-import { Leaderboard, Sponsorboard } from "@/types/coin-hunting";
+import { Leaderboard, Normalboard, Sponsorboard } from "@/types/coin-hunting";
 
-export function useCoinHunting() {
+
+export function useCoinHunting(){
     const [coinHunting, setCoinHunting] = useState<Leaderboard[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchCoinHuntingLeaderboard = async () => {
-        setLoading(true);
-        setError(null);
+        setLoading(true)
+        setError(null)
         try {
             const res = await apiRequest<{
-                message: string;
-                data: Leaderboard[];
-            }>("/coin-collections/leaderboard", "GET");
+                message: string
+                data: Leaderboard
+            }>("/coin-collections/leaderboard/all", "GET");
 
             if (res && res.data && Array.isArray(res.data.data)) {
                 setCoinHunting(res.data.data);
-            } else {
+            }   
+            else {
                 setCoinHunting([]);
             }
         } catch (err) {
             setError("Failed to fetch coin-hunting.");
-            console.error("Fetch error:", err);
+            console.error("Fetch error:", err)
         } finally {
             setLoading(false);
         }
-    };
-
+    }
 
     useEffect(() => {
         fetchCoinHuntingLeaderboard();
@@ -40,6 +41,47 @@ export function useCoinHunting() {
         error,
         fetchCoinHuntingLeaderboard,
         refetch: fetchCoinHuntingLeaderboard
+    };
+}
+
+export function useNormalCoinHunting() {
+    const [normalCoinHunting, setNormalCoinHunting] = useState<Leaderboard[]>([]);
+    const [normalLoading, setNormalLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchNormalCoinHuntingLeaderboard = async () => {
+        setNormalLoading(true);
+        setError(null);
+        try {
+            const res = await apiRequest<{
+                message: string;
+                data: Normalboard[];
+            }>("/coin-collections/leaderboard", "GET");
+
+            if (res && res.data && Array.isArray(res.data.data)) {
+                setNormalCoinHunting(res.data.data);
+            } else {
+                setNormalCoinHunting([]);
+            }
+        } catch (err) {
+            setError("Failed to fetch coin-hunting.");
+            console.error("Fetch error:", err);
+        } finally {
+            setNormalLoading(false);
+        }
+    };
+
+
+    useEffect(() => {
+        fetchNormalCoinHuntingLeaderboard();
+    }, []);
+
+    return {
+        normalCoinHunting,
+        normalLoading,
+        error,
+        fetchNormalCoinHuntingLeaderboard,
+        refetch: fetchNormalCoinHuntingLeaderboard
     };
 }
 
