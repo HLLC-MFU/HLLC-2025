@@ -75,9 +75,8 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 		}
 	} else {
 		roomType := fullRoom.Type
-		groupType := fullRoom.GetGroupType()
-		if roomType == "normal" && !(groupType == "school" || groupType == "major") {
-			log.Printf("[NotificationService] Room %s is type 'normal' and not groupType school/major, skipping ALL notifications", message.RoomID.Hex())
+		if roomType == "normal" {
+			log.Printf("[NotificationService] Room %s is type 'normal', skipping ALL notifications", message.RoomID.Hex())
 			log.Printf("[NotificationService] Notification summary: 0 offline users notified (room type: normal)")
 			return
 		}
@@ -314,8 +313,8 @@ func (ns *NotificationService) SendOfflineNotification(ctx context.Context, rece
 			return
 		}
 	} else {
-		if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
-			log.Printf("[NotificationService] (Legacy) Room %s is type 'normal' and not groupType school/major, skipping notification for user %s", message.RoomID.Hex(), receiverID)
+		if fullRoom.Type == "normal" {
+			log.Printf("[NotificationService] (Legacy) Room %s is type 'normal', skipping notification for user %s", message.RoomID.Hex(), receiverID)
 			return
 		}
 	}
@@ -409,8 +408,8 @@ func (ns *NotificationService) NotifyOfflineUsersOnly(ctx context.Context, messa
 			return
 		}
 	} else {
-		if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
-			log.Printf("[NotificationService] Room %s is type 'normal' and not groupType school/major, skipping ALL offline notifications", message.RoomID.Hex())
+		if fullRoom.Type == "normal" {
+			log.Printf("[NotificationService] Room %s is type 'normal', skipping ALL offline notifications", message.RoomID.Hex())
 			return
 		}
 	}
@@ -639,8 +638,8 @@ func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Contex
 
 // isNormalRoomType ตรวจสอบว่าห้องนี้เป็น type "normal" หรือไม่
 func (ns *NotificationService) isNormalRoomType(ctx context.Context, roomID primitive.ObjectID) bool {
-	fullRoom, err := ns.getFullRoomById(ctx, roomID)
-	if err != nil {
+	// fullRoom, err := ns.getFullRoomById(ctx, roomID)
+	// if err != nil {
 		// fallback เดิม
 		roomCollection := ns.collection.Database().Collection("rooms")
 		var room struct {
@@ -654,12 +653,12 @@ func (ns *NotificationService) isNormalRoomType(ctx context.Context, roomID prim
 		isNormal := room.Type == "normal"
 		log.Printf("[NotificationService] Room %s type: %s, isNormal: %v", roomID.Hex(), room.Type, isNormal)
 		return isNormal
-	}
+	// }
 	// ถ้าเป็น normal + ไม่ใช่ school/major = true (ห้าม noti)
-	if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
-		return true
-	}
-	return false
+	// if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
+	// 	return true
+	// }
+	// return false
 }
 
 // IsNormalRoomType (Public method) ตรวจสอบว่าห้องนี้เป็น type "normal" หรือไม่
@@ -756,19 +755,19 @@ func (ns *NotificationService) getRoomType(ctx context.Context, roomID primitive
 
 // IsRoomNotificationEnabled checks if notifications are enabled for this room type
 func (ns *NotificationService) IsRoomNotificationEnabled(ctx context.Context, roomID primitive.ObjectID) bool {
-	fullRoom, err := ns.getFullRoomById(ctx, roomID)
-	if err != nil {
+	// fullRoom, err := ns.getFullRoomById(ctx, roomID)
+	// if err != nil {
 		roomType, err := ns.getRoomType(ctx, roomID)
 		if err != nil {
 			log.Printf("[NotificationService] Failed to get room type, defaulting to enabled: %v", err)
 			return true // Default to enabled if we can't determine type
 		}
 		return roomType != "normal"
-	}
-	if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
-		return false
-	}
-	return true
+	// }
+	// if fullRoom.Type == "normal" && !(fullRoom.GetGroupType() == "school" || fullRoom.GetGroupType() == "major") {
+	// 	return false
+	// }
+	//return true
 }
 
 // เพิ่ม helper สำหรับโหลด room เต็ม (metadata)
