@@ -60,4 +60,9 @@ export class CoinCollectionsController {
   getMyCoin(@Req() req: UserRequest) {
     return this.coinCollectionsService.myCoin(req.user._id);
   }
+
+  @Get('leaderboard/all')
+  async getAllLeaderboard(@Query() query: Record<string, string>) {
+    return await this.coinCollectionsService.getLeaderboardwithSponsor(query);
+  }
 }
