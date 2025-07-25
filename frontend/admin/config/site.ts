@@ -57,7 +57,6 @@ const rawNavMenuItems: NavSection[] = [
     section: "Sponsor & Evoucher",
     items: [
       { label: "Sponsor Systems", href: "/sponsor-systems", icon: CircleDollarSign, permission: "sponsor:read, evoucher:read, evoucher-code:read" },
-      { label: "Campaign", href: "/campaigns", icon: Megaphone, permission: "campaigns:read" },
     ],
   },
   {
