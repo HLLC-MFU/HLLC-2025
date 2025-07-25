@@ -24,6 +24,8 @@ export function onMessage(event: MessageEvent, args: any) {
           user: data.payload.user,
           user_id: data.payload.user?._id,
           username: data.payload.user?.username,
+          mentions: msg.mentions || [],
+          mention_info: msg.mention_info || msg.mentionInfo || [],
         },
         true,
       );
@@ -130,6 +132,7 @@ export function onMessage(event: MessageEvent, args: any) {
                 };
               }
             }
+
             const replyMessage = createMessage(
               {
                 ...msg,
@@ -142,6 +145,7 @@ export function onMessage(event: MessageEvent, args: any) {
                       timestamp: replyTo.message?.timestamp,
                     }
                   : undefined,
+                mention_info: msg.mention_info || msg.mentionInfo || [],
               },
               true,
             );
@@ -365,6 +369,7 @@ export function onMessage(event: MessageEvent, args: any) {
                 timestamp: replyTo.message?.timestamp,
               }
             : undefined,
+          mention_info: msg.mention_info || msg.mentionInfo || [],
         },
         true,
       );
@@ -398,6 +403,24 @@ export function onMessage(event: MessageEvent, args: any) {
         timestamp: data.payload.timestamp,
       };
       const newMessage = createMessage(merged);
+      if (newMessage) addMessage(newMessage);
+      return;
+    }
+    if (data.type === 'mention' && data.payload && data.payload.message) {
+      const msg = data.payload.message;
+      const newMessage = createMessage(
+        {
+          ...msg,
+          user: data.payload.user,
+          user_id: data.payload.user?._id,
+          username: data.payload.user?.username,
+          mentions: (msg.mentions || []).concat(
+            (data.payload.mentions || []).map((m: any) => m.username)
+          ),
+          mention_info: data.payload.mentions || [],
+        },
+        true,
+      );
       if (newMessage) addMessage(newMessage);
       return;
     }

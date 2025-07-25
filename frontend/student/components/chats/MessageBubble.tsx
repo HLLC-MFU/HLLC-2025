@@ -127,20 +127,34 @@ const MessageBubble = memo(({
     if (!text) return null;
     const regex = /(@\w+)/g;
     const parts = text.split(regex);
+    // ดึง mention_info จาก message ถ้ามี
+    const mentionInfoArr = (message as any).mention_info || [];
+    const mentionMap = new Map<string, any>();
+    mentionInfoArr.forEach((info: any) => {
+      if (info && info.username) mentionMap.set(info.username, info);
+    });
     return parts.map((part, i) => {
       if (regex.test(part)) {
         const mention = part.slice(1);
-        const isMatch = mention === currentUsername;
-        if (isMatch) {
-          return (
-            <Text key={i} style={{ color: '#0A84FF', fontWeight: 'bold' }}>{part}</Text>
-          );
-        }
-        return <Text key={i}>{part}</Text>;
+        const isMentioned = mentionMap.has(mention) || mention === currentUsername;
+    
+        return (
+          <Text
+            key={i}
+            style={{
+              color: isMyMessage
+                ? '#fff' // ถ้าเป็นข้อความของตัวเอง ให้ใช้สีขาว
+                : '#0A84FF', // ถ้าเป็นข้อความคนอื่น ให้ใช้สีฟ้า
+              fontWeight: 'bold',
+            }}
+          >
+            {part}
+          </Text>
+        );
       }
       return <Text key={i}>{part}</Text>;
     });
-  }, []);
+  }, [message]);
 
   const renderContent = useCallback(() => {
     // Check for evoucher type
@@ -306,6 +320,7 @@ const MessageBubble = memo(({
           fileType: found.fileType,
           stickerId: found.stickerId,
           user: found.user, // เพิ่ม user data จาก found message
+          notFound: false, // เพิ่มบอกว่าพบข้อความต้นฉบับ
         };
       }
       return { ...replyTo, notFound: true };

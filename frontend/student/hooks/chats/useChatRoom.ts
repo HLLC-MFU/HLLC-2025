@@ -56,6 +56,7 @@ interface MembersState {
   hasMore: boolean;
 }
 
+
 export const useChatRoom = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -352,7 +353,7 @@ export const useChatRoom = () => {
       if (replyState.replyTo && replyState.replyTo.id) {
         messageToSend = `/reply ${replyState.replyTo.id} ${trimmedMessage}`;
       }
-      console.log('[DEBUG] messageToSend', messageToSend);
+
       wsSendMessage(messageToSend);
       updateChatState({ messageText: '' });
       updateReplyState({ replyTo: undefined });
@@ -361,7 +362,7 @@ export const useChatRoom = () => {
       console.error('Error sending message:', error);
       updateChatState({ error: ERROR_MESSAGES.SEND_FAILED });
     }
-  }, [chatState.messageText, chatState.room, isConnected, wsSendMessage, userId, addMessage, replyState.replyTo, updateChatState, updateReplyState]);
+  }, [chatState.messageText, chatState.room, isConnected, wsSendMessage, userId, addMessage, replyState.replyTo, updateChatState, updateReplyState, membersState.members]);
 
   const handleImageUpload = useCallback(async () => {
     try {
