@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Accordion, AccordionItem, addToast, Button } from '@heroui/react';
+import { Accordion, AccordionItem, Button } from '@heroui/react';
 import {
   MonitorSmartphone,
   Plus,
@@ -55,9 +55,10 @@ export default function ManagementPage() {
     deleteUser,
     deleteMultiple,
   } = useUsers();
-  const { roles, createRole, loading: rolesLoading } = useRoles();
+  const { roles, createRole, updateRole, deleteRole, loading: rolesLoading, fetchRoles } = useRoles();
   const { schools, loading: schoolsLoading } = useSchools();
   const { majors, loading: majorsLoading } = useMajors();
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { removePassword } = useAuth();
   const { devices, loading: devicesLoading } = useDevices();
   const [filteredCount, setFilteredCount] = useState<number>(0);
@@ -71,6 +72,9 @@ export default function ManagementPage() {
   });
   const [actionMode, setActionMode] = useState<'Add' | 'Edit'>('Add');
   const [confirmMode, setConfirmMode] = useState<'Delete' | 'Reset'>('Delete');
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [roleModalMode, setRoleModalMode] = useState<'Add' | 'Edit'>('Add');
+  const [isDeleteRoleOpen, setIsDeleteRoleOpen] = useState(false);
 
   const isLoading =
     usersLoading || rolesLoading || schoolsLoading || majorsLoading;
@@ -91,16 +95,43 @@ export default function ManagementPage() {
     Mentee: <UserRoundSearch />,
   };
 
-  const handleAddRole = (roleData: Partial<Role>) => {
-    createRole(roleData);
+  const handleAddRole = async (roleData: Partial<Role>) => {
+    if (roleModalMode === 'Edit' && selectedRole?._id) {
+      await updateRole(selectedRole._id, roleData);
+    } else {
+      await createRole(roleData);
+    }
     setIsRoleOpen(false);
+    setSelectedRole(null);
+    setRoleModalMode('Add');
+    await fetchRoles();
   };
 
-  const handleAdd = async (user: Partial<User>, userAction: User) => {
+  const handleEditRole = (role: Role) => {
+    setSelectedRole(role);
+    setRoleModalMode('Edit');
+    setIsRoleOpen(true);
+  };
+
+  const handleDeleteRole = async () => {
+    if (selectedRole?._id) {
+      await deleteRole(selectedRole._id);
+      setIsDeleteRoleOpen(false);
+      setSelectedRole(null);
+      await fetchRoles();
+    }
+  };
+
+  const handleDeleteRoleClick = (role: Role) => {
+    setSelectedRole(role);
+    setIsDeleteRoleOpen(true);
+  };
+
+  const handleAdd = async (user: Partial<User>, userAction?: User) => {
     const response =
       actionMode === 'Add'
         ? await createUser(user)
-        : actionMode === 'Edit'
+        : actionMode === 'Edit' && userAction
           ? await updateUser(userAction._id, user)
           : null;
 
@@ -108,11 +139,6 @@ export default function ManagementPage() {
 
     if (response) {
       await fetchUsers();
-      addToast({
-        title: 'Add Successfully',
-        description: 'Data has added successfully',
-        color: 'success',
-      });
     }
   };
 
@@ -123,37 +149,22 @@ export default function ManagementPage() {
 
     if (response) {
       await fetchUsers();
-      addToast({
-        title: 'Import Successfully',
-        description: 'Data has imported successfully',
-        color: 'success',
-      });
     }
   };
 
-  const handleConfirm = async (
-    selectedKeys: 'all' | Set<string | number>,
-    userAction: User,
-  ) => {
+  const handleConfirm = async () => {
+    if (!selectedUser) return;
     let response = null;
 
     if (confirmMode === 'Delete') {
-      response =
-        Array.from(selectedKeys).length > 1
-          ? await deleteMultiple(Array.from(selectedKeys) as string[])
-          : await deleteUser(userAction._id);
+      response = await deleteUser(selectedUser._id);
     } else {
-      await removePassword(userAction.username);
+      response = await removePassword(selectedUser.username);
     }
     setModal((prev) => ({ ...prev, confirm: false }));
 
     if (response) {
       await fetchUsers();
-      addToast({
-        title: `${confirmMode} Successfully`,
-        description: `Data has ${confirmMode.toLowerCase()} successfully`,
-        color: 'success',
-      });
     }
   };
 
@@ -229,6 +240,10 @@ export default function ManagementPage() {
                       onAdd={handleAdd}
                       onConfirm={handleConfirm}
                       onImport={handleImport}
+                      selectedUser={selectedUser}
+                      setSelectedUser={setSelectedUser}
+                      onRoleEdit={() => handleEditRole(role)}
+                      onRoleDelete={() => handleDeleteRoleClick(role)}
                     />
                   </AccordionItem>
                 );
@@ -257,8 +272,31 @@ export default function ManagementPage() {
         <AddRoleModal
           isOpen={isRoleOpen}
           onAddRole={handleAddRole}
-          onClose={() => setIsRoleOpen(false)}
+          onClose={() => {
+            setIsRoleOpen(false);
+            setSelectedRole(null);
+            setRoleModalMode('Add');
+          }}
+          schools={schools}
+          majors={majors}
+          users={users}
+          editingRole={selectedRole}
+          mode={roleModalMode}
         />
+        
+        {/* Delete Role Confirmation Modal */}
+        {isDeleteRoleOpen && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30">
+            <div className="bg-white rounded-lg p-6 shadow-lg flex flex-col gap-4 min-w-[300px]">
+              <div className="text-lg font-semibold">Confirm Role Deletion</div>
+              <div>Are you sure you want to delete the role <span className="font-bold">{selectedRole?.name}</span>?</div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="light" onPress={() => setIsDeleteRoleOpen(false)}>Cancel</Button>
+                <Button color="danger" onPress={handleDeleteRole}>Delete</Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
