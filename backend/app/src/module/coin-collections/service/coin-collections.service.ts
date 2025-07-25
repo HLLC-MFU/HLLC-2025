@@ -143,7 +143,7 @@ export class CoinCollectionsService {
         (l.landmark as any)?.type === 'normal'
       );
 
-      const latestCollectedAt = c.landmarks.reduce((latest, curr) => {
+      const latestCollectedAt = normalLandmarks.reduce((latest, curr) => {
         return !latest || new Date(curr.collectedAt) > latest
           ? new Date(curr.collectedAt)
           : latest;
