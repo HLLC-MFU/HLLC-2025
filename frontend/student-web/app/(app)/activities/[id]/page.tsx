@@ -5,6 +5,7 @@ import {
   Card,
   CardBody,
   Chip,
+  Divider,
   ScrollShadow,
   Spinner,
 } from '@heroui/react';
@@ -22,9 +23,13 @@ import { ConfirmationModal } from './_components/ConfirmModal';
 
 import { Assessment } from '@/types/assessment';
 import { useActivities } from '@/hooks/useActivities';
+import { useLanguage } from '@/context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 export default function ActivitiesDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   const router = useRouter();
   const {
     loading,
@@ -41,7 +46,7 @@ export default function ActivitiesDetailPage() {
     [activities, id],
   );
 
-  const [activeTab, setActiveTab] = useState<'about' | 'status'>('about');
+  const [activeTab, setActiveTab] = useState<'details' | 'timeline'>('details');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAssessments, setSelectedAssessments] = useState<Assessment[]>(
     [],
@@ -186,80 +191,84 @@ export default function ActivitiesDetailPage() {
           </Card>
           <Card>
             <div className="justify-between items-center p-4">
-              <div className="flex-col flex items-star mt-5 p-2">
-                <div className="flex justify-between w-full items-center">
-                  <div className="flex flex-col gap-2 flex-1">
-                    <p className="text-xs">ACTIVITY</p>
-                    <p className="flex items-center font-bold text-xl">
-                      {activity?.name.en}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Chip variant="flat">
-                        <div className="flex gap-1 items-center font-bold">
-                          <MapPin size={16} />
-                          <p>{activity?.location.en}</p>
-                        </div>
-                      </Chip>
 
-                      {/* Status Chip */}
-                      <CheckinStatusChip
-                        assessmentStatus={activity.hasAnsweredAssessment}
-                        status={activity.checkinStatus}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Date Badge */}
-                  <div>
-                    {activity?.metadata?.startAt && (
-                      <DateBadge date={activity.metadata.startAt} />
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <CardBody className="overflow-y-hidden">
+              {/* Tab Content */}
               <div className="flex justify-center items-center w-full gap-6 border-b border-white/20">
                 {[
-                  { key: 'about', label: 'ABOUT' },
-                  { key: 'status', label: 'ACTIVITY STATUS' },
+                  { key: 'details', label: t('activity.details') },
+                  { key: 'timeline', label: t('activity.timeline.title') },
                 ].map(tab => (
                   <button
                     key={tab.key}
-                    className={`relative  py-2 text-xs font-bold transition-colors duration-300 border-b-2 ${
-                      activeTab === tab.key
-                        ? 'border-black text-black'
-                        : 'border-transparent text-gray-400 hover:text-black'
-                    }`}
-                    onClick={() => setActiveTab(tab.key as 'about' | 'status')}
+                    className={`relative py-2 text-md font-bold transition-colors duration-300 border-b-2 ${activeTab === tab.key
+                      ? 'border-black text-black'
+                      : 'border-transparent text-gray-400 hover:text-black'
+                      }`}
+                    onClick={() => setActiveTab(tab.key as 'details' | 'timeline')}
                   >
                     {tab.label}
                   </button>
                 ))}
               </div>
 
+            </div>
+            <CardBody className="overflow-y-hidden">
               <div className="mt-4 px-4">
-                {activeTab === 'about' ? (
-                  <div className="flex flex-col gap-8 justify-between">
-                    <div className="flex items-center justify-center">
-                      <ScrollShadow className="w-full flex flex-col break-all">
-                        {activity?.fullDetails?.en || 'No details available.'}
-                      </ScrollShadow>
-                    </div>
+                {activeTab === 'details' ? (
+                  <>
+                    <div className="flex-col flex items-star mt-5 p-2">
+                      <div className="flex justify-between w-full items-center">
+                        <div className="flex flex-col gap-2 flex-1">
+                          <p className="text-xs">{t('activity.activityTitle')}</p>
+                          <p className="flex items-center font-bold text-xl">
+                            {activity?.name[language]}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Chip variant="flat">
+                              <div className="flex gap-1 items-center font-bold">
+                                <MapPin size={16} />
+                                <p>{activity?.location[language]}</p>
+                              </div>
+                            </Chip>
 
-                    <Button
-                      className="text-center font-bold text-xs w-full"
-                      radius="md"
-                      startContent={<MapPin size={15} />}
-                      variant="flat"
-                      onPress={HandleViewMap}
-                    >
-                      Open in Google Maps
-                    </Button>
-                  </div>
+                            {/* Status Chip */}
+                            <CheckinStatusChip
+                              assessmentStatus={activity.hasAnsweredAssessment}
+                              status={activity.checkinStatus}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Date Badge */}
+                        <div>
+                          {activity?.metadata?.startAt && (
+                            <DateBadge date={activity.metadata.startAt} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Divider className="my-4" />
+                    <div className="flex flex-col gap-8 justify-between">
+                      <div className="flex items-center justify-center">
+                        <ScrollShadow className="w-full flex flex-col break-all">
+                          {activity?.fullDetails[language] || 'No details available.'}
+                        </ScrollShadow>
+                      </div>
+
+                      <Button
+                        className="text-center font-bold text-xs w-full"
+                        radius="md"
+                        startContent={<MapPin size={15} />}
+                        variant="flat"
+                        onPress={HandleViewMap}
+                      >
+                        {t('activity.activityMap')}
+                      </Button>
+                    </div>
+                  </>
                 ) : (
                   <div>
-                    <Stepper activity={activity} router={router}/>
+                    <Stepper activity={activity} router={router} />
                   </div>
                 )}
               </div>
@@ -275,7 +284,7 @@ export default function ActivitiesDetailPage() {
         isOpen={isModalOpen}
         setAnswers={setAnswers}
         onClose={handleCloseModal}
-        onSubmit={() =>handleSubmit()}
+        onSubmit={() => handleSubmit()}
       />
     </>
   );

@@ -41,7 +41,6 @@ export function useEvoucher() {
         try {
             const res = await apiRequest<{ data: Evoucher }>("/evouchers", "POST", evoucherData);
 
-            console.log(res);
             if (!(res.statusCode === 201)) {
                 addToast({
                     title: 'Evoucher created failed.',

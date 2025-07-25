@@ -296,6 +296,8 @@ export class ActivitiesService {
               : String(activityDoc._id);
           const hasCheckedIn = checkinMap.has(activityId);
 
+          console.log(userCheckins, user);
+
           let status = 0;
           let message = 'Not yet open for check-in';
 

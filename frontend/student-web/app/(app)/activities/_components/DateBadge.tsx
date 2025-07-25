@@ -1,9 +1,14 @@
 'use client';
 
+import { useLanguage } from "@/context/LanguageContext";
+
 export default function DateBadge({ date }: { date: string }) {
+  const { language } = useLanguage();
+  console.log(language)
   const d = new Date(date);
-  const month = d.toLocaleString('en-US', { month: 'long' }).toUpperCase();
+  const month = d.toLocaleString(language === 'en' ? 'en-US' : 'th-TH', { month: 'long' }).toUpperCase();
   const day = d.getDate();
+  console.log(month)
 
   return (
     <div className="rounded-xl py-1.5 px-3 flex flex-col items-center bg-gray-100 w-16">

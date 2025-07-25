@@ -73,6 +73,7 @@ export function EvoucherCodeModal({
               placeholder="Select an user"
               defaultItems={users}
               onSelectionChange={setUserId}
+              itemHeight={50}
             >
               {(user) => {
                 const userName = [

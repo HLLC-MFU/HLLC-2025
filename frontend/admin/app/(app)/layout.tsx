@@ -7,7 +7,7 @@ import { BreadcrumbProvider } from "@/hooks/useBreadcrumb";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <BreadcrumbProvider>
-      <div className="flex h-dvh max-h-dvh w-full min-w-dvw overflow-hidden">
+      <div className="flex h-dvh max-h-dvh w-dvw max-w-dvw overflow-hidden">
         <Sidebar />
         <div className="flex flex-col flex-1 overflow-hidden grow">
           <Navbar />

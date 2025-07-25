@@ -57,7 +57,7 @@ export async function onContextCreate(
     modelRef: RefObject<Group<Object3DEventMap> | null>,
 ) {
     const scene = new Scene();
-    const group = new Group();
+    // const group = new Group();
 
     // Camera
     const camera = new PerspectiveCamera(
@@ -111,7 +111,7 @@ export async function onContextCreate(
 
         // changeCharacterScene.current = characterScene;
         // baseSceneRef.current = baseScene;
-        modelRef.current = group;
+        // modelRef.current = group;
 
         // Textures;
         characterScene.traverse(async (child) => {
@@ -161,9 +161,9 @@ export async function onContextCreate(
         box.getCenter(center);
         characterScene.position.sub(center);
 
-        // scene.add(characterScene);
-        // scene.add(baseScene);
-        scene.add(group);
+        scene.add(characterScene);
+        scene.add(baseScene);
+        // scene.add(group);
         setLoading(false);
 
         const clock = new Clock();

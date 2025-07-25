@@ -6,25 +6,28 @@ import { cn } from '@heroui/react';
 import { Home, QrCode, Book, Ticket, Globe } from 'lucide-react';
 import { useAppearances } from '@/hooks/useAppearances';
 import Image from 'next/image';
-
-const siteConfig = {
-  navMenuItems: [
-    {
-      items: [
-        { label: 'HOME', asset: 'home', href: '/', icon: Home },
-        { label: 'ACTIVITY', asset: 'activities', href: '/activities', icon: Book },
-        { label: 'QR CODE', asset: 'qrcode', href: '/qrcode', icon: QrCode },
-        { label: 'E-VOUCHER', asset: 'evoucher', href: '/evouchers', icon: Ticket },
-        { label: 'COMMUNITY', asset: 'community', href: '/community', icon: Globe },
-      ],
-    },
-  ],
-};
+import { useTranslation } from 'react-i18next';
 
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { assets } = useAppearances();
+  const { t } = useTranslation();
+
+  const siteConfig = {
+    navMenuItems: [
+      {
+        items: [
+          { label: t('nav.home'), asset: 'home', href: '/', icon: Home },
+          { label: t('nav.activity'), asset: 'activities', href: '/activities', icon: Book },
+          { label: t('nav.qrcode'), asset: 'qrcode', href: '/qrcode', icon: QrCode },
+          { label: t('nav.evoucher'), asset: 'evoucher', href: '/evouchers', icon: Ticket },
+          { label: t('nav.community'), asset: 'community', href: '/community', icon: Globe },
+        ],
+      },
+    ],
+  };
+
   const navItems = siteConfig.navMenuItems.flatMap(section => section.items);
 
   return (

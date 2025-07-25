@@ -4,14 +4,21 @@ import { Button } from '@heroui/react';
 import { QrCode, Clock, CheckCircle, FileText } from 'lucide-react';
 
 import StepperItem from './StepperItem';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function StepperActivity({
   activity,
   router,
   setShowAssessmentModal,
 }: any) {
+  const { language } = useLanguage();
+  const { t } = useTranslation();
+
   return (
-    <div className="pb-5">
+    <div className="flex flex-col gap-4">
+      <p className="text-xl font-bold">{t('activity.timeline.title')}</p>
+
       {/* Step 1: Activity Start */}
       <StepperItem
         active={activity.checkinStatus === 0}
@@ -19,16 +26,17 @@ export default function StepperActivity({
         description={
           activity.checkinStatus !== 0
             ? activity.checkinStatus < 0
-              ? 'You missed the activity. If you were unable to check in due to a technical problem or other reason, please reach out to MFU Activity.'
-              : `Activity begins at ${new Date(
-                  activity.metadata.startAt,
-                ).toLocaleString([], {
+              ? t('activity.timeline.missed')
+              : t('activity.timeline.activityBeginAt', {
+                startAt: new Date(activity.metadata.startAt).toLocaleString(language === "th" ? "th-TH" : "en-US", {
                   day: '2-digit',
                   month: 'short',
+                  year: 'numeric',
                   hour: '2-digit',
                   minute: '2-digit',
                   hour12: false,
-                })}. Please be ready to participate.`
+                }),
+              })
             : undefined
         }
         disabled={activity.checkinStatus === 0}
@@ -37,18 +45,27 @@ export default function StepperActivity({
         index={1}
         label={
           activity.checkinStatus < 0
-            ? 'Activity Missed'
+            ? t('activity.timeline.missed')
             : activity.checkinStatus === 0
-              ? 'Waiting to Start'
+              ? t('activity.timeline.notOpenYet')
               : activity.checkinStatus > 0
-                ? 'Activity Started'
-                : 'Activity Ended'
+                ? t('activity.timeline.started')
+                : t('activity.timeline.ended')
         }
       >
         {activity.checkinStatus === 0 && (
-          <div className="bg-amber-100 p-3 rounded-lg border-l-4 border-amber-500">
-            <p className="text-amber-900 text-sm leading-5">
-              ⏳ Check back when the activity starts to proceed with check-in.
+          <div className="bg-[#f8fafc] p-3 rounded-lg border-l-4 border-[#e2e8f0]">
+            <p className="text-[#374151] text-sm leading-5">
+              {t('activity.timeline.activityBeginAt', {
+                startAt: new Date(activity.metadata.startAt).toLocaleString(language === "th" ? "th-TH" : "en-US", {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false,
+                }),
+              })}
             </p>
           </div>
         )}
@@ -61,21 +78,23 @@ export default function StepperActivity({
           completed={activity.checkinStatus >= 2}
           description={
             activity.checkinStatus > 1
-              ? 'You have successfully checked in. Enjoy the activity!'
+              ? t('activity.timeline.successfullyCheckedInMessage')
               : activity.checkinStatus < 0
                 ? undefined
-                : 'Scan the QR code at the event location or visit the designated check-in point to confirm your attendance.'
+                : t('activity.timeline.assessmentCheckinDescription')
           }
           disabled={activity.checkinStatus === 0}
           error={activity.checkinStatus < 0}
           icon={QrCode}
           index={2}
           label={
-            activity.checkinStatus > 1
-              ? 'Successfully Checked In'
-              : activity.checkinStatus < 0
-                ? 'Cannot Check-In'
-                : 'Check-In Required'
+            activity.checkinStatus === 0
+            ? t('activity.timeline.notOpenforCheckin')
+            : activity.checkinStatus === 1
+              ? t('activity.timeline.openCheckin')
+              : activity.checkinStatus > 1
+                ? t('activity.timeline.successfullyCheckedIn')
+                : t('activity.timeline.cannotCheckIn')
           }
         >
           {activity.checkinStatus === 1 && (
@@ -85,47 +104,23 @@ export default function StepperActivity({
               onPress={() => router.replace('/qrcode')}
             >
               <QrCode className="mr-2 h-4 w-4" />
-              Open QR Scanner
+              {t('activity.timeline.openQrScanner')}
             </Button>
           )}
         </StepperItem>
       )}
 
-      {/* Step 3: Checked In */}
-      {activity.checkinStatus !== -1 && (
-        <StepperItem
-          active={activity.checkinStatus === 2}
-          completed={activity.checkinStatus === 3}
-          description={
-            activity.checkinStatus < 0
-              ? undefined
-              : activity.checkinStatus === 3
-                ? "Congratulations! You've completed the activity. Please take a moment to share your feedback through the assessment."
-                : "Great! You're all set. Enjoy the activity and stay engaged throughout the session."
-          }
-          disabled={activity.checkinStatus === 0}
-          error={activity.checkinStatus < 0}
-          icon={CheckCircle}
-          index={3}
-          label={
-            activity.checkinStatus === 3
-              ? 'Activity Completed'
-              : 'Activity Ongoing'
-          }
-        />
-      )}
-
-      {/* Step 4: Assessment */}
+      {/* Step 3: Assessment */}
       <StepperItem
         isLast
         active={!activity.hasAnsweredAssessment && activity.checkinStatus === 3}
         completed={activity.hasAnsweredAssessment}
-        description="Help us improve by sharing your experience and feedback about this activity."
+        description={t('activity.timeline.assessmentPrompt')}
         disabled={activity.checkinStatus < 3}
         error={!activity.hasAnsweredAssessment && activity.checkinStatus === 3}
         icon={FileText}
         index={4}
-        label="Evaluation"
+        label={t('activity.timeline.assessmentTitle')}
       >
         <div className="bg-sky-50 p-3 rounded-lg border-l-4 border-sky-500">
           <p className="text-blue-900 text-sm leading-5 mb-2">
@@ -139,7 +134,7 @@ export default function StepperActivity({
               onPress={() => setShowAssessmentModal(true)}
             >
               <FileText className="mr-2 h-4 w-4" />
-              Complete Assessment
+              {t('activity.timeline.openAssessment')}
             </Button>
           )}
         </div>

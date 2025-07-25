@@ -7,9 +7,11 @@ import { useState } from 'react';
 
 import useSponsors from '@/hooks/useSponsors';
 import EvouchersSkeleton from "./_components/EvouchersSkeleton";
+import { useTranslation } from 'react-i18next';
 
 export default function EvoucherPage() {
     const router = useRouter();
+    const { t } = useTranslation();
     const [searchText, setSearchText] = useState('');
     const { sponsors, loading } = useSponsors();
 
@@ -26,18 +28,19 @@ export default function EvoucherPage() {
     if (!loading && filteredSponsors.length === 0) {
         <div className="flex flex-col gap-6">
             <p className="text-center text-sm text-white/80">
-                No sponsors found.
+                {t('evoucher.noSponsors')}
             </p>
         </div>
     }
 
     return (
-        <div className="flex flex-col h-full gap-6">
-            <p className="text-3xl text-white font-bold">E-Voucher</p>
+        <div className="flex flex-col h-full gap-6 pt-6">
+            <p className="text-3xl text-white font-bold">{t('evoucher.title')}</p>
+            
             {/* Search Bar */}
             <Input
                 aria-label="Search sponsors"
-                placeholder="Search sponsors..."
+                placeholder={t('evoucher.searchPlaceholder')}
                 classNames={{
                     input: "text-white placeholder:text-white/60",
                     inputWrapper: "border-2 border-white/40",

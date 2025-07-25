@@ -15,6 +15,7 @@ import { AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { useReport } from '@/hooks/useReport';
 import { ConfirmModal } from './_components/ModalComfirm';
+import { useTranslation } from 'react-i18next';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface ReportModalProps {
 }
 
 export function ReportModal({ isOpen, onClose }: ReportModalProps) {
+  const { t } = useTranslation();
   const [selectedTopic, setSelectedTopic] = useState('');
   const [description, setDescription] = useState('');
   const [isModalConfirmOpen, setIsModalConfirmOpen] = useState(false);
@@ -79,15 +81,15 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
           <ModalBody className="w-full space-y-6">
             <div className="flex flex-col items-center gap-2">
               <AlertTriangle className="w-12 h-12 text-red-500" />
-              <h2 className="text-2xl font-semibold text-white">Report</h2>
+              <h2 className="text-2xl font-semibold text-white">{t('report.title')}</h2>
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium text-white">Topic</label>
+              <label className="text-sm font-medium text-white">{t('report.topic')}</label>
               <Select
                 aria-label="Choose Topic"
                 selectedKeys={selectedTopic ? [selectedTopic] : []}
-                placeholder="Choose Topic"
+                placeholder={t('report.topicChoose')}
                 isDisabled={loading}
                 onChange={(e) => setSelectedTopic(e.target.value)}
               >
@@ -100,9 +102,9 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium text-white">Description</label>
+              <label className="text-sm font-medium text-white">{t('report.description')}</label>
               <Textarea
-                placeholder="Description"
+                placeholder={t('report.descriptionText')}
                 value={description}
                 maxLength={DESCRIPTION_LIMIT}
                 onChange={(e) => setDescription(e.target.value)}
@@ -117,14 +119,14 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                 onPress={handleClose}
                 className="w-full py-2 bg-danger hover:bg-gray-600 text-white font-bold rounded-full"
               >
-                Cancel
+                {t('report.cancel')}
               </Button>
               <Button
                 onPress={handleSubmit}
                 disabled={!selectedTopic || !description.trim() || loading}
                 className="w-full py-2 bg-primary hover:bg-blue-600 text-white font-bold rounded-full transition-opacity duration-300 disabled:opacity-50 disabled:pointer-events-none"
               >
-                {loading ? <Spinner size="sm" /> : 'Confirm'}
+                {t('report.confirm')}
               </Button>
             </div>
           </ModalBody>

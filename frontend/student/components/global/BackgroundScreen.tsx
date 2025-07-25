@@ -36,7 +36,7 @@ export default function BackgroundScreen({
             contentFit="cover"
           />
           {loaded && children}
-          {!loaded && (
+          {!loaded && ( 
             <View style={[StyleSheet.absoluteFill, styles.loading]}>
               <ActivityIndicator size="large" color="#fff" />
             </View>
