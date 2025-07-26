@@ -1,10 +1,18 @@
 'use client';
 
+import type { UseruseSystem } from '@/types/user-stats';
+
 import { useState, useEffect } from 'react';
-import { Button, Accordion, AccordionItem, Spinner } from '@heroui/react';
+import { Button, Accordion, AccordionItem } from '@heroui/react';
 import { LayoutDashboard, Users, FileText, Activity } from 'lucide-react';
+
 import { ReportCharts } from './_components/DashboardReportCharts';
 import Overview from './_components/DashboardOverview';
+import FresherCheckinDashboard from './_components/FresherCheckinDashboard';
+import ListPretest from './_components/ListPretest';
+import ListPosttest from './_components/ListPosttest';
+import AssessmentTable from './_components/AssessmentTable';
+
 import { useCheckin } from '@/hooks/useCheckin';
 import { useSponsors } from '@/hooks/useSponsors';
 import { PageHeader } from '@/components/ui/page-header';
@@ -13,14 +21,10 @@ import { useReports } from '@/hooks/useReports';
 import { useReportTypes } from '@/hooks/useReportTypes';
 import { useUserStatistics } from '@/hooks/useUsersytem';
 import { useActivities } from '@/hooks/useActivities';
-import type { UseruseSystem } from '@/types/user-stats';
-import FresherCheckinDashboard from './_components/FresherCheckinDashboard';
 import { usePretest } from '@/hooks/usePretestAnswer';
-import ListPretest from './_components/ListPretest';
 import { usePosttest } from '@/hooks/usePosttestAnswer';
-import ListPosttest from './_components/ListPosttest';
 import { useAssessmentAverages } from '@/hooks/useAssessmentAnswer';
-import AssessmentTable from './_components/AssessmentTable';
+
 
 export default function Dashboard() {
   const { activities } = useActivities({ autoFetch: true });
@@ -48,6 +52,7 @@ export default function Dashboard() {
 
       for (const activity of activities) {
         const checkins = await fetchCheckinByActivity(activity._id);
+
         result[activity._id] = checkins || [];
       }
 
@@ -57,6 +62,21 @@ export default function Dashboard() {
 
     fetchAllCheckins();
   }, [activities]);
+
+  const countsByType = activities.reduce((acc, activity) => {
+    const { type, name } = activity;
+
+    if (!acc[type as string]) {
+      acc[type as string] = new Set();
+    }
+    acc[type as string].add(name.en);
+
+    return acc;
+  }, {} as Record<string, Set<string>>);
+  const activityStats = Object.entries(countsByType).filter(([type]) => !!type).map(([type, names]) => ({
+    type,
+    count: names.size,
+  }));
 
   const defaultExpandedKeys = [
     'overview',
@@ -82,7 +102,7 @@ export default function Dashboard() {
 
       <div>
         <Overview
-          Activities={activities}
+          Activities={activityStats}
           Evouchers={evouchers}
           Sponsors={sponsors}
           Userstats={Userstats ?? ({} as UseruseSystem)}
@@ -92,21 +112,21 @@ export default function Dashboard() {
       </div>
 
       <Accordion
-        variant="splitted"
-        selectionMode="multiple"
-        defaultExpandedKeys={defaultExpandedKeys}
         className="px-0"
+        defaultExpandedKeys={defaultExpandedKeys}
+        selectionMode="multiple"
+        variant="splitted"
       >
         <AccordionItem
           key="checkin"
           aria-label="Checked In Fresher"
+          className="mb-4"
           title={
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5" />
               <span className="text-xl font-semibold">Checked In Fresher</span>
             </div>
           }
-          className="mb-4"
         >
           <div className="p-4">
             <div className="w-full h-96 p-4 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 bg-muted flex items-center justify-center">
@@ -118,18 +138,18 @@ export default function Dashboard() {
         <AccordionItem
           key="pretest"
           aria-label="Pretest Dashboard"
+          className="mb-4"
           title={
             <div className="flex items-center gap-2">
               <Activity className="w-5 h-5" />
               <span className="text-xl font-semibold">Pretest</span>
             </div>
           }
-          className="mb-4"
         >
           <div className="p-4">
             <ListPretest
-              pretestAverage={pretestAverage}
               pretestAnswers={pretestAnswer}
+              pretestAverage={pretestAverage}
             />
           </div>
         </AccordionItem>
@@ -137,18 +157,18 @@ export default function Dashboard() {
         <AccordionItem
           key="posttest"
           aria-label="Posttest Dashboard"
+          className="mb-4"
           title={
             <div className="flex items-center gap-2">
               <Activity className="w-5 h-5" />
               <span className="text-xl font-semibold">Posttest</span>
             </div>
           }
-          className="mb-4"
         >
           <div className="p-4">
             <ListPosttest
-              posttestAverage={posttestAverage}
               posttestAnswers={posttestAnswer}
+              posttestAverage={posttestAverage}
               totalAverageCount={totalAverageCount}
             />
           </div>
@@ -156,13 +176,13 @@ export default function Dashboard() {
         <AccordionItem
           key="assessment-answers"
           aria-label="Assessment Answer Dashboard"
+          className="mb-4"
           title={
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
               <span className="text-xl font-semibold">Assessment Answers</span>
             </div>
           }
-          className="mb-4"
         >
           <div className="p-4">
             <AssessmentTable />
@@ -172,13 +192,13 @@ export default function Dashboard() {
         <AccordionItem
           key="reports"
           aria-label="Reports Dashboard"
+          className="mb-4"
           title={
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
               <span className="text-xl font-semibold">Reports</span>
             </div>
           }
-          className="mb-4"
         >
           <div className="p-4">
             <ReportCharts problems={problems} reporttypes={reporttypes} />

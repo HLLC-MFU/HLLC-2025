@@ -27,8 +27,6 @@ export default function ProfileScreen() {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const { language } = useLanguage();
 
-  // const characterSceneRef = useRef<Group | null>(null);
-  // const baseSceneRef = useRef<Group | null>(null);
   const modelRef = useRef<Group | null>(null);
 
   useEffect(() => {
@@ -47,21 +45,11 @@ export default function ProfileScreen() {
     onPanResponderMove: (_, gesture) => {
       if (modelRef.current) {
         modelRef.current.rotation.y += gesture.dx * 0.001;
-        // characterSceneRef.current.rotation.y += gesture.dx * 0.001;
-        // baseSceneRef.current.rotation.y += gesture.dx * 0.001;
 
         modelRef.current.rotation.x = Math.max(
           -Math.PI / 2,
           Math.min(Math.PI / 2, modelRef.current.rotation.x)
         );
-        // characterSceneRef.current.rotation.x = Math.max(
-        //   -Math.PI / 2,
-        //   Math.min(Math.PI / 2, characterSceneRef.current.rotation.x)
-        // );
-        // baseSceneRef.current.rotation.x = Math.max(
-        //   -Math.PI / 2,
-        //   Math.min(Math.PI / 2, baseSceneRef.current.rotation.x)
-        // );
       }
     },
   });
@@ -97,14 +85,14 @@ export default function ProfileScreen() {
       }
 
       {/* 3D Model */}
-      {/* <View {...panResponder.panHandlers} style={{ position: 'absolute', width: '100%', height: '100%', }}> */}
+      <View {...panResponder.panHandlers} style={{ position: 'absolute', width: '100%', height: '100%', }}>
         <GLView
           style={{ position: 'absolute', width: '100%', height: '100%', }}
           onContextCreate={(gl) =>
             onContextCreate(gl, user, setLoading, modelRef)
           }
         />
-      {/* </View> */}
+      </View>
 
       <Animated.View style={{ justifyContent: 'flex-end', position: 'absolute', width: '100%', height: '100%', paddingBottom: Platform.OS === 'android' ? '20%' : '10%', opacity: fadeAnim }}>
         <BlurView

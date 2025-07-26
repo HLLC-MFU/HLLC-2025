@@ -1,5 +1,5 @@
-
 "use client";
+
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@heroui/react";
@@ -12,16 +12,26 @@ export default function LogoutPage() {
 
     useEffect(() => {
         const logout = async () => {
-            signOut();
-            router.push("/login");
+            try {
+                await signOut(); // ← this now truly waits
+            } catch (err) {
+                console.error("Logout error:", err);
+            } finally {
+                router.replace("/login"); // better than push to avoid back-nav to logout
+            }
         };
 
         logout();
     }, [signOut, router]);
 
+
     return (
         <div className="flex items-center justify-center h-screen">
-            <Spinner classNames={{ label: "text-foreground mt-4" }} size="lg" variant="simple" />
+            <Spinner
+                classNames={{ label: "text-foreground mt-4" }}
+                size="lg"
+                variant="simple"
+            />
         </div>
     );
 }

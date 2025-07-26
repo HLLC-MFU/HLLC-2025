@@ -60,7 +60,7 @@ export class AuthService {
     const isMatch = await bcrypt.compare(pass, userDoc.password);
     if (!isMatch) throw new UnauthorizedException('Invalid password');
 
-    const { password,...user } = userDoc;
+    const { password, ...user } = userDoc;
     let role: RoleDocument | null = null;
     if (
       user.role &&
@@ -345,7 +345,9 @@ export class AuthService {
 
     const isSamePassword = await bcrypt.compare(password, user.password);
     if (isSamePassword) {
-      throw new BadRequestException('New password cannot be the same as previous password');
+      throw new BadRequestException(
+        'New password cannot be the same as previous password',
+      );
     }
 
     // Set new password (will be hashed by pre-save hook)
@@ -366,15 +368,17 @@ export class AuthService {
     if (response) {
       response.clearCookie('accessToken', {
         httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
+        secure: this.isProduction,
+        sameSite: this.isProduction ? 'strict' : 'lax',
         path: '/',
+        domain: this.configService.get<string>('COOKIE_DOMAIN') ?? 'localhost',
       });
       response.clearCookie('refreshToken', {
         httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
+        secure: this.isProduction,
+        sameSite: this.isProduction ? 'strict' : 'lax',
         path: '/',
+        domain: this.configService.get<string>('COOKIE_DOMAIN') ?? 'localhost',
       });
     }
 
