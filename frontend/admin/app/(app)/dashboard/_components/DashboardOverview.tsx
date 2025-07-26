@@ -73,12 +73,17 @@ export default function Overview({ Activities, Userstats, Evouchers, Sponsors }:
                 {Activities.length === 0 ? (
                     <p className="text-sm text-gray-500">No activities found</p>
                 ) : (
-                    <div className="flex flex-row gap-4 w-full">
-                        {Activities.map((activity) => (
-                            <div key={activity.type} className="flex flex-col gap-2 text-center flex-1">
-                                <p className="text-sm text-gray-500 capitalize">{activity.type}</p>
-                                <p className="text-3xl font-semibold">{activity.count}</p>
-                            </div>
+                    <div className="flex flex-row gap-4 w-full items-stretch">
+                        {Activities.map((activity, index) => (
+                            <React.Fragment key={activity.type}>
+                                <div className="flex flex-col gap-2 text-center flex-1">
+                                    <p className="text-sm text-gray-500 capitalize">{activity.type}</p>
+                                    <p className="text-3xl font-semibold">{activity.count}</p>
+                                </div>
+                                {index < Activities.length - 1 && (
+                                    <Divider orientation="vertical" />
+                                )}
+                            </React.Fragment>
                         ))}
                     </div>
                 )}
