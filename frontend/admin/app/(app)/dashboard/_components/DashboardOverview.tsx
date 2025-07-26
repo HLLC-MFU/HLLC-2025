@@ -1,6 +1,8 @@
 import React from 'react';
-import { ScanBarcode, User as UserIcon, Activity as ActivityIcon, Ticket, Gem, } from 'lucide-react';
-import { Card } from '@heroui/react';
+import { ScanBarcode, User as UserIcon, Activity as ActivityIcon, Ticket, Gem, TicketCheck, } from 'lucide-react';
+import { Card, Divider } from '@heroui/react';
+
+import CardStat from './CardStat';
 
 import { Checkin } from '@/types/checkin';
 import { Activities } from '@/types/activities';
@@ -37,17 +39,53 @@ const CardWithPie = ({ label, value, icon, colors }: {
 export default function Overview({ checkin, Activities, Userstats, Evouchers, Sponsors, isLoading }: Overviewprop) {
 
     const checkInTotal = checkin.length;
-    const registered = Object.values(Userstats).reduce((sum, user) => sum + user.registered, 0)
-    const unregistered = Object.values(Userstats).reduce((sum, user) => sum + user.notRegistered, 0)
-    const totalUsers = Object.values(Userstats).reduce((sum, user) => sum + user.total, 0)
+    const fresher = Userstats.Fresher || 0;
+    // const registered = Object.values(Userstats).reduce((sum, user) => sum + user.registered, 0)
+    // const unregistered = Object.values(Userstats).reduce((sum, user) => sum + user.notRegistered, 0)
+    // const totalUsers = Object.values(Userstats).reduce((sum, user) => sum + user.total, 0)
     const Evoucherstotle = Evouchers.length;
     const activityTotal = Activities.length;
     const sponsorTotal = Sponsors.length;
-    
+
     if (isLoading) return <p>Loading...</p>;
 
     return (
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 my-6">
+        <div className="w-full grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 my-6">
+            <CardStat
+                colors="blue-100"
+                icon={<UserIcon className="w-4 h-4" />}
+                label="Fresher"
+            >
+                <div className="flex flex-row gap-4 w-full">
+                    <div className="flex flex-col gap-2 text-center flex-1">
+                        <p className="text-sm text-gray-500">Registered</p>
+                        <p className="text-3xl font-semibold">{fresher.registered ? fresher.registered : 0}</p>
+                    </div>
+                    <Divider orientation="vertical" />
+                    <div className="flex flex-col gap-2 text-center flex-1">
+                        <p className="text-sm text-gray-500">Total</p>
+                        <p className="text-3xl font-semibold">{fresher.total ? fresher.total : 0}</p>
+                    </div>
+                </div>
+            </CardStat>
+
+            <CardStat
+                colors="red-100"
+                icon={<TicketCheck className="w-4 h-4" />}
+                label="Evouchers"
+            >
+                <div className="flex flex-row gap-4 w-full">
+                    <div className="flex flex-col gap-2 text-center flex-1">
+                        <p className="text-sm text-gray-500">Sponsors</p>
+                        <p className="text-3xl font-semibold">{sponsorTotal.toString() ? sponsorTotal.toString() : 0}</p>
+                    </div>
+                    <Divider orientation="vertical" />
+                    <div className="flex flex-col gap-2 text-center flex-1">
+                        <p className="text-sm text-gray-500">Evoucher</p>
+                        <p className="text-3xl font-semibold">{Evoucherstotle.toString() ? Evoucherstotle.toString() : 0}</p>
+                    </div>
+                </div>
+            </CardStat>
             <CardWithPie
                 colors='gray-100'
                 icon={<ScanBarcode />}
@@ -55,32 +93,10 @@ export default function Overview({ checkin, Activities, Userstats, Evouchers, Sp
                 value={checkInTotal.toString()}
             />
             <CardWithPie
-                colors='blue-100'
-                icon={<UserIcon />}
-                label={`User (${totalUsers})`}
-                value={<div className="flex gap-1 text-base">
-                    <span > {registered}</span>
-                    <span className="text-gray-400">|</span>
-                    <span className="text-gray-400">{unregistered}</span>
-                </div>}
-            />
-            <CardWithPie
                 colors='green-100'
                 icon={<ActivityIcon />}
                 label="Activity"
                 value={activityTotal.toString()}
-            />
-            <CardWithPie
-                colors='red-100'
-                icon={<Ticket />}
-                label="Evoucher"
-                value={Evoucherstotle.toString()}
-            />
-            <CardWithPie
-                colors='purple-100'
-                icon={<Gem />}
-                label="Sponsors"
-                value={sponsorTotal.toString()}
             />
         </div>
     );
