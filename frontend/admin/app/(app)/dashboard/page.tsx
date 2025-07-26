@@ -73,7 +73,7 @@ export default function Dashboard() {
 
     return acc;
   }, {} as Record<string, Set<string>>);
-  const activityStats = Object.entries(countsByType).map(([type, names]) => ({
+  const activityStats = Object.entries(countsByType).filter(([type]) => !!type).map(([type, names]) => ({
     type,
     count: names.size,
   }));

@@ -5,7 +5,6 @@ import { Divider } from '@heroui/react';
 import CardStat from './CardStat';
 
 import { Checkin } from '@/types/checkin';
-import { Activities } from '@/types/activities';
 import { Evoucher } from '@/types/evoucher';
 import { Sponsors } from '@/types/sponsors';
 import { UseruseSystem } from '@/types/user-stats'
