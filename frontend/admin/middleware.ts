@@ -12,11 +12,17 @@ export async function middleware(req: NextRequest) {
   const accessToken = req.cookies.get("accessToken")?.value;
   const refreshToken = req.cookies.get("refreshToken")?.value;
 
-  if (!accessToken) {
-    return NextResponse.redirect(new URL(`${req.nextUrl.basePath}/login`, req.url));
+  if (pathname === `${req.nextUrl.basePath}/login`) {
+    if (accessToken && !isTokenExpired(accessToken)) {
+      return new Response("Access denied", { status: 403 });
+    }
+
+    // Allow login page if token missing or expired
+    return NextResponse.next();
   }
 
-  if (isTokenExpired(accessToken)) {
+
+  if (!accessToken || isTokenExpired(accessToken)) {
     if (refreshToken) {
       const res = await fetch(`${API_BASE_URL}/auth/admin/refresh`, {
         method: "POST",
@@ -79,6 +85,7 @@ function isTokenExpired(token: string): boolean {
     return exp < currentTime;
   } catch (err) {
     console.error("Invalid token format", err);
+
     return true;
   }
 }
@@ -87,6 +94,7 @@ function getRoleFromToken(token: string): string | null {
   try {
     const [, payloadBase64] = token.split(".");
     const payload = JSON.parse(atob(payloadBase64));
+
     return payload.role || null;
   } catch {
     return null;
