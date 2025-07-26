@@ -1,25 +1,17 @@
-import React, { ReactNode, useEffect, useState } from 'react';
-import { ImageBackground, View, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator, AppStateStatus, AppState } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
 export default function BackgroundScreen({
-  background,
+  acronym,
   children,
 }: {
-  background: string | null;
+  acronym: string;
   children: ReactNode;
 }) {
   const [loaded, setLoaded] = useState(false);
+  const appState = useRef<AppStateStatus>(AppState.currentState);
 
-  if (!background) {
-    return (
-      <View style={[StyleSheet.absoluteFill, styles.loading]}>
-        <ActivityIndicator size="large" color="#fff" />
-      </View>
-    );
-  }
-
-  // Static video map (only known videos you bundled)
   const videoMap: Record<string, any> = {
     ADT: require('@/assets/images/lobby/ADT.mp4'),
     AI: require('@/assets/images/lobby/AI.mp4'),
@@ -35,49 +27,64 @@ export default function BackgroundScreen({
     SCI: require('@/assets/images/lobby/SCI.mp4'),
     SINO: require('@/assets/images/lobby/SINO.mp4'),
     SOCIN: require('@/assets/images/lobby/SOCIN.mp4'),
-    // Add more here
   };
 
-  const fallbackImage = require('@/assets/images/lobby/MED.mp4');
+  const fallbackVideo = require('@/assets/images/lobby/MED.mp4');
+  const uri = videoMap[acronym] ?? fallbackVideo;
 
-  const isVideo = background in videoMap;
-  const uri = isVideo ? videoMap[background] : fallbackImage;
-
-  const player = useVideoPlayer(isVideo ? uri : undefined, (player) => {
+  const player = useVideoPlayer(uri, (player) => {
     player.loop = true;
     player.play();
     setLoaded(true);
   });
 
+  // Handle AppState changes
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        // App has come back to the foreground
+        if (player?.play) {
+          player.play();
+        }
+      }
+
+      if (nextAppState.match(/inactive|background/)) {
+        if (player?.pause) {
+          player.pause(); // Optional: you can remove this if you want it to *keep* playing in background
+        }
+      }
+
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [player]);
+
+  if (!acronym) {
+    return (
+      <View style={[StyleSheet.absoluteFill, styles.loading]}>
+        <ActivityIndicator size="large" color="#fff" />
+      </View>
+    );
+  }
+
   return (
     <View style={[StyleSheet.absoluteFill, { flex: 1, backgroundColor: '#000' }]}>
-      {isVideo ? (
-        <>
-          <VideoView
-            style={[StyleSheet.absoluteFill, { flex: 1 }]}
-            player={player}
-            pointerEvents="none"
-            contentFit="cover"
-          />
-          {loaded ? children : (
-            <View style={[StyleSheet.absoluteFill, styles.loading]}>
-              <ActivityIndicator size="large" color="#fff" />
-            </View>
-          )}
-        </>
-      ) : (
-        <ImageBackground
-          source={uri}
-          resizeMode="cover"
-          style={[StyleSheet.absoluteFill, { flex: 1 }]}
-          onLoadEnd={() => setLoaded(true)}
-        >
-          {loaded ? children : (
-            <View style={[StyleSheet.absoluteFill, styles.loading]}>
-              <ActivityIndicator size="large" color="#fff" />
-            </View>
-          )}
-        </ImageBackground>
+      <VideoView
+        style={[StyleSheet.absoluteFill, { flex: 1 }]}
+        player={player}
+        pointerEvents="none"
+        contentFit="cover"
+      />
+      {loaded ? children : (
+        <View style={[StyleSheet.absoluteFill, styles.loading]}>
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
       )}
     </View>
   );
