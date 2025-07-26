@@ -10,13 +10,11 @@ export function getCookie(name: string): string | null {
 }
 
 export function isTokenValid(token: string): boolean {
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const currentTime = Math.floor(Date.now() / 1000); // in seconds
-
-        return payload.exp && payload.exp > currentTime;
-    } catch (error) {
-
-        return false;
-    }
+  try {
+    const [, payloadBase64] = token.split(".");
+    const payload = JSON.parse(atob(payloadBase64));
+    return payload.exp > Math.floor(Date.now() / 1000);
+  } catch {
+    return false;
+  }
 }
