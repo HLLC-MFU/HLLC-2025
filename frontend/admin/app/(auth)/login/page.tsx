@@ -35,11 +35,11 @@ export default function LoginPage() {
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      router.push("/");
-    }
-  }, [user, router]);
+  // useEffect(() => {
+  //   if (user) {
+  //     router.push("/");
+  //   }
+  // }, [user, router]);
 
   return (
     <div className="h-full w-full relative md:flex items-center justify-between overflow-y-hidden md:p-2">

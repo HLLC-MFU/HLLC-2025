@@ -14,9 +14,9 @@ interface AuthStore {
   loading: boolean;
   error: string | null;
   signIn: (username: string, password: string) => Promise<boolean>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   removePassword: (username: string) => Promise<boolean>;
-  refreshSession: () => Promise<boolean>;
+  // refreshSession: () => Promise<boolean>;
   isLoggedIn: () => boolean;
   ensureValidSession: () => Promise<boolean>;
 }
@@ -87,7 +87,6 @@ const useAuth = create<AuthStore>()(
             description: "Failed to log out. Please try again.",
             variant: "solid",
           });
-
           return;
         }
 
@@ -103,6 +102,7 @@ const useAuth = create<AuthStore>()(
         removeToken("accessToken");
         removeToken("refreshToken");
       },
+
 
       removePassword: async (username) => {
         try {
@@ -125,11 +125,11 @@ const useAuth = create<AuthStore>()(
             return true;
           } else {
             addToast({
-                title: `Remove password failed`,
-                description: `Failed to reset password`,
-                color: "danger",
-                variant: "solid",
-              });
+              title: `Remove password failed`,
+              description: `Failed to reset password`,
+              color: "danger",
+              variant: "solid",
+            });
 
             return false;
           }
@@ -142,35 +142,35 @@ const useAuth = create<AuthStore>()(
         }
       },
 
-      refreshSession: async () => {
-        try {
-          const refreshToken = getToken("refreshToken");
+      // refreshSession: async () => {
+      //   try {
+      //     const refreshToken = getToken("refreshToken");
 
-          if (!refreshToken) return false;
+      //     if (!refreshToken) return false;
 
-          const res = await apiRequest<TokenResponse>("/auth/admin/refresh", "POST", {
-            refreshToken,
-          });
+      //     const res = await apiRequest<TokenResponse>("/auth/admin/refresh", "POST", {
+      //       refreshToken,
+      //     });
 
-          if (res.statusCode === 200 && res.data) {
-            saveToken("accessToken", res.data.accessToken);
-            saveToken("refreshToken", res.data.refreshToken);
+      //     if (res.statusCode === 200 && res.data) {
+      //       saveToken("accessToken", res.data.accessToken);
+      //       saveToken("refreshToken", res.data.refreshToken);
 
-            return true;
-          }
+      //       return true;
+      //     }
 
-          return false;
-        } catch (err) {
-          addToast({
-            title: err instanceof Error ? err.message : "An error occurred",
-            color: "danger",
-            description: "Failed to refresh session. Please log in again.",
-            variant: "solid",
-          })
+      //     return false;
+      //   } catch (err) {
+      //     addToast({
+      //       title: err instanceof Error ? err.message : "An error occurred",
+      //       color: "danger",
+      //       description: "Failed to refresh session. Please log in again.",
+      //       variant: "solid",
+      //     })
 
-          return false;
-        }
-      },
+      //     return false;
+      //   }
+      // },
 
       isLoggedIn: () => {
         const accessToken = getToken("accessToken");
@@ -182,13 +182,13 @@ const useAuth = create<AuthStore>()(
 
         if (!accessToken) return false;
 
-        const isExpired = isTokenExpired(accessToken);
+        // const isExpired = isTokenExpired(accessToken);
 
-        if (isExpired) {
-          const success = await get().refreshSession();
+        // if (isExpired) {
+        //   const success = await get().refreshSession();
 
-          return success;
-        }
+        //   return success;
+        // }
 
         return true;
       },
