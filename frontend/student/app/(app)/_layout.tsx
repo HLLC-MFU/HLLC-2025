@@ -120,7 +120,7 @@ export default function AppLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <BackgroundScreen background={user?.data[0].metadata.major.school.acronym.toUpperCase() ?? null}>
+      <BackgroundScreen acronym={user?.data[0].metadata.major.school.acronym.toUpperCase()}>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity }]}>
           <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
         </Animated.View>
