@@ -63,6 +63,21 @@ export default function Dashboard() {
     fetchAllCheckins();
   }, [activities]);
 
+  const countsByType = activities.reduce((acc, activity) => {
+    const { type, name } = activity;
+
+    if (!acc[type as string]) {
+      acc[type as string] = new Set();
+    }
+    acc[type as string].add(name.en);
+
+    return acc;
+  }, {} as Record<string, Set<string>>);
+  const activityStats = Object.entries(countsByType).map(([type, names]) => ({
+    type,
+    count: names.size,
+  }));
+
   const defaultExpandedKeys = [
     'overview',
     'checkin',
@@ -87,7 +102,7 @@ export default function Dashboard() {
 
       <div>
         <Overview
-          Activities={activities}
+          Activities={activityStats}
           Evouchers={evouchers}
           Sponsors={sponsors}
           Userstats={Userstats ?? ({} as UseruseSystem)}

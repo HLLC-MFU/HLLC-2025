@@ -1,6 +1,6 @@
 import React from 'react';
-import { ScanBarcode, User as UserIcon, Activity as ActivityIcon, Ticket, Gem, TicketCheck, } from 'lucide-react';
-import { Card, Divider } from '@heroui/react';
+import { User as UserIcon, TicketCheck, Book, } from 'lucide-react';
+import { Divider } from '@heroui/react';
 
 import CardStat from './CardStat';
 
@@ -13,41 +13,20 @@ import { UseruseSystem } from '@/types/user-stats'
 interface Overviewprop {
     checkin: Checkin[];
     Userstats: UseruseSystem;
-    Activities: Activities[];
+    Activities: { type: string; count: number }[];
     Evouchers: Evoucher[];
     Sponsors: Sponsors[];
     isLoading: boolean;
 }
 
-const CardWithPie = ({ label, value, icon, colors }: {
-    label: string;
-    value: React.ReactNode;
-    icon: React.ReactNode;
-    colors: string;
-}) => (
-    <Card className='w-full h-full  border  rounded-2xl flex-row flex items-center gap-4 p-5 shadow-sm hover:shadow-lg transition-shadow'>
-        <div className={`p-4 rounded-full bg-${colors} text-${colors.replace('100', '600')} shadow-inner`}>
-            {icon}
-        </div>
-        <div className="flex flex-col">
-            <span className="text-xl font-semibold text-gray-800 ">{value} </span>
-            <span className="text-sm text-gray-500">{label}</span>
-        </div>
-    </Card>
-);
 
-export default function Overview({ checkin, Activities, Userstats, Evouchers, Sponsors, isLoading }: Overviewprop) {
 
-    const checkInTotal = checkin.length;
+export default function Overview({ Activities, Userstats, Evouchers, Sponsors }: Overviewprop) {
+
     const fresher = Userstats.Fresher || 0;
-    // const registered = Object.values(Userstats).reduce((sum, user) => sum + user.registered, 0)
-    // const unregistered = Object.values(Userstats).reduce((sum, user) => sum + user.notRegistered, 0)
-    // const totalUsers = Object.values(Userstats).reduce((sum, user) => sum + user.total, 0)
     const Evoucherstotle = Evouchers.length;
-    const activityTotal = Activities.length;
     const sponsorTotal = Sponsors.length;
 
-    if (isLoading) return <p>Loading...</p>;
 
     return (
         <div className="w-full grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 my-6">
@@ -86,18 +65,38 @@ export default function Overview({ checkin, Activities, Userstats, Evouchers, Sp
                     </div>
                 </div>
             </CardStat>
-            <CardWithPie
+
+            <CardStat
+                colors="green-100"
+                icon={<Book className="w-4 h-4" />}
+                label="Activities"
+            >
+                {Activities.length === 0 ? (
+                    <p className="text-sm text-gray-500">No activities found</p>
+                ) : (
+                    <div className="flex flex-row gap-4 w-full">
+                        {Activities.map((activity) => (
+                            <div key={activity.type} className="flex flex-col gap-2 text-center flex-1">
+                                <p className="text-sm text-gray-500 capitalize">{activity.type}</p>
+                                <p className="text-3xl font-semibold">{activity.count}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardStat>
+
+            {/* <CardWithPie
                 colors='gray-100'
                 icon={<ScanBarcode />}
                 label="Check In"
                 value={checkInTotal.toString()}
-            />
-            <CardWithPie
+            /> */}
+            {/* <CardWithPie
                 colors='green-100'
                 icon={<ActivityIcon />}
                 label="Activity"
                 value={activityTotal.toString()}
-            />
+            /> */}
         </div>
     );
 }
