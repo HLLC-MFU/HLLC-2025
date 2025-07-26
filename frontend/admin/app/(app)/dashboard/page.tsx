@@ -22,23 +22,19 @@ import ListPosttest from './_components/ListPosttest';
 import { useAssessmentAverages } from '@/hooks/useAssessmentAnswer';
 import AssessmentTable from './_components/AssessmentTable';
 
-export default function Dashboard() {
-  const { activities } = useActivities({ autoFetch: true });
-  const { fetchCheckinByActivity } = useCheckin(null);
-  const { pretestAverage, pretestAnswer } = usePretest();
-  const { posttestAverage, posttestAnswer, totalAverageCount } = usePosttest();
-  const [allCheckins, setAllCheckins] = useState<Record<string, any[]>>({});
-  const [loading, setLoading] = useState(false);
-  const combinedCheckins = Object.values(allCheckins).flat();
-  const { sponsors } = useSponsors();
-  const { evouchers } = useEvoucher();
-  const { problems } = useReports();
-  const { reporttypes } = useReportTypes();
-  const { Userstats } = useUserStatistics();
-  const [selectedActivityId, setSelectedActivityId] = useState<
-    string | undefined
-  >(undefined);
-  const { data, error, refetch } = useAssessmentAverages(selectedActivityId);
+  export default function Dashboard() {
+    const { activities } = useActivities({ autoFetch: true })
+    const { fetchCheckinByActivity } = useCheckin(null)
+    const { pretestAverage, pretestAnswer } = usePretest()
+    const { posttestAverage, posttestAnswer, totalAverageCount } = usePosttest()
+    const [allCheckins, setAllCheckins] = useState<Record<string, any[]>>({})
+    const [loading, setLoading] = useState(false)
+    const combinedCheckins = Object.values(allCheckins).flat()
+    const { sponsors } = useSponsors()
+    const { evouchers } = useEvoucher()
+    const { reports } = useReports()
+    const { reporttypes } = useReportTypes()
+    const { Userstats } = useUserStatistics()
 
   useEffect(() => {
     async function fetchAllCheckins() {
@@ -169,22 +165,22 @@ export default function Dashboard() {
           </div>
         </AccordionItem>
 
-        <AccordionItem
-          key="reports"
-          aria-label="Reports Dashboard"
-          title={
-            <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              <span className="text-xl font-semibold">Reports</span>
+          <AccordionItem
+            key="reports"
+            aria-label="Reports Dashboard"
+            title={
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                <span className="text-xl font-semibold">Reports</span>
+              </div>
+            }
+            className="mb-4"
+          >
+            <div className="p-4">
+              <ReportCharts reports={reports} reporttypes={reporttypes} />
             </div>
-          }
-          className="mb-4"
-        >
-          <div className="p-4">
-            <ReportCharts problems={problems} reporttypes={reporttypes} />
-          </div>
-        </AccordionItem>
-      </Accordion>
-    </>
-  );
-}
+          </AccordionItem>
+        </Accordion>
+      </>
+    )
+  }
