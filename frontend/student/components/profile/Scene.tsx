@@ -52,8 +52,6 @@ export async function onContextCreate(
     gl: ExpoWebGLRenderingContext,
     user: User | null,
     setLoading: (value: boolean) => void,
-    // changeCharacterScene:  RefObject<Group<Object3DEventMap> | null>,
-    // baseSceneRef:  RefObject<Group<Object3DEventMap> | null>,
     modelRef: RefObject<Group<Object3DEventMap> | null>,
 ) {
     const scene = new Scene();
@@ -78,17 +76,11 @@ export async function onContextCreate(
     renderer.shadowMap.autoUpdate = false;
     renderer.shadowMap.enabled = false;
 
-    //   const controls = new OrbitControls(camera, renderer.domElement);
-    //   controlsRef.current = controls;
-
     // Lights
     scene.add(new AmbientLight(0xffffff, 2));
     const dirLight = new DirectionalLight(0xffecec, 1.5);
     dirLight.position.set(0, 0, 5);
     dirLight.castShadow = false;
-    // const fillLight = new PointLight(0xffffff, 0.5);
-    // fillLight.position.set(-5, 3, 5);
-    // scene.add(fillLight);
 
     scene.add(dirLight);
     scene.position.y += 0.6;
@@ -109,8 +101,6 @@ export async function onContextCreate(
         baseScene.scale.set(0.7, 0.7, 0.7);
         baseScene.position.set(-0.45, -8, 1);
 
-        // changeCharacterScene.current = characterScene;
-        // baseSceneRef.current = baseScene;
         modelRef.current = group;
 
         // Textures;
@@ -161,8 +151,8 @@ export async function onContextCreate(
         box.getCenter(center);
         characterScene.position.sub(center);
 
-        // scene.add(characterScene);
-        // scene.add(baseScene);
+        group.add(characterScene);
+        group.add(baseScene);
         scene.add(group);
         setLoading(false);
 
