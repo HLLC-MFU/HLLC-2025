@@ -14,6 +14,8 @@ import { useRouter } from 'next/navigation';
 import { CustomFinderTracker } from './_components/CustomFinderTracker';
 import { useTranslation } from 'react-i18next';
 import '@/locales/i18n';
+import { useLanguage } from '@/context/LanguageContext';
+import Barcode from 'react-barcode';
 
 const QrScanner = dynamic(
   () => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner),
@@ -21,6 +23,7 @@ const QrScanner = dynamic(
 );
 
 export default function QrCodeClient() {
+  const { language } = useLanguage();
   const { user, loading, fetchUser } = useProfile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tab, setTab] = useState<'show' | 'scan'>('show');
@@ -184,10 +187,10 @@ export default function QrCodeClient() {
     <div className="flex h-full w-full items-center justify-center">
       <div className="flex flex-col items-center justify-center gap-6 mx-4 w-full max-w-md">
         {/* Tab UI - pill style with blur and animated indicator */}
-        <div className="relative w-full flex items-center justify-center mb-8 select-none border border-white/30 rounded-full shadow-lg backdrop-blur-md bg-white/10" style={{height: 56}}>
+        <div className="relative w-full p-2 flex items-center select-none border border-white/30 rounded-full shadow-lg backdrop-blur-md bg-white/10" style={{ height: 56 }}>
           {/* Focus pill indicator */}
           <div
-            className={`absolute top-0 left-0 h-14 w-1/2 transition-transform duration-200 ease-out z-0 rounded-full backdrop-blur-md bg-white/20 border border-white/30 shadow-lg`}
+            className={`absolute h-4/5 w-[48%] transition-transform duration-200 ease-out z-0 rounded-full backdrop-blur-md bg-white/20 border border-white/30 shadow-lg`}
             style={{
               transform: tab === 'show' ? 'translateX(0)' : 'translateX(100%)',
               transition: 'transform 0.22s cubic-bezier(.4,1.2,.4,1)',
@@ -213,19 +216,23 @@ export default function QrCodeClient() {
         </div>
 
         {/* Content wrapper: fix size and center content, like mobile */}
-        <div className="min-h-[420px] h-[420px] w-full flex flex-col justify-center items-center">
+        <div className="w-full flex flex-col justify-center items-center">
           {tab === 'show' ? (
             <div
-              className="flex flex-col items-center justify-center py-8 px-4 rounded-2xl shadow-lg bg-black/20 backdrop-blur-md border border-white/30 text-center w-full h-full max-w-xl"
+              className="flex flex-col items-center justify-center gap-4 py-8 px-4 rounded-2xl shadow-lg bg-white/20 backdrop-blur-md border border-white/30 text-center w-full h-full max-w-xl"
             >
-              <div className="mb-4 gap-0">
-                <h1 className="text-2xl font-bold text-white">
+              <div>
+                <h1 className="text-2xl font-semibold text-white">
                   {user?.name.first + ' ' + user?.name.middle + user?.name.last || t('qrcode.yourName')}
                 </h1>
-                <p className="font-semibold text-white/80">
+                <p className="text-white/80">
                   {t('qrcode.studentId')}: {user?.username || '680000000000'}
                 </p>
+                <p className="text-white/80">
+                  {t('qrcode.school')} {user?.metadata?.major?.school.name[language] || '680000000000'}
+                </p>
               </div>
+              {/* QR Code */}
               <QRCodeCanvas
                 ref={canvasRef}
                 bgColor="transparent"
@@ -233,19 +240,14 @@ export default function QrCodeClient() {
                 size={200}
                 value={user?.username ?? ''}
               />
-              <div className="mt-4 text-center px-4">
-                <p className="text-sm font-bold text-white">
-                  {t('qrcode.showBeforeJoin')}
-                </p>
-                <Button
-                  className="bg-white text-black font-bold px-4 py-2 mt-4"
-                  radius="full"
-                  onPress={handleDownload}
-                >
-                  <Save className="mr-2" />
-                  {t('qrcode.download')}
-                </Button>
-              </div>
+
+              {/* Barcode */}
+              <Barcode
+                format="CODE128"
+                height={50}
+                displayValue={false}
+                value={user?.username}
+              />
             </div>
           ) : (
             <div className="w-full max-w-xl flex flex-col items-center justify-center gap-4 bg-black/20 rounded-2xl p-4 border border-white/30 min-h-[400px] shadow-lg backdrop-blur-md">
