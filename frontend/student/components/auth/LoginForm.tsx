@@ -16,8 +16,6 @@ interface LoginFormProps {
   password: string;
   setPassword: (text: string) => void;
   onLogin: () => void;
-  onRegister: () => void;
-  onForgotPassword: () => void;
 }
 
 export const LoginForm = ({
@@ -84,16 +82,12 @@ export const LoginForm = ({
           </XStack>
 
         </YStack>
-        {/* <Text width={'100%'} textAlign="right" onPress={onForgotPassword}>
-          {t("login.forgotPassword")}
-        </Text> */}
 
         <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end' }}>
           <ForgotPasswordPressable />
         </View>
 
         <View style={{ width: '100%', flexDirection: 'row', gap: 10 }}>
-          {/* <Button flex={1} onPress={onRegister}>{t("login.register")}</Button> */}
           <RegisterButton />
           <Button flex={1} onPress={onLogin}>{t("login.loginButton")}</Button>
         </View>

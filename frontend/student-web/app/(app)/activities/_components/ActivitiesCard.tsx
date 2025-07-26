@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { getStatusBadge } from '../_utils/getStatusBadge';
 
 import CheckinStatusChip from './CheckinStatusChip';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ActivityCardProps {
   activity: Activities;
@@ -17,6 +18,7 @@ interface ActivityCardProps {
 
 export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
   const [loaded, setLoaded] = useState(false);
+  const { language } = useLanguage();
 
   if (!activity) return null;
   const {
@@ -70,18 +72,18 @@ export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
           <div className="absolute bottom-0 left-0 right-0 p-6">
             <div className="mb-3">
               <h2 className="text-white text-2xl font-bold drop-shadow-sm">
-                {activity.name.en}
+                {activity.name[language]}
               </h2>
             </div>
             <p className="text-white/90 text-sm leading-5 mb-4 drop-shadow-sm">
-              {activity.location.en} • Experience an amazing adventure with
+              {activity.location[language]} • Experience an amazing adventure with
               stunning views and unforgettable memories.
             </p>
             {activity.metadata?.startAt && (
               <div className="inline-block px-3 py-1.5 rounded-xl border border-white/30 bg-white/20">
                 <span className="text-white text-xs font-semibold">
                   {new Date(activity.metadata.startAt).toLocaleString(
-                    undefined,
+                    language === 'en' ? 'en-US' : 'th-TH',
                     {
                       day: '2-digit',
                       month: 'short',

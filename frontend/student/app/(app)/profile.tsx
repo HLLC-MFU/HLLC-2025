@@ -97,15 +97,14 @@ export default function ProfileScreen() {
       }
 
       {/* 3D Model */}
-      <View {...panResponder.panHandlers} style={{ position: 'absolute', width: '100%', height: '100%', }}>
+      {/* <View {...panResponder.panHandlers} style={{ position: 'absolute', width: '100%', height: '100%', }}> */}
         <GLView
           style={{ position: 'absolute', width: '100%', height: '100%', }}
           onContextCreate={(gl) =>
-            // onContextCreate(gl, user, setLoading, characterSceneRef, baseSceneRef)
             onContextCreate(gl, user, setLoading, modelRef)
           }
         />
-      </View>
+      {/* </View> */}
 
       <Animated.View style={{ justifyContent: 'flex-end', position: 'absolute', width: '100%', height: '100%', paddingBottom: Platform.OS === 'android' ? '20%' : '10%', opacity: fadeAnim }}>
         <BlurView

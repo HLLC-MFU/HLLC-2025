@@ -1,6 +1,7 @@
 import { SafeAreaView, View, Text, StyleSheet, Alert, useWindowDimensions, Platform } from 'react-native';
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
+import { BarcodeCreatorView, BarcodeFormat } from "react-native-barcode-creator";
 
 import QRCodeGenerator from '@/components/qrcode/generator';
 import { TouchableOpacity } from 'react-native';
@@ -172,8 +173,8 @@ export default function QRCodeScreen() {
           goToCoinHuntingModal({ modal: 'alert', type: 'too-far' });
         } else if (res.statusCode === 429 || (res.message && res.message.toLowerCase().includes('cooldown'))) {
           const remainingCooldownMs = res.remainingCooldownMs || 0;
-          goToCoinHuntingModal({ 
-            modal: 'alert', 
+          goToCoinHuntingModal({
+            modal: 'alert',
             type: 'cooldown',
             remainingCooldownMs
           });
@@ -258,7 +259,7 @@ export default function QRCodeScreen() {
 
               <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                 <QRCodeGenerator username={user?.data[0].username ?? 'defaultUsername'} />
-                <Barcode value={user?.data[0].username ?? 'defaultUsername'} />
+
               </View>
             </View>
           </BlurView>
@@ -359,6 +360,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  box: {
+    width: '100%',
+    height: 60,
+    marginVertical: 20,
   },
   focusPill: {
     position: 'absolute',

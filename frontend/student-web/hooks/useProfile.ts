@@ -3,6 +3,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 import { Major } from '@/types/major';
 import { apiRequest } from '@/utils/api';
+import { useLanguage } from '@/context/LanguageContext';
+import { Lang } from '@/types/lang';
 
 export type Role = {
   _id: string;
@@ -28,8 +30,8 @@ export type User = {
 
 interface ProfileStore {
   user: User | null;
-  majorName: string | null;
-  schoolName: string | null;
+  majorName: Lang | null;
+  schoolName: Lang | null;
   schoolAcronym: string | null;
   loading: boolean;
   error: string | null;
@@ -37,6 +39,11 @@ interface ProfileStore {
   clearUser: () => void;
   setUser: (user: User) => void;
   _fetched: boolean; // internal flag
+}
+
+export function language() {
+  const { language } = useLanguage();
+  return language;
 }
 
 export const useProfile = create<ProfileStore>()(
@@ -67,9 +74,8 @@ export const useProfile = create<ProfileStore>()(
 
           if (!data) throw new Error('User not found');
 
-
-          const majorName = data.metadata?.major?.name?.en ?? null;
-          const schoolName = data.metadata?.major?.school?.name?.en ?? null;
+          const majorName = data.metadata?.major?.name ?? null;
+          const schoolName = data.metadata?.major?.school?.name ?? null;
           const schoolAcronym = data.metadata?.major?.school?.acronym ?? null;
 
           set({
@@ -88,7 +94,7 @@ export const useProfile = create<ProfileStore>()(
             error:
               err && typeof err === 'object' && 'message' in err
                 ? (err as { message?: string }).message ||
-                  'Failed to fetch user.'
+                'Failed to fetch user.'
                 : 'Failed to fetch user.',
           });
         } finally {
@@ -105,7 +111,7 @@ export const useProfile = create<ProfileStore>()(
           error: null,
           _fetched: false,
         }),
-        setUser: (user: User) => set({ user }),
+      setUser: (user: User) => set({ user }),
     }),
     {
       name: 'profile-store',

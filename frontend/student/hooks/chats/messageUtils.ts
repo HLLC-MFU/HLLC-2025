@@ -131,7 +131,9 @@ export function createMessage(data: any, isHistory = false): Message {
     text: messageContent,
     type: 'message' as const,
     replyTo,
-    username: data.username || data.senderName || data.user_id || data.userId || ''
+    username: data.username || data.senderName || data.user_id || data.userId || '',
+    mentions: data.mentions || [],
+    mention_info: data.mention_info || data.mentionInfo || [],
   };
 } 
 

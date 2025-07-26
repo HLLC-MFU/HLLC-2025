@@ -1,6 +1,7 @@
 import { EvoucherCodes } from "@/types/evouchers";
 import { Modal, ModalContent, ModalBody, Image, Button, } from "@heroui/react";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 type EvoucherModal = {
     isOpen: boolean;
@@ -15,6 +16,7 @@ export default function EvoucherModal({
     code,
     setIsConfirmOpen,
 }: EvoucherModal) {
+    const { t } = useTranslation();
     const [isFlipped, setIsFlipped] = useState(true);
     const [isFront, setIsFront] = useState(true);
 
@@ -92,21 +94,21 @@ export default function EvoucherModal({
                                                         className="w-[40%] mx-auto"
                                                         onClick={() => setIsFlipped(prev => !prev)}
                                                     />
-                                                    <p className="text-[#d8cfcd] font-bold" onClick={() => setIsFlipped(prev => !prev)}>Used</p>
+                                                    <p className="text-[#d8cfcd] font-bold" onClick={() => setIsFlipped(prev => !prev)}>{t('evoucher.usedEvoucher')}</p>
                                                 </div>
                                             ) : (
                                                 <Button
                                                     className="absolute rounded-full left-1/2 -translate-x-1/2 bottom-[10%]"
                                                     onPress={setIsConfirmOpen}
                                                 >
-                                                    Use
+                                                    {t('evoucher.useEvoucher')}
                                                 </Button>
                                             )}
                                         </div>
                                     </>
                                 )}
                             </ div>
-                            <p className="text-white text-center">Click Voucher to Flip</p>
+                            <p className="text-white text-center">{t('evoucher.clickFlip')}</p>
                         </ModalBody>
                     </ModalContent>
                 </Modal>

@@ -12,6 +12,7 @@ import {
 import * as LucideIcons from "lucide-react";
 import { useNotification } from "@/hooks/useNotification";
 import type { NotificationItem } from "@/types/notification";
+import { useTranslation } from "react-i18next";
 
 type NotificationsProps = {
   isOpen: boolean;
@@ -19,6 +20,8 @@ type NotificationsProps = {
 };
 
 export default function NotificationsPage({ isOpen, onClose }: NotificationsProps) {
+  const { t } = useTranslation();
+
   const {
     notifications = [],
     readNotification,
@@ -104,7 +107,7 @@ export default function NotificationsPage({ isOpen, onClose }: NotificationsProp
         <ModalContent className="w-full max-w-md border border-white/20 backdrop-blur-md bg-white rounded-xl shadow-xl">
           <ModalHeader className="flex justify-between items-center border-b px-4 py-3">
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-gray-800">Notifications</span>
+              <span className="text-lg font-bold text-gray-800">{t('notification.title')}</span>
               {unreadCount > 0 && (
                 <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5">
                   {unreadCount}
@@ -125,7 +128,7 @@ export default function NotificationsPage({ isOpen, onClose }: NotificationsProp
                     : "bg-gray-100 text-gray-600")
                 }
               >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {type === "unread" ? t('notification.unread') : t('notification.read')}
               </button>
             ))}
           </div>
@@ -134,8 +137,8 @@ export default function NotificationsPage({ isOpen, onClose }: NotificationsProp
             {filtered.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 <LucideIcons.Bell size={36} className="mx-auto mb-2" />
-                <p className="font-semibold text-base">No notifications</p>
-                <p className="text-sm text-gray-400">We'll notify you when something arrives.</p>
+                <p className="font-semibold text-base">{t('notification.noNotifications')}</p>
+                <p className="text-sm text-gray-400">{t('notification.noNotificationsSubtext')}</p>
               </div>
             ) : (
               filtered.map((n) => (
@@ -183,7 +186,7 @@ export default function NotificationsPage({ isOpen, onClose }: NotificationsProp
                 onPress={handleMarkAll}
                 isDisabled={markingAll}
               >
-                {markingAll ? "Marking..." : "Mark all as read"}
+                {markingAll ? t('notification.markingAsRead') : t('notification.markAllAsRead')}
               </Button>
             </div>
           )}

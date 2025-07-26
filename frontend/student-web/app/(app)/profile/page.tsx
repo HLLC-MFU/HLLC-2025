@@ -14,9 +14,11 @@ import { ReportModal } from '../report/page';
 import { useAppearances } from '@/hooks/useAppearances';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { schoolAcronym } = useProfile();
   const { assets } = useAppearances();
 
@@ -30,7 +32,7 @@ export default function ProfilePage() {
           onPress={() => router.replace('/')}
           className="bg-black/10 border rounded-full text-white"
         >
-          Back
+          {t('global.back')}
         </Button>
         <div className="flex flex-col self-end gap-2">
           <Button

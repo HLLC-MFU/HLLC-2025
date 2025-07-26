@@ -17,11 +17,16 @@ import * as dotenv from 'dotenv';
 async function bootstrap() {
   dotenv.config();
   Logger.log(`Server is running on port ${process.env.PORT ?? 3000}`);
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
   );
 
+  // ✅ Register cookie FIRST
+  await app.register(cookie);
+
+  // Then other plugins
   await app.register(compression, {
     global: true,
     encodings: ['gzip', 'deflate'],
@@ -33,37 +38,44 @@ async function bootstrap() {
       fileSize: 5 * 1024 * 1024,
     },
   });
+
   await app.register(fastifyStatic, {
     root: path.join(__dirname, '..', 'uploads'),
     prefix: '/api/uploads/',
   });
 
+  // ✅ Global prefix and CORS after plugin setup
   app.setGlobalPrefix('api');
+
   const corsWhitelist = (
     process.env.CORS_ORIGIN ?? 'http://localhost:3000,http://localhost:3001'
   )
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
+
   app.enableCors({
     origin: corsWhitelist,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
 
-  await app.register(cookie);
+  // Swagger
   const config = new DocumentBuilder()
     .setTitle('HLLC API Documentation')
     .setDescription('API Documentation for the application')
     .setVersion('1.0')
-
     .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, documentFactory);
+
+  SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, config));
+
+  // Global error filter
   app.useGlobalFilters(new MongoExceptionFilter());
+
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
   Logger.log(`Server is running on port ${process.env.PORT}`);
 }
+
 bootstrap().catch((err) => {
   Logger.error('Error starting server', err);
 });

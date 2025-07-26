@@ -209,26 +209,6 @@ export default function StepperItem({
             >
               {label}
             </p>
-
-            {/* Status badge */}
-            {(active || completed || error) && (
-              <span
-                className={cn(
-                  'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider border',
-                  config.contentBg,
-                  config.contentBorder,
-                  config.accent,
-                )}
-              >
-                {completed
-                  ? 'Completed'
-                  : error
-                    ? 'Action Required'
-                    : active
-                      ? 'In Progress'
-                      : 'Pending'}
-              </span>
-            )}
           </div>
 
           {isInteractive && (

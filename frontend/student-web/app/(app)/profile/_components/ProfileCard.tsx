@@ -11,6 +11,8 @@ import {
 import { ProfileSkeleton } from './ProfileSkeleton';
 
 import { useProfile } from '@/hooks/useProfile';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ProfileField {
   label: string;
@@ -19,6 +21,8 @@ interface ProfileField {
 }
 
 export default function ProfileCard() {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   const user = useProfile(state => state.user);
   const majorName = useProfile(state => state.majorName);
   const schoolName = useProfile(state => state.schoolName);
@@ -30,10 +34,10 @@ export default function ProfileCard() {
     .join(' ');
 
   const profileItems: ProfileField[] = [
-    { label: 'NAME', value: fullName, icon: UserCircle2 },
-    { label: 'STUDENT ID', value: user.username, icon: IdCard },
-    { label: 'SCHOOL', value: schoolName ?? '-', icon: School },
-    { label: 'MAJOR', value: majorName ?? '-', icon: GraduationCap },
+    { label: t('profile.name'), value: fullName, icon: UserCircle2 },
+    { label: t('profile.studentid'), value: user.username, icon: IdCard },
+    { label: t('profile.school'), value: schoolName?.[language] ?? '-', icon: School },
+    { label: t('profile.major'), value: majorName?.[language] ?? '-', icon: GraduationCap },
   ];
 
   return (
