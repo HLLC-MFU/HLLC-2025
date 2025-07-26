@@ -1,5 +1,5 @@
 import React from 'react';
-import { User as UserIcon, TicketCheck, Book, } from 'lucide-react';
+import { User as UserIcon, TicketCheck, Book, BookCopyIcon, } from 'lucide-react';
 import { Divider } from '@heroui/react';
 
 import CardStat from './CardStat';
@@ -77,8 +77,8 @@ export default function Overview({ Activities, Userstats, Evouchers, Sponsors }:
                         {Activities.map((activity, index) => (
                             <React.Fragment key={activity.type}>
                                 <div className="flex flex-col gap-2 text-center flex-1">
-                                    <p className="text-sm text-gray-500 capitalize">{activity.type}</p>
-                                    <p className="text-3xl font-semibold">{activity.count}</p>
+                                    <p className="text-sm text-gray-500 capitalize">{activity.type?.split(" ").pop() || "-"}</p>
+                                    <p className="text-3xl font-semibold">{activity.count || 0}</p>
                                 </div>
                                 {index < Activities.length - 1 && (
                                     <Divider orientation="vertical" />
@@ -88,19 +88,18 @@ export default function Overview({ Activities, Userstats, Evouchers, Sponsors }:
                     </div>
                 )}
             </CardStat>
-
-            {/* <CardWithPie
-                colors='gray-100'
-                icon={<ScanBarcode />}
-                label="Check In"
-                value={checkInTotal.toString()}
-            /> */}
-            {/* <CardWithPie
-                colors='green-100'
-                icon={<ActivityIcon />}
-                label="Activity"
-                value={activityTotal.toString()}
-            /> */}
+            <div className='sm:col-span-2 md:col-span-3 lg:col-span-4'>
+                <CardStat
+                    colors="green-100"
+                    icon={<BookCopyIcon className="w-4 h-4" />}
+                    label="Activity Statistics"
+                >
+                    <div className="flex flex-col gap-2 text-center">
+                        <p className="text-sm text-gray-500">Total Sponsors</p>
+                        <p className="text-3xl font-semibold">{sponsorTotal}</p>
+                    </div>
+                </CardStat>
+            </div>
         </div>
     );
 }
