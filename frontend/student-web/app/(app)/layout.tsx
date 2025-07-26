@@ -144,38 +144,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const hideNotification = pathname.startsWith('/community/coin-hunting');
   const hideNotificationChat = pathname.startsWith('/community/chat');
 
+  const schoolAcronym = ["ADT", "AI", "CSC", "DENT", "HS", "IM", "LA", "LAW", "MED", "NS", "SCI", "SINO", "SOCIN", "SOM"];
+  const acronym = user?.metadata?.major?.school?.acronym?.toUpperCase();
+  const videoAcronym = schoolAcronym.includes(acronym ?? "") ? acronym : "DENT";
+
   return (
     <>
       <SSEListener />
       <div className="relative h-dvh w-full overflow-hidden pb-24">
-        {assets && assets.background ? (
-          assets.background.endsWith('.mp4') ? (
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="absolute inset-0 w-screen h-screen object-cover z-0"
-              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.background}`}
-            />
-          ) : (
-            <Image
-              fill
-              priority
-              alt="Background"
-              className="absolute inset-0 object-cover z-0"
-              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.background}`}
-            />
-          )
-        ) : (
-          <Image
-            fill
-            priority
-            alt="Background"
-            className="absolute inset-0 object-cover z-0"
-            src={lobby}
-          />
-        )}
+
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-screen h-screen object-cover z-0"
+          src={`/images/lobby/${videoAcronym}.mp4`}
+        />
+
         <div
           className="absolute inset-0 z-10 pointer-events-none transition-all duration-500"
           style={{

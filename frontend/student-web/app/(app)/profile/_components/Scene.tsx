@@ -8,7 +8,8 @@ type SceneProps = {
 }
 
 export function Scene({ schoolAcronym }: SceneProps) {
-  const character = useGLTF(`${process.env.NEXT_PUBLIC_API_URL}/uploads/models/${(schoolAcronym === "HLLC2025" ? "DENT" : schoolAcronym ? schoolAcronym : "DENT").toUpperCase()}.glb`);
+  const acronym = ["ADT", "AI", "CSC", "DENT", "HS", "IM", "LA", "LAW", "MED", "NS", "SCI", "SINO", "SOCIN", "SOM"];
+  const character = useGLTF(`${process.env.NEXT_PUBLIC_API_URL}/uploads/models/${(acronym.includes(schoolAcronym?.toUpperCase() ?? "") ? schoolAcronym?.toUpperCase() : "DENT")}.glb`);
   const base = useGLTF(`${process.env.NEXT_PUBLIC_API_URL}/uploads/models/BASE.glb`);
   const { actions } = useAnimations(character.animations, character.scene)
 
