@@ -26,6 +26,7 @@
     "scanTab": "Camera",
     "yourName": "Your Name",
     "studentId": "Student ID",
+    "school": "School of",
     "showBeforeJoin": "Please show your QR Code before joining the activity.",
     "notFound": "QR not found or camera issue",
     "result": "Result",

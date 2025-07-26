@@ -48,7 +48,6 @@ export default function ProgressBar({
             className="object-cover"
             src={avatarUrl || '/avatar.png'}
             onError={() => setImageError(true)}
-            sizes='8px'
           />
         )}
       </button>
@@ -63,7 +62,7 @@ export default function ProgressBar({
 
         {/* Percentage Bubble */}
         <div
-          className="absolute top-1/2 right-0 -translate-y-1/2 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm md:text-base w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 pointer-events-none transition-all duration-300"
+          className="absolute top-1/2 right-5 -translate-y-1/2 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm md:text-base w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 pointer-events-none transition-all duration-300"
         >
           {percentage}%
         </div>

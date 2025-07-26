@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Input } from '@heroui/react';
+import { Divider, Input } from '@heroui/react';
 import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -71,14 +71,14 @@ export default function ActivitiesPage() {
 
     // Then filter to future activities only
     const futureActivities = filtered
-      .filter(a => new Date(a.metadata?.startAt) > now)
+      .filter(a => new Date(a.metadata?.endAt) > now)
       .sort(
         (a, b) =>
-          new Date(a.metadata.startAt).getTime() -
-          new Date(b.metadata.startAt).getTime(),
+          new Date(a.metadata.endAt).getTime() -
+          new Date(b.metadata.endAt).getTime(),
       );
 
-    return futureActivities[0] ?? null;
+    return futureActivities ?? null;
   }, [activities, searchQuery]);
 
   return (
@@ -104,14 +104,19 @@ export default function ActivitiesPage() {
       </div>
 
       <div className="flex flex-col gap-5">
-        <p className="text-3xl text-white font-bold">{t('activity.allActivities')}</p>
         {upcomingActivity && !loading && (
-          <div>
-            <ActivityCard
-              activity={upcomingActivity}
-              onClick={() => router.push(`/activities/${upcomingActivity._id}`)}
-            />
-          </div>
+          <>
+            <p className="text-3xl text-white font-bold">{t('activity.upcoming')}</p>
+            <div>
+              {upcomingActivity.map(activity => (
+                <ActivityCard
+                  activity={activity}
+                  onClick={() => router.push(`/activities/${activity._id}`)}
+                />
+              ))}
+            </div>
+            <Divider className="bg-white" />
+          </>
         )}
         {loading && <ActivityCardSkeleton />}
       </div>
@@ -121,13 +126,19 @@ export default function ActivitiesPage() {
           ? Array.from({ length: 6 }).map((_, i) => (
             <ActivityCardSkeleton key={i} />
           ))
-          : filteredAndSortedActivities.map(activity => (
-            <ActivityCard
-              key={activity._id}
-              activity={activity}
-              onClick={() => router.push(`/activities/${activity._id}`)}
-            />
-          ))}
+          : (
+            <>
+              <p className="text-3xl text-white font-bold">{t('activity.allActivities')}</p>
+              {filteredAndSortedActivities.map(activity => (
+                <ActivityCard
+                  key={activity._id}
+                  activity={activity}
+                  onClick={() => router.push(`/activities/${activity._id}`)}
+                />
+              ))}
+            </>
+          )
+        }
       </div>
 
       {!loading && filteredAndSortedActivities?.length === 0 && (
