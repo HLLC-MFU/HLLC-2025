@@ -1,8 +1,9 @@
-import { PretestAnswer, PretestAverage } from "@/types/pretestAnswer";
 import PretestAverageTable from "./PretestAverageTable";
 import PretestStatCard from "./PretestStatCard";
-import PretestAnswerTable from "./PretestAnswerTable";
-import { Divider } from "@heroui/react";
+
+import { PretestAnswer, PretestAverage } from "@/types/pretestAnswer";
+
+
 
 type ListPretestProps = {
     pretestAverage: PretestAverage[];
@@ -14,8 +15,8 @@ export default function ListPretest({ pretestAverage, pretestAnswers }: ListPret
         <div className="flex-col flex gap-6 w-full">
             <PretestStatCard pretestAnswer={pretestAverage} />
             <PretestAverageTable />
-            <Divider />
-            <PretestAnswerTable PretestAnswers={pretestAnswers} />
+            {/* <Divider />
+            <PretestAnswerTable PretestAnswers={pretestAnswers} /> */}
         </div>
     );
 }

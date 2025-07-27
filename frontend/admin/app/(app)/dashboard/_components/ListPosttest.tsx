@@ -1,9 +1,11 @@
-import { PottestAnswer, PotestAverage } from "@/types/posttestAnswer";
 
 import { Divider } from "@heroui/react";
+
 import PosttestStatCard from "./PosttestStatCard";
 import PosttestAverageTable from "./PosttestAverageTable";
 import PosttestAnswerTable from "./PosttestAnswerTable";
+
+import { PottestAnswer, PotestAverage } from "@/types/posttestAnswer";
 
 type ListPosttestProps = {
     posttestAverage: PotestAverage[];
@@ -16,8 +18,8 @@ export default function ListPosttest({ posttestAverage, posttestAnswers, totalAv
         <div className="flex-col flex gap-6 w-full">
             <PosttestStatCard posttestAnswer={posttestAverage} />
             <PosttestAverageTable posttestAverage={posttestAverage} totalAverageCount={totalAverageCount} />
-            <Divider />
-            <PosttestAnswerTable PosttestAnswers={posttestAnswers} />
+            {/* <Divider />
+            <PosttestAnswerTable PosttestAnswers={posttestAnswers} /> */}
         </div>
     );
 } 

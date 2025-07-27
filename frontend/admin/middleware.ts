@@ -24,6 +24,7 @@ export async function middleware(req: NextRequest) {
       // Redirect logged-in user to basePath root (home/dashboard)
       return NextResponse.redirect(new URL(basePath || "/", origin));
     }
+
     return NextResponse.next();
   }
 
@@ -104,6 +105,7 @@ function isTokenExpired(token: string): boolean {
     return exp < currentTime;
   } catch (err) {
     console.error("Invalid token format", err);
+
     return true;
   }
 }
@@ -112,6 +114,7 @@ function getRoleFromToken(token: string): string | null {
   try {
     const [, payloadBase64] = token.split(".");
     const payload = JSON.parse(atob(payloadBase64));
+
     return payload.role || null;
   } catch {
     return null;
