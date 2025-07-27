@@ -15,7 +15,6 @@ import {
 import { UsersService } from './users.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { CacheKey } from '@nestjs/cache-manager';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
@@ -56,7 +55,6 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
@@ -76,13 +74,11 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Permissions('users:update')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
-  @Permissions('users:delete:id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }

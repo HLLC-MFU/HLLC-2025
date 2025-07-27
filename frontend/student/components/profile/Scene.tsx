@@ -86,9 +86,9 @@ export async function onContextCreate(
     scene.position.y += 0.6;
 
     try {
-        const acronym = user?.data?.[0]?.metadata?.major?.school?.acronym.toUpperCase() ?? "DENT";
         const loader = new GLTFLoader();
-
+        
+        const acronym = user?.data?.[0]?.metadata?.major?.school?.acronym.toUpperCase() ?? "DENT";
         const character = await loader.loadAsync(`${process.env.EXPO_PUBLIC_API_URL}/uploads/models/${acronym}.glb`);
         const base = await loader.loadAsync(
             `${process.env.EXPO_PUBLIC_API_URL}/uploads/models/BASE.glb`
@@ -99,7 +99,7 @@ export async function onContextCreate(
 
         const baseScene = base.scene;
         baseScene.scale.set(0.7, 0.7, 0.7);
-        baseScene.position.set(-0.45, -8, 1);
+        baseScene.position.set(-0.45, -8, 0.2);
 
         modelRef.current = group;
 
