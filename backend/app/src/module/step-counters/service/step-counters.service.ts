@@ -426,7 +426,8 @@ export class StepCountersService {
           ...sc,
           totalStep,
         };
-      });
+      })
+      .sort((a, b) => a.rank - b.rank);
 
 
     let schoolRank: number | null = null;

@@ -70,7 +70,7 @@ export default function StepContersPage() {
     const filteredSchool = schools.map((school) => {
       const studentsInSchool = stepByAll
         .filter((sc) => {
-          const userMajor = sc.user.metadata?.major as Major;
+          const userMajor = sc.user?.metadata?.major as Major;
           if (!userMajor) return;
 
           const userSchool = userMajor.school as School;
