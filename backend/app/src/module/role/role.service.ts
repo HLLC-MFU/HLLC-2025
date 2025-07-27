@@ -28,7 +28,7 @@ export class RoleService {
     @InjectModel(Role.name) private readonly roleModel: Model<RoleDocument>,
     @InjectModel(Checkin.name)
     private readonly checkinModel: Model<CheckinDocument>,
-  ) { }
+  ) {}
 
   /**
    * Creates a new role.
@@ -109,7 +109,7 @@ export class RoleService {
   async updatePermissions(id: string, permissions: string[]): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
 
-    role.permissions = permissions.map(encryptItem);
+    role.permissions = permissions;
 
     return await role.save();
   }

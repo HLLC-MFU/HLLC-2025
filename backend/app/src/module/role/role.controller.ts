@@ -24,10 +24,9 @@ import { UpdatePermissionsDto } from './dto/update-permissions.dto';
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('roles')
 export class RoleController {
-  constructor(private readonly roleService: RoleService) { }
+  constructor(private readonly roleService: RoleService) {}
 
   @Post()
-  @CacheKey('roles:invalidate')
   create(@Body() createRoleDto: CreateRoleDto) {
     return this.roleService.create(createRoleDto);
   }
@@ -44,7 +43,6 @@ export class RoleController {
   }
 
   @Put(':id/metadata-schema')
-  @CacheKey('roles:invalidate')
   updateMetadataSchema(
     @Param('id') id: string,
     @Body() dto: UpdateMetadataSchemaDto,
@@ -53,13 +51,11 @@ export class RoleController {
   }
 
   @Patch(':id')
-  @CacheKey('roles:invalidate')
   update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.update(id, updateRoleDto);
   }
 
   @Patch(':id/permissions')
-  @CacheKey('roles:invalidate')
   async updatePermissions(
     @Param('id') id: string,
     @Body() dto: UpdatePermissionsDto,
