@@ -24,7 +24,7 @@ import { useUserStatistics } from '@/hooks/useUsersytem';
 import { useActivities } from '@/hooks/useActivities';
 import { usePretest } from '@/hooks/usePretestAnswer';
 import { usePosttest } from '@/hooks/usePosttestAnswer';
-import { useAssessmentAverages } from '@/hooks/useAssessmentAnswer';
+import ActivityTable from './_components/ActivityTable';
 
 
 export default function Dashboard() {
@@ -40,10 +40,10 @@ export default function Dashboard() {
   const { problems } = useReports();
   const { reporttypes } = useReportTypes();
   const { Userstats } = useUserStatistics();
-  const [selectedActivityId, setSelectedActivityId] = useState<
-    string | undefined
-  >(undefined);
-  const { data, error, refetch } = useAssessmentAverages(selectedActivityId);
+  // const [selectedActivityId, setSelectedActivityId] = useState<
+  //   string | undefined
+  // >(undefined);
+  // const { data, error, refetch } = useAssessmentAverages(selectedActivityId);
 
   useEffect(() => {
     async function fetchAllCheckins() {
@@ -79,13 +79,7 @@ export default function Dashboard() {
     count: names.size,
   }));
 
-  const defaultExpandedKeys = [
-    'overview',
-    'checkin',
-    'pretest',
-    'posttest',
-    'reports',
-  ];
+
 
   return (
     <>
@@ -118,6 +112,12 @@ export default function Dashboard() {
           </div>
         </CardStat>
 
+        <CardStat colors='blue-100' icon={<FileText className="w-4 h-4" />} label="Activities Overview">
+          <div className="flex flex-col gap-2 text-center w-full">
+            <ActivityTable />
+          </div>
+        </CardStat>
+
         <div className='grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-6'>
           <div className='sm:col-span-2 md:col-span-1 lg:col-span-1'>
             <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Pretest Dashboard">
@@ -143,7 +143,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-
         <CardStat colors='slate-100' icon={<FileText className="w-4 h-4" />} label="Activities Overview">
           <div className="flex flex-col gap-2 text-center w-full">
             <AssessmentTable />
@@ -156,7 +155,6 @@ export default function Dashboard() {
           </div>
         </CardStat>
       </div>
-
     </>
   );
 }

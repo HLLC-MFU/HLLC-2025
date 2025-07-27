@@ -8,7 +8,6 @@ import { Button, Checkbox, Form, Input } from "@heroui/react";
 
 import background from "@/public/images/background.png";
 import useAuth from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -18,7 +17,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useProfile();
 
   const toggleVisibility = () => setIsVisible((prev) => !prev);
 
@@ -35,12 +33,6 @@ export default function LoginPage() {
     }
   };
 
-  // useEffect(() => {
-  //   if (user) {
-  //     router.push("/");
-  //   }
-  // }, [user, router]);
-
   return (
     <div className="h-full w-full relative md:flex items-center justify-between overflow-y-hidden md:p-2">
       <div className="absolute inset-0 md:relative md:flex h-full w-full grow">
@@ -55,7 +47,7 @@ export default function LoginPage() {
 
       <div className="flex flex-col w-full h-full items-center justify-center p-4 md:p-0 md:max-w-[35%] md:px-12">
         <Form
-          className="gap-6 flex flex-col w-full max-w-lg z-50 px-8 py-16 justify-center bg-black/25 md:bg-transparent text-white md:text-black rounded-2xl backdrop-blur-md"
+          className="gap-6 flex flex-col w-full max-w-lg z-50 px-8 py-16 justify-center bg-white/75 md:bg-transparent text-black rounded-2xl backdrop-blur-md"
           onSubmit={onSubmit}
         >
           <div className="text-center w-full">
@@ -66,21 +58,19 @@ export default function LoginPage() {
           </div>
 
           <Input
-            color="primary"
             label="Username"
-            labelPlacement="outside"
+            labelPlacement="inside"
             placeholder="John.doe"
             startContent={
               <User className="text-2xl text-default-400 flex-shrink-0" />
             }
             type="text"
             value={username}
-            variant="underlined"
+            variant="flat"
             onChange={(e) => setUsername(e.target.value)}
           />
 
           <Input
-            color="primary"
             endContent={
               <button
                 aria-label="Toggle password visibility"
@@ -96,18 +86,18 @@ export default function LoginPage() {
               </button>
             }
             label="Password"
-            labelPlacement="outside"
+            labelPlacement="inside"
             placeholder="Enter your password"
             startContent={
               <Lock className="text-2xl text-default-400 flex-shrink-0" />
             }
             type={isVisible ? "text" : "password"}
             value={password}
-            variant="underlined"
+            variant="flat"
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          <Checkbox defaultSelected>Remember me</Checkbox>
+          {/* <Checkbox defaultSelected>Remember me</Checkbox> */}
 
           <Button className="w-full" color="primary" isLoading={isLoading} type="submit">
             Login

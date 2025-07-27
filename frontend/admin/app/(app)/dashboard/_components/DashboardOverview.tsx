@@ -88,18 +88,6 @@ export default function Overview({ Activities, Userstats, Evouchers, Sponsors }:
                     </div>
                 )}
             </CardStat>
-            <div className='sm:col-span-2 md:col-span-3 lg:col-span-4'>
-                <CardStat
-                    colors="green-100"
-                    icon={<BookCopyIcon className="w-4 h-4" />}
-                    label="Activity Statistics"
-                >
-                    <div className="flex flex-col gap-2 text-center">
-                        <p className="text-sm text-gray-500">Total Sponsors</p>
-                        <p className="text-3xl font-semibold">{sponsorTotal}</p>
-                    </div>
-                </CardStat>
-            </div>
         </div>
     );
 }
