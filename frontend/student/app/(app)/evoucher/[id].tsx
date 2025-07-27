@@ -94,9 +94,7 @@ export default function SponsorVoucherScreen() {
                 <FlatList
                     data={filteredCodes}
                     keyExtractor={item => item._id}
-                    numColumns={2}
                     contentContainerStyle={{ paddingBottom: 30 }}
-                    columnWrapperStyle={{ justifyContent: 'space-between' }}
                     renderItem={({ item }) => (
                         <EvoucherCodeCard
                             key={item._id}

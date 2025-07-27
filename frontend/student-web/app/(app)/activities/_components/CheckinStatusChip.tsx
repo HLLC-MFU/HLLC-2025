@@ -32,57 +32,57 @@ const getCheckinStatusMeta = (
       return {
         label: t('activity.timeline.notOpenYet'),
         message: t('activity.timeline.notOpenYetMessage'),
-        color: '#4b5563',
-        backgroundColor: '#f3f4f6',
-        icon: <Clock size={16} stroke="#4b5563" />,
+        color: 'white',
+        backgroundColor: '#222831',
+        icon: <Clock size={16} stroke="white" />,
       };
     case 1:
       return {
         label: t('activity.timeline.checkinAvailable'),
         message: t('activity.timeline.checkinAvailableMessage'),
-        color: '#854d0e',
-        backgroundColor: '#fef9c3',
-        icon: <AlertCircle size={16} stroke="#854d0e" />,
+        color: 'white',
+        backgroundColor: '#3b82f6',
+        icon: <AlertCircle size={16} stroke="white" />,
       };
     case 2:
       return {
         label: t('activity.timeline.checkedIn'),
         message: t('activity.timeline.checkedInMessage'),
-        color: '#1d4ed8',
-        backgroundColor: '#dbeafe',
-        icon: <CheckCircle2 size={16} stroke="#1d4ed8" />,
+        color: 'white',
+        backgroundColor: '#10b981',
+        icon: <CheckCircle2 size={16} stroke="white" />,
       };
     case 3:
       return assessmentStatus
         ? {
             label: t('activity.timeline.success'),
             message: t('activity.timeline.successMessage'),
-            color: '#008000',
-            backgroundColor: '#dcfce7',
-            icon: <CheckCheck size={16} stroke="#008000" />,
+            color: 'white',
+            backgroundColor: '#22c55e',
+            icon: <CheckCheck size={16} stroke="white" />,
           }
         : {
             label: t('activity.timeline.waitingForAssessment'),
             message: t('activity.timeline.waitingForAssessmenMessage'),
-            color: '#101010',
+            color: 'white',
             backgroundColor: '#f59e0b',
-            icon: <FileText size={16} stroke="#101010" />,
+            icon: <FileText size={16} stroke="white" />,
           };
     case -1:
       return {
         label: t('activity.timeline.missed'),
         message: t('activity.timeline.missedMessage'),
-        color: '#b91c1c',
-        backgroundColor: '#fee2e2',
-        icon: <XCircle size={16} stroke="#b91c1c" />,
+        color: 'white',
+        backgroundColor: '#ef4444',
+        icon: <XCircle size={16} stroke="white" />,
       };
     default:
       return {
         label: 'Unknown',
         message: 'Unknown status',
-        color: '#6b7280',
-        backgroundColor: '#f3f4f6',
-        icon: <HelpCircle size={16} stroke="#6b7280" />,
+        color: 'white',
+        backgroundColor: '#3b82f6',
+        icon: <HelpCircle size={16} stroke="white" />,
       };
   }
 };

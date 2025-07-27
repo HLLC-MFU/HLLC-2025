@@ -3,10 +3,9 @@ import {
   addToast,
   Button,
   Card,
-  CardBody,
-  Chip,
   Divider,
   ScrollShadow,
+  Skeleton,
   Spinner,
 } from '@heroui/react';
 import { ArrowLeft, MapPin } from 'lucide-react';
@@ -165,12 +164,57 @@ export default function ActivitiesDetailPage() {
   return (
     <>
       {loading || !activity ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <Spinner label="Loading..." variant="wave" />
+        <div className="flex flex-col fixed inset-0 w-full h-full m-0">
+          {/* Banner Skeleton */}
+          <Skeleton className="w-full aspect-[4/3] rounded-none" />
+
+          {/* Bottom Section */}
+          <Card className="rounded-none flex-1 overflow-hidden">
+            <div className="p-2">
+              {/* Tab bar skeleton */}
+              <div className="flex justify-center items-center w-full gap-6 border-b border-white/20">
+                <Skeleton className="h-6 w-20 rounded-full" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+            </div>
+
+            <ScrollShadow className="overflow-y-auto h-full px-4 py-6" hideScrollBar>
+              {/* Activity Info Skeleton */}
+              <div className="flex flex-col gap-4">
+                {/* Title */}
+                <div className="flex justify-between items-start">
+                  <div className="flex flex-col gap-2 flex-1">
+                    <Skeleton className="h-4 w-32" /> {/* subtitle */}
+                    <Skeleton className="h-6 w-48 rounded" /> {/* title */}
+
+                    {/* Location + Status */}
+                    <Skeleton className="h-4 w-40 rounded" />
+                    <Skeleton className="h-4 w-24 rounded" />
+                  </div>
+
+                  {/* Date badge */}
+                  <Skeleton className="h-10 w-16 rounded-md" />
+                </div>
+
+                <Divider />
+
+                {/* Full Details */}
+                <div className="flex flex-col gap-2">
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-[90%] rounded" />
+                  <Skeleton className="h-4 w-[80%] rounded" />
+                  <Skeleton className="h-4 w-[60%] rounded" />
+                </div>
+
+                {/* Map Button */}
+                <Skeleton className="h-10 w-full rounded-md mt-4" />
+              </div>
+            </ScrollShadow>
+          </Card>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
-          <Card className="w-full aspect-video relative mb-4">
+        <div className="flex flex-col fixed inset-0 w-full h-full m-0">
+          <Card className="w-full aspect-square relative rounded-none">
             <Image
               fill
               alt="Banner"
@@ -189,9 +233,8 @@ export default function ActivitiesDetailPage() {
               </Button>
             </div>
           </Card>
-          <Card>
-            <div className="justify-between items-center p-4">
-
+          <Card className="rounded-none h-full overflow-hidden">
+            <div className="justify-between items-center p-2">
               {/* Tab Content */}
               <div className="flex justify-center items-center w-full gap-6 border-b border-white/20">
                 {[
@@ -210,10 +253,10 @@ export default function ActivitiesDetailPage() {
                   </button>
                 ))}
               </div>
-
             </div>
-            <CardBody className="overflow-y-hidden">
-              <div className="mt-4 px-4">
+
+            <ScrollShadow className="overflow-y-auto h-full pb-8" hideScrollBar>
+              <div className="px-4">
                 {activeTab === 'details' ? (
                   <>
                     <div className="flex-col flex items-star mt-5 p-2">
@@ -223,15 +266,28 @@ export default function ActivitiesDetailPage() {
                           <p className="flex items-center font-bold text-xl">
                             {activity?.name[language]}
                           </p>
-                          <div className="flex items-center gap-2">
-                            <Chip variant="flat">
-                              <div className="flex gap-1 items-center font-bold">
-                                <MapPin size={16} />
-                                <p>{activity?.location[language]}</p>
-                              </div>
-                            </Chip>
+                          <div className="flex flex-col items-start gap-2">
+                            {/* Time */}
+                            <div className="flex gap-1 items-center text-default-600">
+                              <MapPin size={16} />
+                              <p>{new Date(activity.metadata.startAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                              })} - {new Date(activity.metadata.endAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                              })}</p>
+                            </div>
 
-                            {/* Status Chip */}
+                            {/* Location */}
+                            <div className="flex gap-1 items-center text-default-600">
+                              <MapPin size={16} />
+                              <p>{activity?.location[language]}</p>
+                            </div>
+
+                            {/* Status */}
                             <CheckinStatusChip
                               assessmentStatus={activity.hasAnsweredAssessment}
                               status={activity.checkinStatus}
@@ -248,7 +304,7 @@ export default function ActivitiesDetailPage() {
                       </div>
                     </div>
                     <Divider className="my-4" />
-                    <div className="flex flex-col gap-8 justify-between">
+                    <div className="flex flex-col gap-8 justify-between pb-2">
                       <div className="flex items-center justify-center">
                         <ScrollShadow className="w-full flex flex-col break-all">
                           {activity?.fullDetails[language] || 'No details available.'}
@@ -272,7 +328,7 @@ export default function ActivitiesDetailPage() {
                   </div>
                 )}
               </div>
-            </CardBody>
+            </ScrollShadow>
           </Card>
         </div>
       )}

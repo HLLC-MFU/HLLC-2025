@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ChatRoomWithId {
   id?: string;
@@ -11,12 +12,13 @@ interface ChatRoomWithId {
 interface ConfirmJoinModalProps {
   visible: boolean;
   room: ChatRoomWithId | null;
-  language: string;
+  language: 'th' | 'en';
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 export const ConfirmJoinModal = ({ visible, room, language, onConfirm, onCancel }: ConfirmJoinModalProps) => {
+  const { t } = useTranslation();
   if (!visible || !room) return null;
 
   return (
@@ -28,12 +30,12 @@ export const ConfirmJoinModal = ({ visible, room, language, onConfirm, onCancel 
       <div className="relative bg-white/10 backdrop-blur-xl border border-white/30 rounded-3xl p-8 shadow-2xl max-w-sm w-full mx-4">
         {/* Title */}
         <h3 className="text-xl font-bold text-white text-center mb-4">
-          {language === 'th' ? 'ยืนยันการเข้าร่วมห้อง' : 'Confirm Join Room'}
+          {t('chat.confirmJoin')}
         </h3>
         
         {/* Room name */}
         <p className="text-lg text-white/90 text-center mb-8">
-          {language === 'th' ? room.name?.th || 'Unnamed' : room.name?.en || 'Unnamed'}
+          {room.name[language] ?? 'Unnamed'}
         </p>
         
         {/* Button row */}
@@ -42,13 +44,13 @@ export const ConfirmJoinModal = ({ visible, room, language, onConfirm, onCancel 
             onClick={onCancel}
             className="flex-1 bg-white/10 backdrop-blur-sm hover:bg-white/15 border border-white/30 text-white font-semibold rounded-full px-6 py-3 transition-all duration-300 hover:shadow-lg hover:shadow-white/10 active:scale-95"
           >
-            {language === 'th' ? 'ยกเลิก' : 'Cancel'}
+            {t('global.cancel')}
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 bg-white/15 backdrop-blur-sm hover:bg-white/20 border border-white/30 text-white font-semibold rounded-full px-6 py-3 transition-all duration-300 hover:shadow-lg hover:shadow-white/10 active:scale-95"
           >
-            {language === 'th' ? 'เข้าร่วม' : 'Join'}
+            {t('global.join')}
           </button>
         </div>
       </div>

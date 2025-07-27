@@ -1,9 +1,13 @@
 {
+  "global": {
+    "back": "ย้อนกลับ",
+    "close": "ปิด",
+    "loading": "กำลังโหลด...",
+    "join": "เข้าร่วม",
+    "cancel": "ยกเลิก"
+  },
   "download": {
     "banner": "รับแอปมือถือของเราเพื่อประสบการณ์ที่ดีที่สุด!"
-  },
-  "global": {
-    "back": "ย้อนกลับ"
   },
   "coinHunting": {
     "guardianCrystals": "14 ผลึกผู้พิทักษ์",
@@ -26,6 +30,7 @@
     "scanTab": "กล้อง",
     "yourName": "ชื่อของคุณ",
     "studentId": "รหัสนักศึกษา",
+    "school": "สำนักวิชา",
     "showBeforeJoin": "กรุณาแสดงคิวอาร์โคดก่อนเข้าร่วมกิจกรรม",
     "notFound": "ไม่พบคิวอาร์หรือกล้องมีปัญหา",
     "result": "ผลลัพธ์",
@@ -49,7 +54,7 @@
     "details": "เกี่ยวกับ",
     "activityMap": "เปิดใน Google Maps",
     "timeline": {
-      "title": "ไทม์ไลน์",
+      "title": "สถานะกิจกรรม",
       "notOpenYet": "กิจกรรมยังไม่เปิด",
       "notOpenYetMessage": "กิจกรรมยังไม่เปิดให้ลงทะเบียน",
       "checkinAvailable": "เปิดให้ลงทะเบียนแล้ว",
@@ -120,5 +125,13 @@
     "descriptionText": "คำอธิบาย",
     "cancel": "ยกเลิก",
     "confirm": "ยืนยัน"
+  },
+  "chat": {
+    "member": "สมาชิก",
+    "noMembers": "ไม่มีสมาชิก",
+    "confirmJoin": "ยืนยันการเข้าร่วมห้อง",
+    "typeMessage": "พิมพ์ข้อความที่นี่...",
+    "readonlyRoom": "\ud83d\udce2 ห้องอ่านอย่างเดียว",
+    "readonlyMessage": "ห้องนี้เป็นห้องสำหรับอ่านข้อความเท่านั้น ไม่สามารถส่งข้อความได้"
   }
 }

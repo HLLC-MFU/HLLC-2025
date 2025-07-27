@@ -3,8 +3,8 @@
 import type { UseruseSystem } from '@/types/user-stats';
 
 import { useState, useEffect } from 'react';
-import { Button, Accordion, AccordionItem } from '@heroui/react';
-import { LayoutDashboard, Users, FileText, Activity } from 'lucide-react';
+import { Button } from '@heroui/react';
+import { LayoutDashboard, Users, FileText, AlertTriangle } from 'lucide-react';
 
 import { ReportCharts } from './_components/DashboardReportCharts';
 import Overview from './_components/DashboardOverview';
@@ -12,6 +12,7 @@ import FresherCheckinDashboard from './_components/FresherCheckinDashboard';
 import ListPretest from './_components/ListPretest';
 import ListPosttest from './_components/ListPosttest';
 import AssessmentTable from './_components/AssessmentTable';
+import CardStat from './_components/CardStat';
 
 import { useCheckin } from '@/hooks/useCheckin';
 import { useSponsors } from '@/hooks/useSponsors';
@@ -23,7 +24,7 @@ import { useUserStatistics } from '@/hooks/useUsersytem';
 import { useActivities } from '@/hooks/useActivities';
 import { usePretest } from '@/hooks/usePretestAnswer';
 import { usePosttest } from '@/hooks/usePosttestAnswer';
-import { useAssessmentAverages } from '@/hooks/useAssessmentAnswer';
+import ActivityTable from './_components/ActivityTable';
 
 
 export default function Dashboard() {
@@ -39,10 +40,10 @@ export default function Dashboard() {
   const { problems } = useReports();
   const { reporttypes } = useReportTypes();
   const { Userstats } = useUserStatistics();
-  const [selectedActivityId, setSelectedActivityId] = useState<
-    string | undefined
-  >(undefined);
-  const { data, error, refetch } = useAssessmentAverages(selectedActivityId);
+  // const [selectedActivityId, setSelectedActivityId] = useState<
+  //   string | undefined
+  // >(undefined);
+  // const { data, error, refetch } = useAssessmentAverages(selectedActivityId);
 
   useEffect(() => {
     async function fetchAllCheckins() {
@@ -63,13 +64,22 @@ export default function Dashboard() {
     fetchAllCheckins();
   }, [activities]);
 
-  const defaultExpandedKeys = [
-    'overview',
-    'checkin',
-    'pretest',
-    'posttest',
-    'reports',
-  ];
+  const countsByType = activities.reduce((acc, activity) => {
+    const { type, name } = activity;
+
+    if (!acc[type as string]) {
+      acc[type as string] = new Set();
+    }
+    acc[type as string].add(name.en);
+
+    return acc;
+  }, {} as Record<string, Set<string>>);
+  const activityStats = Object.entries(countsByType).filter(([type]) => !!type).map(([type, names]) => ({
+    type,
+    count: names.size,
+  }));
+
+
 
   return (
     <>
@@ -87,7 +97,7 @@ export default function Dashboard() {
 
       <div>
         <Overview
-          Activities={activities}
+          Activities={activityStats}
           Evouchers={evouchers}
           Sponsors={sponsors}
           Userstats={Userstats ?? ({} as UseruseSystem)}
@@ -95,101 +105,56 @@ export default function Dashboard() {
           isLoading={loading}
         />
       </div>
-
-      <Accordion
-        className="px-0"
-        defaultExpandedKeys={defaultExpandedKeys}
-        selectionMode="multiple"
-        variant="splitted"
-      >
-        <AccordionItem
-          key="checkin"
-          aria-label="Checked In Fresher"
-          className="mb-4"
-          title={
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              <span className="text-xl font-semibold">Checked In Fresher</span>
-            </div>
-          }
-        >
-          <div className="p-4">
-            <div className="w-full h-96 p-4 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 bg-muted flex items-center justify-center">
-              <FresherCheckinDashboard checkIn={combinedCheckins} />
-            </div>
+      <div className='space-y-6'>
+        <CardStat colors='lime-100' icon={<Users className="w-4 h-4" />} label="Fresher Checkin">
+          <div className="flex flex-col gap-2 text-center w-full">
+            <FresherCheckinDashboard checkIn={combinedCheckins} />
           </div>
-        </AccordionItem>
+        </CardStat>
 
-        <AccordionItem
-          key="pretest"
-          aria-label="Pretest Dashboard"
-          className="mb-4"
-          title={
-            <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              <span className="text-xl font-semibold">Pretest</span>
-            </div>
-          }
-        >
-          <div className="p-4">
-            <ListPretest
-              pretestAnswers={pretestAnswer}
-              pretestAverage={pretestAverage}
-            />
+        <CardStat colors='blue-100' icon={<FileText className="w-4 h-4" />} label="Activities Overview">
+          <div className="flex flex-col gap-2 text-center w-full">
+            <ActivityTable />
           </div>
-        </AccordionItem>
+        </CardStat>
 
-        <AccordionItem
-          key="posttest"
-          aria-label="Posttest Dashboard"
-          className="mb-4"
-          title={
-            <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              <span className="text-xl font-semibold">Posttest</span>
-            </div>
-          }
-        >
-          <div className="p-4">
-            <ListPosttest
-              posttestAnswers={posttestAnswer}
-              posttestAverage={posttestAverage}
-              totalAverageCount={totalAverageCount}
-            />
+        <div className='grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-6'>
+          <div className='sm:col-span-2 md:col-span-1 lg:col-span-1'>
+            <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Pretest Dashboard">
+              <div className="flex flex-col gap-2 text-center w-full">
+                <ListPretest
+                  pretestAnswers={pretestAnswer}
+                  pretestAverage={pretestAverage}
+                />
+              </div>
+            </CardStat>
           </div>
-        </AccordionItem>
-        <AccordionItem
-          key="assessment-answers"
-          aria-label="Assessment Answer Dashboard"
-          className="mb-4"
-          title={
-            <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              <span className="text-xl font-semibold">Assessment Answers</span>
-            </div>
-          }
-        >
-          <div className="p-4">
+
+          <div className='sm:col-span-2 md:col-span-1 lg:col-span-1'>
+            <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Posttest Dashboard">
+              <div className="flex flex-col gap-2 text-center w-full">
+                <ListPosttest
+                  posttestAnswers={posttestAnswer}
+                  posttestAverage={posttestAverage}
+                  totalAverageCount={totalAverageCount}
+                />
+              </div>
+            </CardStat>
+          </div>
+        </div>
+
+        <CardStat colors='slate-100' icon={<FileText className="w-4 h-4" />} label="Activities Overview">
+          <div className="flex flex-col gap-2 text-center w-full">
             <AssessmentTable />
           </div>
-        </AccordionItem>
+        </CardStat>
 
-        <AccordionItem
-          key="reports"
-          aria-label="Reports Dashboard"
-          className="mb-4"
-          title={
-            <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              <span className="text-xl font-semibold">Reports</span>
-            </div>
-          }
-        >
-          <div className="p-4">
+        <CardStat colors='red-100' icon={<AlertTriangle className="w-4 h-4" />} label="Reports Overview">
+          <div className="flex flex-col gap-2 text-center w-full">
             <ReportCharts problems={problems} reporttypes={reporttypes} />
           </div>
-        </AccordionItem>
-      </Accordion>
+        </CardStat>
+      </div>
     </>
   );
 }

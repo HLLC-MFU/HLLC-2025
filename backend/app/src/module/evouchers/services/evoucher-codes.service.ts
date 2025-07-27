@@ -213,44 +213,97 @@ export class EvoucherCodesService {
   }
 
   async addEvoucherCodeByRole(roleId: string, evoucherId: string) {
-    const users = await this.userModel
-      .find({
-        role: new Types.ObjectId(roleId),
-      })
-      .lean();
+    const roleObjectId = new Types.ObjectId(roleId);
+    const evoucherObjectId = new Types.ObjectId(evoucherId);
 
+    // Step 1: Get users with that role
+    const users = await this.userModel.find({ role: roleObjectId }).lean();
     if (users.length === 0) {
       throw new NotFoundException('No users found with this role');
     }
 
+    // Step 2: Check if they already claimed
+    const userIds = users.map((u) => u._id);
+    const alreadyClaimed = await this.codeModel
+      .find({ evoucher: evoucherObjectId, user: { $in: userIds } })
+      .lean();
+
+    const claimedUserIds = new Set(alreadyClaimed.map((c) => c.user.toString()));
+    const usersToAssign = users.filter((u) => !claimedUserIds.has(u._id.toString()));
+
+    if (usersToAssign.length === 0) {
+      throw new NotFoundException('All users have already claimed this evoucher');
+    }
+
+    // Step 3: Get available codes
+    const availableCodes = await this.codeModel
+      .find({
+        evoucher: evoucherObjectId,
+        isUsed: false,
+        user: null,
+      })
+      .sort({ createdAt: 1 })
+      .limit(usersToAssign.length);
+
+    if (availableCodes.length === 0) {
+      throw new NotFoundException('No available evoucher codes to assign');
+    }
+
+    const bulkOps: any[] = [];
     const results: { userId: string; status: string; code?: string }[] = [];
 
-    for (const user of users) {
-      try {
-        const claimed = await this.claimEvoucherCode(
-          evoucherId,
-          user._id.toString(),
-        );
-        results.push({
-          userId: user._id.toString(),
-          status: 'success',
-          code: claimed.code,
-        });
-      } catch (err) {
-        results.push({
-          userId: user._id.toString(),
-          status: 'failed',
-          code: err.message,
-        });
-      }
+    for (let i = 0; i < usersToAssign.length && i < availableCodes.length; i++) {
+      const user = usersToAssign[i];
+      const code = availableCodes[i];
+
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: code._id },
+          update: { $set: { user: user._id } },
+        },
+      });
+
+      results.push({
+        userId: user._id.toString(),
+        status: 'success',
+        code: code.code,
+      });
     }
+
+    if (bulkOps.length > 0) {
+      await this.codeModel.bulkWrite(bulkOps);
+    }
+
+    // Step 4: Optional – send notifications in parallel (no await per loop)
+    // const evoucher = await this.evoucherModel.findById(evoucherId).lean();
+    // if (evoucher) {
+    //   const notifyTasks = results.map((res) =>
+    //     this.notificationsService.create({
+    //       title: {
+    //         en: 'Get Evoucher successfully',
+    //         th: 'ได้รับคูปองสำเร็จ',
+    //       },
+    //       subtitle: { en: '', th: '' },
+    //       body: {
+    //         en: `You have received the evoucher "${evoucher.name?.en ?? 'Evoucher'}" successfully.`,
+    //         th: `คุณได้รับคูปอง "${evoucher.name?.th ?? 'คูปอง'}" เรียบร้อยแล้ว`,
+    //       },
+    //       icon: 'Ticket',
+    //       image: evoucher.photo.home ?? undefined,
+    //       scope: [{ type: 'user', id: [res.userId] }],
+    //     }),
+    //   );
+    //   await Promise.allSettled(notifyTasks);
+    // }
 
     return {
       message: `Evoucher codes processed for role ${roleId}`,
       total: users.length,
+      processed: results.length,
       results,
     };
   }
+
 
   async addEvoucherCodeKhantok(usernames: string[], evoucherId: string) {
     if (!Array.isArray(usernames)) {
@@ -332,24 +385,24 @@ export class EvoucherCodesService {
     };
   }
 
- async findUsersWithoutEvoucher(evoucherId: string) {
-  const codes = await this.codeModel
-    .find({ evoucher: new Types.ObjectId(evoucherId) })
-    .select('user')
-    .lean();
+  async findUsersWithoutEvoucher(evoucherId: string) {
+    const codes = await this.codeModel
+      .find({ evoucher: new Types.ObjectId(evoucherId) })
+      .select('user')
+      .lean();
 
-  const userIdsWithEvoucher = codes.map(code => code.user?.toString());
-  const users = await this.userModel
-    .find({ _id: { $nin: userIdsWithEvoucher } })
-    .populate({
-      path: 'role',
-      select: 'name',
-    }).lean<{ username: string; role: { name: string } }[]>();
-  const fresherUsers = users.filter(user => user.role?.name.toLowerCase() === 'fresher');
-  const usernames = fresherUsers.map(user => user.username);
+    const userIdsWithEvoucher = codes.map(code => code.user?.toString());
+    const users = await this.userModel
+      .find({ _id: { $nin: userIdsWithEvoucher } })
+      .populate({
+        path: 'role',
+        select: 'name',
+      }).lean<{ username: string; role: { name: string } }[]>();
+    const fresherUsers = users.filter(user => user.role?.name.toLowerCase() === 'fresher');
+    const usernames = fresherUsers.map(user => user.username);
 
-  return {
-    usernames,
-  };
-}
+    return {
+      usernames,
+    };
+  }
 }

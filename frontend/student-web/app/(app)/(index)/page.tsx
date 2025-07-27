@@ -13,15 +13,8 @@ const baseImageUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function HomePage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isStepModalOpen, setIsStepModalOpen] = useState(false);
 
   const subFabs = [
-    {
-      key: 'step',
-      icon: <Footprints color={"white"} />,
-      label: 'MILESDREAM',
-      onPress: () => setIsStepModalOpen(!isStepModalOpen),
-    },
     {
       key: 'coin',
       icon: <Coins color={"white"} />,

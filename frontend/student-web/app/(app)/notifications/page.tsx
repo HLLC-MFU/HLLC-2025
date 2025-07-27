@@ -163,10 +163,10 @@ export default function NotificationsPage({ isOpen, onClose }: NotificationsProp
                   <div className="flex gap-3">
                     <p className="text-sm text-gray-800 flex-1">{n.body?.en}</p>
                     {n.image && (
-                      <img
+                      <Image
                         src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${n.image}`}
                         alt="noti-img"
-                        className="w-16 h-16 rounded-md object-cover bg-gray-200"
+                        className="max-w-16 h-16 rounded-md object-cover bg-gray-200"
                       />
                     )}
                   </div>
@@ -201,21 +201,30 @@ export default function NotificationsPage({ isOpen, onClose }: NotificationsProp
           placement="center"
         >
           <ModalContent className="max-w-md w-full bg-white p-6 rounded-2xl shadow-xl">
-            <div className="flex justify-between items-start mb-4">
+            <div className="mb-4">
               <div className="flex items-center gap-2">
                 {renderIcon(selected.icon)}
                 <p className="font-semibold text-lg">{selected.title?.en}</p>
               </div>
+              <p className="text-sm text-gray-500">{selected.subtitle?.en}</p>
+              {selected.createdAt && (
+                <div className="flex justify-end mb-2">
+                  <span className="text-xs text-gray-400">{formatTimeAgo(selected.createdAt)}</span>
+                </div>
+              )}
             </div>
-            <p className="text-sm text-gray-500 mb-2">{selected.subtitle?.en}</p>
             <div className="border-t border-gray-200 mb-4" />
-            <p className="text-sm text-gray-800 whitespace-pre-line">{selected.body?.en}</p>
+            <div className="bg-gray-100 text-sm text-gray-800 whitespace-pre-line rounded-lg px-4 py-3">
+              {selected.body?.en}
+            </div>
             {selected.image && (
-              <Image
-                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${selected.image}`}
-                alt="detail-img"
-                className="w-32 h-32 mt-4 rounded-lg object-cover mx-auto"
-              />
+              <div className="flex justify-center mt-4">
+                <Image
+                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${selected.image}`}
+                  alt="detail-img"
+                  className="w-40 h-full rounded-lg object-cover"
+                />
+              </div>
             )}
           </ModalContent>
         </Modal>

@@ -17,6 +17,7 @@ export const useUserStatistics = () => {
           throw new Error("No statistics data received");
         }
         const Userstats: UseruseSystem = response.data;
+
           setUserStats(Userstats);
       } catch (err: any) {
         setError(err.message || "Something went wrong");
