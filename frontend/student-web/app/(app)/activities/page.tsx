@@ -78,7 +78,7 @@ export default function ActivitiesPage() {
           new Date(b.metadata.endAt).getTime(),
       );
 
-    return futureActivities ?? null;
+    return futureActivities.slice(0, 3) ?? null;
   }, [activities, searchQuery]);
 
   return (
@@ -101,8 +101,8 @@ export default function ActivitiesPage() {
         onChange={e => setSearchQuery(e.target.value)}
       />
 
-      <ScrollShadow>
-        <div className="flex flex-col gap-5">
+      <ScrollShadow className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           {upcomingActivity && !loading && (
             <>
               <p className="text-3xl text-white font-bold">{t('activity.upcoming')}</p>
@@ -114,12 +114,11 @@ export default function ActivitiesPage() {
                   />
                 ))}
               </div>
-              <Divider className="bg-white" />
             </>
           )}
           {loading && <ActivityCardSkeleton />}
         </div>
-
+        <Divider className="bg-white" />
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-auto">
           {loading
             ? Array.from({ length: 6 }).map((_, i) => (

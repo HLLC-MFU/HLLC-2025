@@ -138,11 +138,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const shouldBlur = pathname !== '/';
 
-  const hideProgressSummary =
-    pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
-  const hideBottomNav = pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
+  const hideProgressSummary = pathname.match(/^\/community\/chat\/[^\/]+$/) // (community/chat/[id])
+    || pathname.match(/^\/activities\/[^\/]+$/); // (activities/[id]);
   const hideNotification = pathname.startsWith('/community/coin-hunting')
-    || pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id]);
+    || pathname.match(/^\/community\/chat\/[^\/]+$/) // (community/chat/[id]);
+    || pathname.match(/^\/activities\/[^\/]+$/); // (activities/[id]);
+  const hideBottomNav = pathname.match(/^\/community\/chat\/[^\/]+$/) // (community/chat/[id])
+    || pathname.match(/^\/activities\/[^\/]+$/); // (activities/[id]);
 
   const schoolAcronym = ["ADT", "AI", "CSC", "DENT", "HS", "IM", "LA", "LAW", "MED", "NS", "SCI", "SINO", "SOCIN", "SOM"];
   const acronym = user?.metadata?.major?.school?.acronym?.toUpperCase();
