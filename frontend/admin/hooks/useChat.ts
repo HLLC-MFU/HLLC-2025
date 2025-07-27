@@ -310,6 +310,7 @@ export function useChat(): UseChatReturn {
                 title: 'Failed to fetch room members. Please try again.',
                 color: 'danger',
             });
+            // Return consistent structure even on error
             return { data: { members: [] } };
         } finally {
             setLoading(false);
