@@ -1,7 +1,6 @@
 import {
   Injectable,
   UnauthorizedException,
-  Type,
   BadRequestException,
   ConflictException,
   NotFoundException,
@@ -14,8 +13,6 @@ import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
 import { FastifyReply } from 'fastify';
 import '@fastify/cookie';
-import { DiscoveryService, Reflector } from '@nestjs/core';
-import { PERMISSIONS_KEY } from '../auth/decorators/permissions.decorator';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RoleDocument } from '../role/schemas/role.schema';
@@ -36,8 +33,7 @@ export class AuthService {
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly discoveryService: DiscoveryService,
-    private readonly reflector: Reflector,
+    @InjectModel('Role') private readonly roleModel: Model<RoleDocument>,
   ) {
     this.isProduction =
       this.configService.get<boolean>('isProduction') ?? false;
@@ -385,40 +381,14 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  scanPermissions(): Permission[] {
+  async scanPermissions(): Promise<Permission[]> {
     const allPermissions = new Set<Permission>();
+    const roles = await this.roleModel.find().select('permissions').lean();
 
-    const controllers = this.discoveryService
-      .getControllers()
-      .map((wrapper: { instance?: unknown }) => wrapper?.instance)
-      .filter(
-        (
-          instance,
-        ): instance is object & { constructor: new (...args: any[]) => any } =>
-          !!instance,
-      );
-
-    for (const controller of controllers) {
-      const controllerType = controller.constructor as Type<unknown>;
-
-      const classPermissions =
-        this.reflector.get<Permission[]>(PERMISSIONS_KEY, controllerType) ?? [];
-      classPermissions.forEach((p) => allPermissions.add(p));
-
-      const prototype = Object.getPrototypeOf(controller) as object;
-      const methodNames = Object.getOwnPropertyNames(prototype).filter(
-        (key): key is keyof typeof prototype =>
-          key !== 'constructor' && typeof prototype[key] === 'function',
-      );
-
-      for (const methodName of methodNames) {
-        const method = prototype[methodName] as (...args: unknown[]) => unknown;
-
-        const methodPermissions =
-          this.reflector.get<Permission[]>(PERMISSIONS_KEY, method) ?? [];
-
-        methodPermissions.forEach((p) => allPermissions.add(p));
-      }
+    for (const role of roles as unknown as {
+      permissions: Permission[];
+    }[]) {
+      role.permissions.forEach((p) => allPermissions.add(p));
     }
 
     return [...allPermissions].sort();
