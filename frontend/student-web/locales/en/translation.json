@@ -1,9 +1,13 @@
 {
+  "global": {
+    "back": "Back",
+    "close": "Close",
+    "loading": "Loading...",
+    "join": "Join",
+    "cancel": "Cancel"
+  },
   "download": {
     "banner": "Get our mobile app for the best experience!"
-  },
-  "global": {
-    "back": "Back"
   },
   "coinHunting": {
     "guardianCrystals": "14 Guardian Crystals",
@@ -122,5 +126,13 @@
     "descriptionText": "Description",
     "cancel": "Cancel",
     "confirm": "Confirm"
+  },
+  "chat": {
+    "member": "Member",
+    "noMembers": "No member",
+    "confirmJoin": "Confirm Join Room",
+    "typeMessage": "Type your message here...",
+    "readonlyRoom": "\ud83d\udce2 Read-only Room",
+    "readonlyMessage": "This room is for reading messages only. You cannot send messages."
   }
 }

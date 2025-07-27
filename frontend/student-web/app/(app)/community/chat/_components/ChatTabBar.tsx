@@ -1,3 +1,4 @@
+import { MessageCircle, Sparkles } from 'lucide-react';
 import React from 'react';
 
 interface ChatTabBarProps {
@@ -7,24 +8,22 @@ interface ChatTabBarProps {
 }
 
 const tabs = [
-  { key: 'discover', label: (lang: string) => lang === 'th' ? 'ค้นพบ' : 'Discover', icon: '✨' },
-  { key: 'my', label: (lang: string) => lang === 'th' ? 'ของฉัน' : 'My Rooms', icon: '💬' },
+  { key: 'discover', label: (lang: string) => lang === 'th' ? 'ค้นพบ' : 'Discover', icon: Sparkles },
+  { key: 'my', label: (lang: string) => lang === 'th' ? 'ของฉัน' : 'My Rooms', icon: MessageCircle },
 ];
 
 export const ChatTabBar = ({ language, activeTab, onTabChange }: ChatTabBarProps) => {
   return (
-    <div className="mx-4 mb-6 rounded-2xl overflow-hidden shadow-2xl relative bg-white/8 backdrop-blur-xl border border-white/40 flex flex-row items-center transition-all duration-500 hover:bg-white/12 group">
+    <div className="mb-6 rounded-2xl overflow-hidden shadow-2xl relative bg-white/8 backdrop-blur-xl border border-white/40 flex flex-row items-center transition-all duration-500 hover:bg-white/12 group">
       {/* Enhanced animated background pill that fills the entire container */}
       <div
-        className="absolute inset-0 bg-white/20 backdrop-blur-sm border-2 border-white/50 transition-all duration-700 ease-out shadow-lg"
+        className="absolute h-4/5 w-[48%] rounded-xl bg-white/20 backdrop-blur-sm transition-all duration-700 ease-out shadow-lg"
         style={{ 
-          borderRadius: activeTab === 'discover' ? '16px 0 0 16px' : '0 16px 16px 0',
-          left: activeTab === 'discover' ? '0' : '50%',
-          width: '50%',
+          left: activeTab === 'discover' ? '1%' : '51%',
         }}
       />
       
-      {tabs.map(({ key, label, icon }, idx) => {
+      {tabs.map(({ key, label, icon: Icon }) => {
         const isActive = activeTab === key;
         return (
           <button
@@ -32,13 +31,13 @@ export const ChatTabBar = ({ language, activeTab, onTabChange }: ChatTabBarProps
             className={`flex-1 flex flex-row items-center justify-center gap-3 py-4 px-6 transition-all duration-500 font-bold relative z-10 ${
               isActive 
                 ? 'text-white' 
-                : 'text-white/70 hover:text-white/90 hover:scale-102'
+                : 'text-white/70 hover:text-white/90'
             }`}
             onClick={() => onTabChange(key as 'my' | 'discover')}
             type="button"
           >
-            <span className={`text-xl transition-all duration-500 ${isActive ? 'scale-125 rotate-12' : 'group-hover:scale-110 group-hover:rotate-6'}`}>
-              {icon}
+            <span className={`text-xl transition-all duration-500`}>
+              <Icon />
             </span>
             <span className="text-base font-bold tracking-wide">{label(language)}</span>
           </button>

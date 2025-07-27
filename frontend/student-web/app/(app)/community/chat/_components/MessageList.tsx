@@ -84,24 +84,6 @@ const MessageList = ({
     );
   }
 
-  // Show empty state when no messages and not loading
-  if (allMessages.length === 0) {
-    return (
-      <div
-        ref={flatListRef as React.RefObject<HTMLDivElement> as any}
-        className="flex flex-col items-center justify-center pb-24 pt-4 overflow-y-auto h-full min-h-[60vh] scrollbar-none bg-transparent"
-        onScroll={onScroll}
-        style={{ minHeight: 200 }}
-      >
-        <div className="text-center text-gray-500 dark:text-gray-400">
-          <div className="text-6xl mb-4">💬</div>
-          <p className="text-lg font-medium mb-2">No messages yet</p>
-          <p className="text-sm">Be the first to start the conversation!</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
     ref={flatListRef as React.RefObject<HTMLDivElement> as any}

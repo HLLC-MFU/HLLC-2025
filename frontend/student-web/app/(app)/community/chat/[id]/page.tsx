@@ -88,11 +88,6 @@ export default function ChatRoomPage() {
     return room?.type === 'readonly' && canSendEvoucher();
   };
 
-  // Debug log for membership and connection state
-  useEffect(() => {
-
-  }, [isMember, isConnected, room, userId]);
-
   useEffect(() => {
 
     if (room && !loading) {
@@ -140,237 +135,164 @@ export default function ChatRoomPage() {
   };
 
   if (loading) return (
-    <div className="fixed inset-0 flex flex-col w-full h-full min-h-screen from-blue-100 via-blue-100 to-blue-200 overflow-hidden animate-pulse">
-      <div className="w-full h-full flex justify-center items-center p-2 sm:p-4">
-        <div className="w-full max-w-4xl h-[90vh] max-h-[900px] bg-white/50 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/30 flex flex-col">
-          {/* Header skeleton */}
-          <div className="flex items-center p-4 border-b border-white/30 bg-white/50">
-            <div className="mr-4 h-8 w-8 bg-gray-200 rounded-full" />
+    <div className="fixed inset-0 flex flex-col w-full h-full bg-black/40 backdrop-blur-xl">
+      <div className="w-full h-full flex justify-center items-center">
+        <div className="flex justify-between w-full h-full bg-[#1212124d] backdrop-blur-lg flex flex-col overflow-hidden animate-pulse">
+          {/* Header Skeleton */}
+          <div className="flex items-center pt-8 p-4 border-b border-[#2A2A2A] bg-[#1212124d]">
+            <div className="mr-4 h-8 w-8 bg-gray-700 rounded-full" />
             <div className="flex-1">
-              <div className="h-6 w-1/3 bg-gray-200 rounded mb-2" />
-              <div className="h-4 w-1/4 bg-gray-100 rounded" />
+              <div className="h-6 w-1/3 bg-gray-600 rounded mb-2" />
+              <div className="h-4 w-1/4 bg-gray-500 rounded" />
             </div>
-            <div className="ml-4 h-8 w-8 bg-gray-200 rounded-full" />
           </div>
-          {/* Message list skeleton */}
-          <div className="flex-1 px-4 py-4 space-y-4 overflow-y-auto">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-gray-200 rounded-full" />
-                <div className="flex-1">
-                  <div className="h-4 w-2/3 bg-gray-200 rounded mb-2" />
-                  <div className="h-3 w-1/2 bg-gray-100 rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Input skeleton */}
-          <div className="border-t border-white/30 bg-white/50 backdrop-blur-lg p-4">
-            <div className="max-w-2xl mx-auto flex items-center gap-2">
-              <div className="h-10 w-10 bg-gray-200 rounded-full" />
-              <div className="flex-1 h-10 bg-gray-100 rounded" />
-              <div className="h-10 w-10 bg-gray-200 rounded-full" />
+
+          {/* Input Skeleton */}
+          <div className="border border-white/40 bg-white/20 my-4 mx-2 rounded-3xl backdrop-blur-lg p-4">
+            <div className="max-w-2xl mx-auto flex items-center justify-end gap-2">
+              <div className="h-10 w-10 bg-white/30 rounded-full" />
             </div>
           </div>
         </div>
       </div>
     </div>
   );
+
   if (error) return <ErrorView message={error} onRetry={initializeRoom} />;
 
   return (
-    <div className="fixed inset-0 flex flex-col w-full h-full min-h-screen from-blue-100 via-blue-100 to-blue-200 overflow-hidden">
-      <div className="w-full h-full flex justify-center items-center p-2 sm:p-4">
-        <div className="w-full max-w-4xl h-[90vh] max-h-[900px] bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/30 flex flex-col">
-          <div className="flex items-center p-4 border-b border-white/30 bg-white/80">
-          <button
-            className="mr-4 p-2 rounded hover:bg-white/30"
-            onClick={() => router.back()}
-          >
-            <ChevronLeft color="#0A84FF" size={24} />
-          </button>
-          <div
-            className="flex-1 cursor-pointer"
-            onClick={() => setIsRoomInfoVisible(true)}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg font-semibold text-gray-900 truncate block drop-shadow">
-                {room ? getRoomName(room) : t('chat.chatRoom')}
-              </span>
-              {/* Room Status Badge */}
-              {room?.status && (
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                  room.status === 'inactive' 
-                    ? 'bg-red-100 text-red-700 border border-red-200' 
-                    : room.status === 'active'
-                    ? 'bg-green-100 text-green-700 border border-green-200'
-                    : 'bg-gray-100 text-gray-700 border border-gray-200'
-                }`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${
-                    room.status === 'inactive' ? 'bg-red-500' : 
-                    room.status === 'active' ? 'bg-green-500' : 'bg-gray-500'
-                  }`}></div>
-                  {room.status === 'inactive' ? 'inactive' : 
-                   room.status === 'active' ? 'active' : room.status}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <Users size={14} color="#0A84FF" />
-              <span className="text-xs text-blue-500">{room?.members_count || 0} {t('members')}</span>
+    <div className="fixed inset-0 flex flex-col w-full h-full min-h-screen">
+      <div className="w-full h-full flex justify-center items-center">
+        <div className="w-full h-full bg-black/40 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="flex items-center p-4 border-b border-[#2A2A2A] bg-[#1212124d]">
+            <ChevronLeft color="white" size={24} className="mr-4" onClick={() => router.back()} />
+            <div
+              className="flex-1 cursor-pointer"
+              onClick={() => setIsRoomInfoVisible(true)}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg text-white font-semibold text-gray-900 truncate block drop-shadow">
+                  {room ? getRoomName(room) : t('chat.chatRoom')}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <Users size={14} color="#0a5cffff" />
+                <span className="text-sm text-default-400">{room?.members_count || 0} {t('chat.member')}</span>
+              </div>
             </div>
           </div>
-                        <button
-                className="ml-4 p-2 rounded hover:bg-white/30"
-                onClick={() => setIsRoomInfoVisible(true)}
-              >
-                <Info color="#0A84FF" size={20} />
-              </button>
-        </div>
 
-        {/* Connection status indicator */}
-        {wsError && (
-          <div className="bg-red-100 text-red-700 p-2 text-center">
-            {t('chat.connectionError')}
-          </div>
-        )}
+          {/* Connection status indicator */}
+          {wsError && (
+            <div className="bg-red-100 text-red-700 p-2 text-center">
+              {t('chat.connectionError')}
+            </div>
+          )}
 
-        {/* Join Room Banner */}
-        {!isMember && (
-          <div className="px-4 pt-4">
-            <JoinBanner
-              onJoin={handleJoin}
-              joining={joining}
-              roomCapacity={room?.capacity || 0}
-              connectedCount={Array.isArray(room?.members_count) ? room.members_count : 0}
-              roomStatus={room?.status}
-              roomType={room?.type}
-            />
-          </div>
-        )}
+          {/* Join Room Banner */}
+          {!isMember && (
+            <div className="px-4 pt-4">
+              <JoinBanner
+                onJoin={handleJoin}
+                joining={joining}
+                roomCapacity={room?.capacity || 0}
+                connectedCount={Array.isArray(room?.members_count) ? room.members_count : 0}
+                roomStatus={room?.status}
+                roomType={room?.type}
+              />
+            </div>
+          )}
 
-        {/* Messages List */}
-        <div className="flex-1 relative w-full h-full overflow-hidden">
-          <div className="absolute inset-0 w-full h-full flex flex-col justify-end">
-            <div className="flex-1 overflow-y-auto scrollbar-none px-4 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-              {/* Reply Preview */}
-              {replyTo && (
-                <div className="mx-4 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100 shadow-sm">
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium text-blue-600">
-                          Replying to {String(replyTo.user?._id) === String(userId) ? 'yourself' : getDisplayName(replyTo.user)}
-                        </span>
-                        <button 
-                          onClick={() => setReplyTo(undefined)}
-                          className="text-gray-400 hover:text-gray-600 p-1 -mr-1 hover:bg-gray-100 rounded-full transition-colors"
-                          aria-label="Cancel reply"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
+          {/* Messages List */}
+          <div className="flex-1 relative bg-black/20 w-full h-full overflow-hidden">
+            <div className="absolute inset-0 w-full h-full flex flex-col justify-end">
+              <div className="flex-1 overflow-y-auto scrollbar-none px-4 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+                {/* Reply Preview */}
+                {replyTo && (
+                  <div className="mx-4 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100 shadow-sm">
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-blue-600">
+                            Replying to {String(replyTo.user?._id) === String(userId) ? 'yourself' : getDisplayName(replyTo.user)}
+                          </span>
+                          <button
+                            onClick={() => setReplyTo(undefined)}
+                            className="text-gray-400 hover:text-gray-600 p-1 -mr-1 hover:bg-gray-100 rounded-full transition-colors"
+                            aria-label="Cancel reply"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                        <p className="text-sm text-gray-700 line-clamp-2">
+                          {typeof replyTo.text === 'string'
+                            ? replyTo.text
+                            : replyTo.type === 'evoucher'
+                              ? 'E-Voucher'
+                              : replyTo.type === 'sticker'
+                                ? 'Sticker'
+                                : replyTo.type === 'file'
+                                  ? 'File'
+                                  : 'Photo or file'
+                          }
+                        </p>
                       </div>
-                      <p className="text-sm text-gray-700 line-clamp-2">
-                        {typeof replyTo.text === 'string' 
-                          ? replyTo.text 
-                          : replyTo.type === 'evoucher' 
-                            ? 'E-Voucher' 
-                            : replyTo.type === 'sticker' 
-                              ? 'Sticker' 
-                              : replyTo.type === 'file' 
-                                ? 'File' 
-                                : 'Photo or file'
-                        }
-                      </p>
                     </div>
                   </div>
-                </div>
-              )}
-              <MessageList
-                messages={[...groupMessages, ...localSystemMessages]}
-                userId={userId}
-                currentUsername={user?.username || ''}
-                flatListRef={flatListRef}
-                onReply={setReplyTo}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
-                onUnsend={handleUnsendMessage}
-                stickers={stickers}
-                loading={messagesLoading}
-                room={room}
-                user={user}
-              />
-             {showScrollToBottom && (
-              <button
-                className={`fixed ${replyTo ? 'bottom-40' : 'bottom-28'} right-6 bg-white/90 hover:bg-white backdrop-blur-sm rounded-full px-4 py-2 text-sm font-medium text-blue-700 shadow-lg z-10 transition-all duration-200 flex items-center gap-2 border border-blue-100 hover:shadow-md`}
-                style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
-                onClick={() => {
-                  if (flatListRef.current) {
-                    flatListRef.current.scrollTop = flatListRef.current.scrollHeight;
-                  }
-                }}
-              >
-                <svg className="w-4 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-              </button>
-            )}
+                )}
+                <MessageList
+                  messages={[...groupMessages, ...localSystemMessages]}
+                  userId={userId}
+                  currentUsername={user?.username || ''}
+                  flatListRef={flatListRef}
+                  onReply={setReplyTo}
+                  onScroll={handleScroll}
+                  scrollEventThrottle={16}
+                  onUnsend={handleUnsendMessage}
+                  stickers={stickers}
+                  loading={messagesLoading}
+                  room={room}
+                  user={user}
+                />
+                {showScrollToBottom && (
+                  <button
+                    className={`fixed ${replyTo ? 'bottom-40' : 'bottom-28'} right-6 bg-white/90 hover:bg-white backdrop-blur-sm rounded-full px-4 py-2 text-sm font-medium text-blue-700 shadow-lg z-10 transition-all duration-200 flex items-center gap-2 border border-blue-100 hover:shadow-md`}
+                    style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
+                    onClick={() => {
+                      if (flatListRef.current) {
+                        flatListRef.current.scrollTop = flatListRef.current.scrollHeight;
+                      }
+                    }}
+                  >
+                    <svg className="w-4 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-
-        <div className="border-t border-white/30 bg-white/80 backdrop-blur-lg p-4">
-          <div className="max-w-2xl mx-auto">
-            <ChatInput
-                messageText={messageText}
-                handleTextInput={handleTextInput}
-                handleSendMessage={handleSendMessageWithScroll}
-                isMember={isMember}
-                isConnected={isConnected}
-                inputRef={inputRef}
-                setShowStickerPicker={setShowStickerPicker}
-                showStickerPicker={showStickerPicker}
-                replyTo={replyTo}
-                setReplyTo={setReplyTo}
-                mentionSuggestions={mentionSuggestions}
-                isMentioning={isMentioning}
-                handleMentionSelect={handleMentionSelect}
-                room={room}
-              />
-            </div>
-          </div>
+          <ChatInput
+            messageText={messageText}
+            handleTextInput={handleTextInput}
+            handleSendMessage={handleSendMessageWithScroll}
+            isMember={isMember}
+            isConnected={isConnected}
+            inputRef={inputRef}
+            setShowStickerPicker={setShowStickerPicker}
+            showStickerPicker={showStickerPicker}
+            replyTo={replyTo}
+            setReplyTo={setReplyTo}
+            mentionSuggestions={mentionSuggestions}
+            isMentioning={isMentioning}
+            handleMentionSelect={handleMentionSelect}
+            room={room}
+          />
         </div>
       </div>
-
-      
-      {/* Room Info Modal */}
-      {isRoomInfoVisible && (
-        <RoomInfoModal
-          room={room}
-          isVisible={isRoomInfoVisible}
-          onClose={() => setIsRoomInfoVisible(false)}
-          connectedUsers={
-            Array.isArray(members) && members.length > 0
-              ? members.map((member) => ({
-                  id: member.user_id || member.user._id,
-                  name:
-                    member.user_id === userId
-                      ? t('Yourself')
-                      : member.user.name
-                      ? `${member.user.name.first || ''} ${member.user.name.last || ''}`.trim() || member.user.username || t('?')
-                      : member.user.username || t('?'),
-                }))
-              : isMember ? [{
-                  id: userId,
-                  name: t('Yourself')
-                }] : []
-          }
-          loading={!room}
-        />
-      )}
 
       {/* StickerPicker modal - only show if not MC room */}
       {showStickerPicker && room?.type !== 'mc' && (

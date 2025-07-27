@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Message } from '@/types/chat';
 import { useProfile } from '@/hooks/useProfile';
+import { useTranslation } from 'react-i18next';
+import { Send, Smile } from 'lucide-react';
 
 interface ChatInputProps {
   messageText: string;
@@ -40,9 +42,10 @@ const ChatInput = ({
   room,
 }: ChatInputProps) => {
   const { user } = useProfile();
+  const { t } = useTranslation();
   const [isFocused, setIsFocused] = useState(false);
   const hasText = messageText.trim().length > 0;
-  
+
   // Check if user has Administrator role (case-insensitive)
   const roleName = user?.role?.name?.toLowerCase?.() || '';
   // const isAdministrator = roleName === 'administrator' || roleName === 'mentee' || roleName === 'mentor';
@@ -64,7 +67,7 @@ const ChatInput = ({
   const canSend = hasText && !isDisabled;
 
   // Debug log for mention suggestion
-  
+
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -95,7 +98,7 @@ const ChatInput = ({
     if (!isConnected) {
       return 'Connecting...';
     }
-    return 'Type a message...';
+    return t('chat.typeMessage');
   };
 
   // const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -132,14 +135,92 @@ const ChatInput = ({
         </div>
       )}
       {/* Readonly Room Info Bar (styled like MC) */}
-      {isReadOnlyRoom && !isMCRoom && (
-        <div className="mb-3 flex items-center gap-2 bg-blue-400/90 border border-blue-200/60 rounded-xl px-4 py-2 shadow text-white">
-          <svg className="w-5 h-5 mr-2 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
-          </svg>
-          <div className="flex flex-col">
-            <span className="font-bold text-sm">Read-only Room</span>
-            <span className="text-xs font-medium text-white/90">This is a read-only room. Only administrators can send messages.</span>
+      {(isReadOnlyRoom && !isMCRoom) ? (
+        <div className="mb-3 flex justify-center gap-2 bg-white/10 border border-white/30 rounded-xl p-4 shadow text-white">
+          <div className="flex flex-col items-center">
+            <span className="font-semibold text-md">{t('chat.readonlyRoom')}</span>
+            <span className="text-sm text-center text-white/70">{t('chat.readonlyMessage')}</span>
+          </div>
+        </div>
+      ) : (
+        <div className={`relative flex items-center rounded-3xl p-1.5 min-h-[56px] border-2 transition-all duration-300 bg-white/20 backdrop-blur-md shadow-lg hover:shadow-xl ${isFocused
+          ? 'border-blue-400 shadow-blue-500/20'
+          : 'border-white/20'
+          } ${replyTo ? 'rounded-tl-none rounded-tr-none' : ''} ${isDisabled ? 'opacity-60' : ''
+          }`}>
+
+          {!isConnected && (
+            <div className="absolute -top-1 -right-1 z-10">
+              <div className="relative">
+                <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-white dark:border-gray-800 animate-pulse" />
+                <div className="absolute inset-0 w-3 h-3 rounded-full bg-red-500 animate-ping opacity-75" />
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center w-full px-1">
+            <div className="flex-1 mx-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={messageText}
+                onChange={(e) => handleTextInput(e.target.value)}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                placeholder={getPlaceholderText()}
+                className={`w-full bg-transparent text-gray-900 dark:text-gray-100 text-[15px] py-2.5 min-h-[40px] outline-none font-medium placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed ${isDisabled ? 'cursor-not-allowed' : ''
+                  }`}
+                style={{
+                  wordBreak: 'keep-all',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+                disabled={isDisabled}
+                maxLength={1000}
+              />
+
+              {messageText.length > 800 && (
+                <div className={`absolute bottom-0 right-16 text-xs font-medium ${messageText.length > 950 ? 'text-red-500' : 'text-yellow-500'
+                  }`}>
+                  {messageText.length}/1000
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-1">
+              <button
+                className={`w-10 h-10 bg-white/10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${showStickerPicker
+                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 scale-110'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:scale-110'
+                  } ${(isDisabled || isFresherInMCRoom) ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow-md'}`}
+                onClick={() => !isFresherInMCRoom && setShowStickerPicker(!showStickerPicker)}
+                disabled={isDisabled || isFresherInMCRoom}
+                type="button"
+              >
+                <Smile
+                  size={20}
+                  color={showStickerPicker ? '#FFD700' : isDisabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.8)'}
+                  strokeWidth={2}
+                />
+              </button>
+
+              <button
+                className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${canSend
+                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl shadow-blue-500/25 hover:scale-110 text-white'
+                  : 'hidden'
+                  }`}
+                style={{
+                  background: canSend ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'none',
+                  boxShadow: canSend ? '0 4px 12px rgba(102, 126, 234, 0.25)' : 'none',
+                }}
+                onClick={handleSend}
+                disabled={!canSend}
+                type="submit"
+              >
+                <Send size={18} color={canSend ? '#fff' : 'rgba(255, 255, 255, 0.4)'} strokeWidth={2.5} />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -225,104 +306,6 @@ const ChatInput = ({
           </button>
         </div>
       )}
-
-      <div className={`relative flex items-center rounded-3xl p-1.5 min-h-[56px] border-2 transition-all duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg hover:shadow-xl ${
-        isFocused 
-          ? 'border-blue-400 dark:border-blue-500 shadow-blue-500/20 bg-white/90 dark:bg-gray-800/90' 
-          : 'border-gray-200/50 dark:border-gray-600/50'
-      } ${replyTo ? 'rounded-tl-none rounded-tr-none' : ''} ${
-        isDisabled ? 'opacity-60' : ''
-      }`}>
-        
-        {!isConnected && (
-          <div className="absolute -top-1 -right-1 z-10">
-            <div className="relative">
-              <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-white dark:border-gray-800 animate-pulse" />
-              <div className="absolute inset-0 w-3 h-3 rounded-full bg-red-500 animate-ping opacity-75" />
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center w-full px-1">
-
-          <div className="flex-1 mx-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={messageText}
-              onChange={(e) => handleTextInput(e.target.value)}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              placeholder={getPlaceholderText()}
-              className={`w-full bg-transparent text-gray-900 dark:text-gray-100 text-[15px] py-2.5 min-h-[40px] outline-none font-medium placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed ${
-                isDisabled ? 'cursor-not-allowed' : ''
-              }`}
-              style={{
-                wordBreak: 'keep-all',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-              disabled={isDisabled}
-              maxLength={1000}
-            />
-            
-            {messageText.length > 800 && (
-              <div className={`absolute bottom-0 right-16 text-xs font-medium ${
-                messageText.length > 950 ? 'text-red-500' : 'text-yellow-500'
-              }`}>
-                {messageText.length}/1000
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center space-x-1">
-            <button
-              className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
-                showStickerPicker 
-                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 scale-110' 
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:scale-110'
-              } ${(isDisabled || isFresherInMCRoom) ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow-md'}`}
-              onClick={() => !isFresherInMCRoom && setShowStickerPicker(!showStickerPicker)}
-              disabled={isDisabled || isFresherInMCRoom}
-              type="button"
-            >
-              <span className="text-lg transition-transform duration-200">
-                {showStickerPicker ? '\ud83d\ude0a' : '\ud83d\ude0a'}
-              </span>
-            </button>
-
-            <button
-              className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
-                canSend 
-                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl shadow-blue-500/25 hover:scale-110 text-white'
-                  : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-              }`}
-              onClick={handleSend}
-              disabled={!canSend}
-              type="submit"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      <div className="absolute -bottom-6 left-0 right-0 flex justify-between items-center px-4">
-
-        {isDisabled && (
-          <div className="text-xs text-red-500 dark:text-red-400 font-medium bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded-full shadow-sm">
-            {!isConnected ? 'Connection problem' : 
-             !isMember ? 'Please join the group first' : 
-             isInactiveRoom ? 'Room is inactive' : 
-             isReadOnlyRoom && !isAdministrator ? 'Read only' : 
-             'Cannot send message'}
-          </div>
-        )}
-      </div>
     </div>
   );
 };
