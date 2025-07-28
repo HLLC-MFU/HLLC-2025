@@ -6,7 +6,6 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
-import { decryptItem, encryptItem } from '../auth/utils/crypto';
 import { Checkin, CheckinDocument } from '../checkin/schema/checkin.schema';
 
 /**
@@ -39,7 +38,7 @@ export class RoleService {
       name: createRoleDto.name,
       metadataSchema: createRoleDto.metadataSchema,
       metadata: createRoleDto.metadata,
-      permissions: createRoleDto.permissions?.map(encryptItem) || [],
+      permissions: createRoleDto.permissions || [],
     });
     return await role.save();
   }
@@ -49,12 +48,6 @@ export class RoleService {
    */
   async findAll(): Promise<Role[]> {
     const roles = await this.roleModel.find().lean();
-    roles.forEach((role) => {
-      // Decrypt permissions for each role
-      role.permissions = role.permissions.map((perm) => {
-        return typeof perm === 'string' ? decryptItem(perm) : perm;
-      });
-    });
     return roles;
   }
 
@@ -75,12 +68,6 @@ export class RoleService {
 
   async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
-
-    if (updateRoleDto.permissions && Array.isArray(updateRoleDto.permissions)) {
-      role.permissions = updateRoleDto.permissions.map((perm) =>
-        encryptItem(perm),
-      );
-    }
 
     if (updateRoleDto.name) {
       role.name = updateRoleDto.name;

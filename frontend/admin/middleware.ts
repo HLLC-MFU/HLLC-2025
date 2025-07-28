@@ -77,6 +77,7 @@ export async function middleware(req: NextRequest) {
     role === "administrator" ||
     role === "staff" ||
     role === "mentee" ||
+    role === "executive" ||
     role === "mentor";
 
   if (!isAllowed) {
