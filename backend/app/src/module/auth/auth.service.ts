@@ -16,7 +16,6 @@ import '@fastify/cookie';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RoleDocument } from '../role/schemas/role.schema';
-import { decryptItem } from './utils/crypto';
 import { RemovePasswordDto } from './dto/remove-password.dto';
 
 type Permission = string;
@@ -64,9 +63,6 @@ export class AuthService {
       'permissions' in user.role
     ) {
       role = user.role as unknown as RoleDocument;
-      if (role.permissions) {
-        role.permissions = role.permissions.map(decryptItem);
-      }
     }
     return user;
   }
@@ -115,7 +111,7 @@ export class AuthService {
 
       reply.setCookie('accessToken', accessToken, {
         ...cookieOptions,
-        maxAge: 60 * 60,
+        maxAge: 60 * 60 * 24,
       });
 
       reply.setCookie('refreshToken', refreshToken, {
