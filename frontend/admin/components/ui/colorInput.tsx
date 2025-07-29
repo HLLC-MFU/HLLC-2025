@@ -15,7 +15,7 @@ export default function ColorInput({
     <>
       {fields.map((key) => (
         <div key={key} className="flex flex-col gap-2 mb-6">
-          <h3 className={`text-${key} capitalize font-medium`}>
+          <h3 className="capitalize font-medium">
             {key} Color
           </h3>
           <div className="flex flex-col items-center space-y-4">
