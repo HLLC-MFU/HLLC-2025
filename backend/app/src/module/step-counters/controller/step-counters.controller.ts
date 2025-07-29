@@ -77,16 +77,12 @@ export class StepCountersController {
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
     @Body() body: CollectStepDto,
   ) {
-    const logger = new Logger('StepCounterController');
 
     const user = req.user as { _id?: string; id?: string };
     const userId: string = user?._id ?? user?.id ?? '';
     const { deviceId, stepCount, date } = body;
 
     if (!userId || !deviceId || stepCount == null || !date) {
-      logger.warn(
-        `Missing fields: userId=${userId}, deviceId=${deviceId}, stepCount=${stepCount}, date=${date}`,
-      );
       throw new BadRequestException(
         'Missing userId, deviceId, stepCount, or date',
       );
@@ -94,7 +90,6 @@ export class StepCountersController {
 
     // 🚫 Don't sync if stepCount is 0
     if (stepCount === 0) {
-      logger.debug(`Step count is 0 — skipping sync for userId=${userId}`);
       return { message: 'Step count is 0 — sync skipped' };
     }
 
@@ -105,7 +100,6 @@ export class StepCountersController {
       date,
     );
 
-    logger.debug(`Step collection successful for userId=${userId}`);
     return result;
   }
 

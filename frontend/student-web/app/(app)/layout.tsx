@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, fetchUser } = useProfile();
-  const { assets } = useAppearances();
+  const { assets, colors } = useAppearances();
   const {
     pretestAnswersInput,
     posttestAnswersInput,
@@ -178,6 +178,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex justify-between fixed top-0 left-0 right-0 mx-4 mt-6 z-40">
             {!hideProgressSummary && (
               <ProgressBar
+                colors={colors}
                 avatarUrl={(user && user.metadata?.major?.school?.photos?.avatar)
                   ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${user.metadata?.major?.school.photos.avatar}`
                   : (assets && assets.profile)

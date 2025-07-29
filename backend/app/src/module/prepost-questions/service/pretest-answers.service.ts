@@ -34,7 +34,7 @@ export class PretestAnswersService {
 
     @InjectModel(PrepostQuestion.name)
     private prepostQuestionModel: Model<PrepostQuestionDocument>,
-  ) { }
+  ) {}
 
   async create(createPretestAnswerDto: CreatePretestAnswerDto) {
     const { user, answers } = createPretestAnswerDto;
@@ -107,17 +107,21 @@ export class PretestAnswersService {
       model: this.pretestAnswerModel,
       query,
       filterSchema: {},
-      populateFields: () => Promise.resolve([{ path: 'answers.pretest' }, {
-        path: 'user',
-        populate: {
-          path: 'metadata.major',
-          model: 'Major',
-          populate: {
-            path: 'school',
-            model: 'School'
-          }
-        },
-      },]),
+      populateFields: () =>
+        Promise.resolve([
+          { path: 'answers.pretest' },
+          {
+            path: 'user',
+            populate: {
+              path: 'metadata.major',
+              model: 'Major',
+              populate: {
+                path: 'school',
+                model: 'School',
+              },
+            },
+          },
+        ]),
     });
   }
 
@@ -131,15 +135,12 @@ export class PretestAnswersService {
     return await queryDeleteOne(this.pretestAnswerModel, id);
   }
 
-  async averageAllPretests(query: Record<string, string>): Promise<
-    {
-      data: { pretest: PrepostQuestion; average: number; count: number }[];
-      total: number;
-      page: number;
-      limit: number;
-    }
-  > {
-
+  async averageAllPretests(query: Record<string, string>): Promise<{
+    data: { pretest: PrepostQuestion; average: number; count: number }[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const fullQuery = { ...query, limit: '0', page: '1' };
 
     const results = await queryAll<PretestAnswer>({
@@ -149,21 +150,24 @@ export class PretestAnswersService {
       populateFields: () => Promise.resolve([{ path: 'answers.pretest' }]),
     });
 
-    const scoreMap = new Map<PrepostQuestion, { sum: number; count: number }>();
+    const scoreMap = new Map<
+      string,
+      { pretest: PrepostQuestionDocument; sum: number; count: number }
+    >();
 
     for (const result of results.data) {
       for (const answer of result.answers) {
-        const pretestRaw = answer.pretest;
+        const pretest = answer.pretest as any as PrepostQuestionDocument;
 
-        if (typeof pretestRaw === 'object' && '_id' in pretestRaw) {
-          const pretest = pretestRaw as any as PrepostQuestion;
-
+        if (pretest && pretest._id) {
+          const key = pretest._id.toString();
           const numericAnswer = parseFloat(answer.answer);
+
           if (!isNaN(numericAnswer)) {
-            if (!scoreMap.has(pretest)) {
-              scoreMap.set(pretest, { sum: 0, count: 0 });
+            if (!scoreMap.has(key)) {
+              scoreMap.set(key, { pretest, sum: 0, count: 0 });
             }
-            const current = scoreMap.get(pretest)!;
+            const current = scoreMap.get(key)!;
             current.sum += numericAnswer;
             current.count += 1;
           }
@@ -176,10 +180,10 @@ export class PretestAnswersService {
     const limit = Number(query.limit);
     const page = Number(query.page ?? 1);
     const offset = limit > 0 ? (page - 1) * limit : 0;
-    const allEntries = Array.from(scoreMap.entries());
+    const allEntries = Array.from(scoreMap.values());
     const paginated = allEntries
       .slice(offset, limit > 0 ? offset + limit : undefined)
-      .map(([pretest, { sum, count }]) => ({
+      .map(({ pretest, sum, count }) => ({
         pretest,
         average: sum / count,
         count,

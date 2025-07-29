@@ -22,7 +22,10 @@ import {
   PrepostQuestionDocument,
 } from '../schema/prepost-question.schema';
 import { PrepostQuestionTypes } from '../enum/prepost-question-types.enum';
-import { TimeSetting, TimeSettingDocument } from 'src/module/time-setting/schema/time-setting.schema';
+import {
+  TimeSetting,
+  TimeSettingDocument,
+} from 'src/module/time-setting/schema/time-setting.schema';
 
 @Injectable()
 export class PosttestAnswersService {
@@ -38,7 +41,7 @@ export class PosttestAnswersService {
 
     @InjectModel(TimeSetting.name)
     private timeSettingModel: Model<TimeSettingDocument>,
-  ) { }
+  ) {}
 
   async create(createPostTestAnswerDto: CreatePosttestAnswerDto) {
     const { user, answers } = createPostTestAnswerDto;
@@ -113,17 +116,21 @@ export class PosttestAnswersService {
       model: this.posttestAnswerModel,
       query,
       filterSchema: {},
-      populateFields: () => Promise.resolve([{ path: 'answers.posttest' }, {
-        path: 'user',
-        populate: {
-          path: 'metadata.major',
-          model: 'Major',
-          populate: {
-            path: 'school',
-            model: 'School'
-          }
-        },
-      },]),
+      populateFields: () =>
+        Promise.resolve([
+          { path: 'answers.posttest' },
+          {
+            path: 'user',
+            populate: {
+              path: 'metadata.major',
+              model: 'Major',
+              populate: {
+                path: 'school',
+                model: 'School',
+              },
+            },
+          },
+        ]),
     });
   }
 
@@ -137,31 +144,39 @@ export class PosttestAnswersService {
     return await queryDeleteOne(this.posttestAnswerModel, id);
   }
 
-  async averageAllPosttests(): Promise<
-    { posttest: PrepostQuestion; average: number; count: number }[]
-  > {
+  async averageAllPosttests(query: Record<string, string>): Promise<{
+    data: { posttest: PrepostQuestion; average: number; count: number }[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const fullQuery = { ...query, limit: '0', page: '1' };
+
     const results = await queryAll<PosttestAnswer>({
       model: this.posttestAnswerModel,
-      query: {},
+      query: fullQuery,
       filterSchema: {},
       populateFields: () => Promise.resolve([{ path: 'answers.posttest' }]),
     });
 
-    const scoreMap = new Map<PrepostQuestion, { sum: number; count: number }>();
+    const scoreMap = new Map<
+      string,
+      { posttest: PrepostQuestionDocument; sum: number; count: number }
+    >();
 
     for (const result of results.data) {
       for (const answer of result.answers) {
-        const posttestRaw = answer.posttest;
+        const posttest = answer.posttest as any as PrepostQuestionDocument;
 
-        if (typeof posttestRaw === 'object' && '_id' in posttestRaw) {
-          const posttest = posttestRaw as any as PrepostQuestion;
-
+        if (posttest && posttest._id) {
+          const key = posttest._id.toString();
           const numericAnswer = parseFloat(answer.answer);
+
           if (!isNaN(numericAnswer)) {
-            if (!scoreMap.has(posttest)) {
-              scoreMap.set(posttest, { sum: 0, count: 0 });
+            if (!scoreMap.has(key)) {
+              scoreMap.set(key, { posttest, sum: 0, count: 0 });
             }
-            const current = scoreMap.get(posttest)!;
+            const current = scoreMap.get(key)!;
             current.sum += numericAnswer;
             current.count += 1;
           }
@@ -171,15 +186,24 @@ export class PosttestAnswersService {
       }
     }
 
-    const output = Array.from(scoreMap.entries()).map(
-      ([posttest, { sum, count }]) => ({
+    const limit = Number(query.limit);
+    const page = Number(query.page ?? 1);
+    const offset = limit > 0 ? (page - 1) * limit : 0;
+    const allEntries = Array.from(scoreMap.values());
+    const paginated = allEntries
+      .slice(offset, limit > 0 ? offset + limit : undefined)
+      .map(({ posttest, sum, count }) => ({
         posttest,
         average: sum / count,
         count,
-      }),
-    );
+      }));
 
-    return output;
+    return {
+      data: paginated,
+      total: allEntries.length,
+      page,
+      limit,
+    };
   }
 
   async findByUserId(userId: string) {
@@ -187,7 +211,9 @@ export class PosttestAnswersService {
       throw new BadRequestException('Invalid user ID');
     }
     const userObjectId = new Types.ObjectId(userId);
-    const exists = await this.posttestAnswerModel.exists({ user: userObjectId });
+    const exists = await this.posttestAnswerModel.exists({
+      user: userObjectId,
+    });
 
     const firstTimeSetting = await this.timeSettingModel
       .findOne()
