@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Badge, Button, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Users, UserPlus, X } from "lucide-react";
 
@@ -19,23 +19,46 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
     const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
     const [showSelectAllModal, setShowSelectAllModal] = useState(false);
 
+    // Clear search results when component unmounts or when selectedMembers change
+    useEffect(() => {
+        return () => {
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+        };
+    }, [searchTimeout]);
+
     // Debounced search
     const handleSearch = useCallback((query: string) => {
         console.log('Searching for users with query:', query);
         setSearchQuery(query);
-        if (searchTimeout) clearTimeout(searchTimeout);
+        
+        // Clear existing timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
         if (query.trim()) {
             const timeout = setTimeout(() => {
                 console.log('Fetching users with query:', query);
                 fetchByUsername(query);
             }, 300);
             setSearchTimeout(timeout);
+        } else {
+            // Clear users when search is empty
+            setSearchQuery("");
         }
     }, [fetchByUsername, searchTimeout]);
 
     // Toggle member selection
-    const handleUserSelect = (user: User) => {
+    const handleUserSelect = useCallback((user: User) => {
         console.log('Selecting/deselecting user:', user.username || user.name?.first, 'ID:', user._id);
+        
+        if (!user._id) {
+            console.error('User has no ID:', user);
+            return;
+        }
+        
         setSelectedMembers(prev => {
             if (prev.some(u => u._id === user._id)) {
                 console.log('Removing user from selected members');
@@ -45,16 +68,28 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                 return [...prev.filter(u => u._id !== "__SELECT_ALL__"), user];
             }
         });
-    };
+    }, [setSelectedMembers]);
 
     // Select all users
-    const handleSelectAll = () => setShowSelectAllModal(true);
-    const confirmSelectAll = () => {
-        setSelectedMembers([{ _id: "__SELECT_ALL__", username: "All Users", name: { first: "All", last: "Users" }, role: "", metadata: {} } as User]);
-        setShowSelectAllModal(false);
-    };
+    const handleSelectAll = useCallback(() => {
+        setShowSelectAllModal(true);
+    }, []);
 
-    const handleClearAll = () => setSelectedMembers([]);
+    const confirmSelectAll = useCallback(() => {
+        setSelectedMembers([{ 
+            _id: "__SELECT_ALL__", 
+            username: "All Users", 
+            name: { first: "All", last: "Users" }, 
+            role: "", 
+            metadata: {} 
+        } as User]);
+        setShowSelectAllModal(false);
+    }, [setSelectedMembers]);
+
+    const handleClearAll = useCallback(() => {
+        setSelectedMembers([]);
+    }, [setSelectedMembers]);
+
     const isSelectAllActive = selectedMembers.some(u => u._id === "__SELECT_ALL__");
 
     return (
@@ -70,8 +105,15 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                         <Button color="default" size="sm" variant="light" onPress={handleClearAll}>Clear All</Button>
                     )}
                     {allowSelectAll && !isSelectAllActive && (
-                        <Button className="font-bold shadow-md" color="primary" isDisabled={isSelectAllActive} size="md"
-                            startContent={<Users size={18} />} variant={isSelectAllActive ? "solid" : "flat"} onPress={handleSelectAll}>
+                        <Button 
+                            className="font-bold shadow-md" 
+                            color="primary" 
+                            isDisabled={isSelectAllActive} 
+                            size="md"
+                            startContent={<Users size={18} />} 
+                            variant={isSelectAllActive ? "solid" : "flat"} 
+                            onPress={handleSelectAll}
+                        >
                             Select All Users
                         </Button>
                     )}
@@ -112,8 +154,14 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
 
             {/* Search Input */}
             {!isSelectAllActive && (
-                <Input isDisabled={isSelectAllActive} label="Search Users" placeholder="Type to search users..."
-                    startContent={<Users size={20} />} value={searchQuery} onValueChange={handleSearch} />
+                <Input 
+                    isDisabled={isSelectAllActive} 
+                    label="Search Users" 
+                    placeholder="Type to search users..."
+                    startContent={<Users size={20} />} 
+                    value={searchQuery} 
+                    onValueChange={handleSearch} 
+                />
             )}
 
             {/* Selected Members */}
@@ -123,9 +171,17 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                     <div className="flex flex-wrap gap-2">
                         {selectedMembers.map((user, index) => (
                             <div key={user._id || index} className="flex items-center gap-1 bg-default-50 rounded-full px-2 py-1">
-                                <span className="font-medium text-sm">{user.username || `${user.name?.first || ''} ${user.name?.last || ''}`.trim()}</span>
+                                <span className="font-medium text-sm">
+                                    {user.username || `${user.name?.first || ''} ${user.name?.last || ''}`.trim()}
+                                </span>
                                 {user._id !== "__SELECT_ALL__" && (
-                                    <Button isIconOnly color="danger" size="sm" variant="light" onPress={() => handleUserSelect(user)}>
+                                    <Button 
+                                        isIconOnly 
+                                        color="danger" 
+                                        size="sm" 
+                                        variant="light" 
+                                        onPress={() => handleUserSelect(user)}
+                                    >
                                         <X size={12} />
                                     </Button>
                                 )}
@@ -141,16 +197,27 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                     <span className="text-sm text-default-500">Search Results:</span>
                     <div className="max-h-40 overflow-y-auto space-y-1">
                         {(() => {
-                            const availableUsers = users.filter(user => !selectedMembers.some(u => u._id === user._id));
+                            const availableUsers = users.filter(user => 
+                                user._id && !selectedMembers.some(u => u._id === user._id)
+                            );
                             return availableUsers.map(user => (
-                            <div key={user._id} className="flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors bg-default-50 hover:bg-default-100"
-                                onClick={() => handleUserSelect(user)}>
-                                <div className="flex items-center gap-2">
-                                    <UserPlus className="text-default-400" size={16} />
-                                    <span className="text-sm font-medium">{user.username || `${user.name?.first || ''} ${user.name?.last || ''}`.trim()}</span>
-                                    {user.name?.first && <span className="ml-2 text-xs text-default-400">{user.name?.first} {user.name?.last}</span>}
+                                <div 
+                                    key={user._id} 
+                                    className="flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors bg-default-50 hover:bg-default-100"
+                                    onClick={() => handleUserSelect(user)}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <UserPlus className="text-default-400" size={16} />
+                                        <span className="text-sm font-medium">
+                                            {user.username || `${user.name?.first || ''} ${user.name?.last || ''}`.trim()}
+                                        </span>
+                                        {user.name?.first && (
+                                            <span className="ml-2 text-xs text-default-400">
+                                                {user.name?.first} {user.name?.last}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
                             ));
                         })()}
                     </div>
@@ -165,7 +232,12 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
 
             {/* Select All Confirmation Modal */}
             {allowSelectAll && (
-                <Modal isOpen={showSelectAllModal} size="sm" onClose={() => setShowSelectAllModal(false)}>
+                <Modal 
+                    isOpen={showSelectAllModal} 
+                    size="sm" 
+                    onClose={() => setShowSelectAllModal(false)}
+                    isDismissable={true}
+                >
                     <ModalContent>
                         <ModalHeader>Select All Users</ModalHeader>
                         <ModalBody>
