@@ -44,6 +44,17 @@ export const getMenuByRole = (user: User | null) => {
             .filter((section) => section.items.length > 0);
     }
 
+    if (roleName === "ae") {
+        return siteConfig.navMenuItems
+            .map((section) => ({
+                ...section,
+                items: section.items.filter((item) =>
+                    ["/chat", "/sponsor-systems", "/logout"].includes(item.href)
+                ),
+            }))
+            .filter((section) => section.items.length > 0);
+    }
+
     return siteConfig.navMenuItems
         .map((section) => ({
             ...section,
