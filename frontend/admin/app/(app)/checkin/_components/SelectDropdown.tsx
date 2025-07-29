@@ -12,14 +12,12 @@ export default function Selectdropdown({
   setSelectActivityId,
   activities,
 }: SelectdropdownProps) {
-  // Count duplicates by name.en
   const nameCount: Record<string, number> = {};
   for (const act of activities) {
     const name = act.name.en;
     nameCount[name] = (nameCount[name] || 0) + 1;
   }
 
-  // Group into: duplicates (chip) and uniques (no chip)
   const withChipGroup: Record<string, Activities[]> = {};
   const noChip: Activities[] = [];
 
@@ -33,19 +31,16 @@ export default function Selectdropdown({
     }
   }
 
-  // Sort each duplicate group by acronym
   const sortedWithChip: Activities[] = Object.entries(withChipGroup)
-    .sort(([a], [b]) => a.localeCompare(b)) // sort group names
+    .sort(([a], [b]) => a.localeCompare(b))
     .flatMap(([_, acts]) =>
       acts.sort((a, b) => a.acronym.localeCompare(b.acronym))
     );
 
-  // Sort no-chip items by name.en
   const sortedNoChip = noChip.sort((a, b) =>
     a.name.en.localeCompare(b.name.en)
   );
 
-  // Final combined
   const finalActivities = [...sortedWithChip, ...sortedNoChip];
 
   return (

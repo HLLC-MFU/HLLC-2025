@@ -40,6 +40,7 @@ import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { DevicesModule } from './module/devices/devices.module';
 import { TimeSettingModule } from './module/time-setting/time-setting.module';
 import { VersionSettingModule } from './module/version-setting/version-setting.module';
+import { DashboardModule } from './module/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -99,7 +100,8 @@ import { VersionSettingModule } from './module/version-setting/version-setting.m
     SponsorsModule,
     DevicesModule,
     TimeSettingModule,
-    VersionSettingModule
+    VersionSettingModule,
+    DashboardModule
   ],
   providers: [
     {
