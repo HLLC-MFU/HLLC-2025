@@ -29,6 +29,8 @@ export function SchoolCard({
         const formData = new FormData();
 
         formData.append('school', school._id);
+        formData.append('colors[primary]', '#ffffff');
+        formData.append('colors[secondary]', '#ffffff');
         await createAppearance(formData);
       }
       router.push(`/appearance/${school._id}`);

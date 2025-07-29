@@ -10,7 +10,7 @@ interface PreviewSectionProps {
 
 export function PreviewSection({ appearance, colors }: PreviewSectionProps) {
   const textColor =
-    colors.primary.toLowerCase() === '#ffffff'
+    colors?.primary?.toLowerCase() === '#ffffff'
       ? 'text-default-600'
       : 'text-white';
 

@@ -8,9 +8,11 @@ import { useRouter } from 'next/navigation';
 import { useSseStore } from '@/stores/useSseStore';
 
 export default function ProgressBar({
+  colors,
   avatarUrl = '/avatar.png',
   onClickAvatar,
 }: {
+  colors: Record<string, string> | undefined;
   avatarUrl?: string;
   onClickAvatar?: () => void;
 }) {
@@ -56,8 +58,8 @@ export default function ProgressBar({
       <div className="relative flex-1 h-7 sm:h-7 md:h-10 rounded-full -ml-6 bg-black/10 backdrop-blur-md border border-black/20 shadow-inner overflow-hidden">
         {/* Progress Fill */}
         <div
-          className="h-full bg-gradient-to-r from-pink-400 to-pink-500 rounded-full transition-all duration-300 ease-in-out"
-          style={{ width: `${percentage}%` }}
+          className="h-full rounded-full transition-all duration-300 ease-in-out"
+          style={{ width: `50%`, backgroundImage: `linear-gradient(to right, ${colors?.primary ?? '#62cff4'}, ${colors?.secondary ?? '#2c67f2'})` }}
         />
 
         {/* Percentage Bubble */}

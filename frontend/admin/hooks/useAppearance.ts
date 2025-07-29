@@ -37,7 +37,7 @@ export default function useAppearance({
     Object.entries(assets).forEach(([key, file]) => {
       formData.append(`assets[${key.toLowerCase()}]`, file);
     });
-    
+
     return await updateAppearance(formData);
   };
 
@@ -56,7 +56,7 @@ export default function useAppearance({
       setError(
         err && typeof err === 'object' && 'message' in err
           ? (err as { message?: string }).message ||
-              'Failed to fetch appearance.'
+          'Failed to fetch appearance.'
           : 'Failed to fetch appearance.',
       );
     }
@@ -80,7 +80,7 @@ export default function useAppearance({
       setError(
         err && typeof err === 'object' && 'message' in err
           ? (err as { message?: string }).message ||
-              'Failed to fetch appearance.'
+          'Failed to fetch appearance.'
           : 'Failed to fetch appearance.',
       );
     }
@@ -111,7 +111,7 @@ export default function useAppearance({
       setError(
         err && typeof err === 'object' && 'message' in err
           ? (err as { message?: string }).message ||
-              'Failed to create appearance.'
+          'Failed to create appearance.'
           : 'Failed to create appearance.',
       );
     } finally {
@@ -144,7 +144,7 @@ export default function useAppearance({
       setError(
         err && typeof err === 'object' && 'message' in err
           ? (err as { message?: string }).message ||
-              'Failed to update appearance.'
+          'Failed to update appearance.'
           : 'Failed to update appearance.',
       );
     } finally {
@@ -166,7 +166,7 @@ export default function useAppearance({
       setError(
         err && typeof err === 'object' && 'message' in err
           ? (err as { message?: string }).message ||
-              'Failed to delete appearance.'
+          'Failed to delete appearance.'
           : 'Failed to delete appearance.',
       );
     } finally {
@@ -189,6 +189,7 @@ export default function useAppearance({
     loading,
     error,
     setError,
+    setColors,
     setAssets,
     fetchAppearances,
     fetchAppearancesById,

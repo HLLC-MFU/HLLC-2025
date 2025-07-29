@@ -35,6 +35,7 @@ export default function AppearanceDetailsPage() {
     colors,
     assets,
     setError,
+    setColors,
     setAssets,
     handleSaveColor,
     handleSaveAsset,
@@ -43,8 +44,10 @@ export default function AppearanceDetailsPage() {
   const handleConfirmColor = async () => {
     if (!appearance) return;
     try {
-      await handleSaveColor();
+      const res = await handleSaveColor();
+
       setIsColorSaveModalOpen(false);
+      if (res) await fetchAppearance(id);
     } catch (err) {
       setError(
         err && typeof err === 'object' && 'message' in err
@@ -105,6 +108,7 @@ export default function AppearanceDetailsPage() {
 
               <ColorsSection
                 colors={colors}
+                onSetColors={setColors}
                 onSave={() => setIsColorSaveModalOpen(true)}
               />
 

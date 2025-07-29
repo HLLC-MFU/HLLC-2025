@@ -2,25 +2,38 @@ import ColorInput from '@/components/ui/colorInput';
 import { Button } from '@heroui/button';
 import { Card, CardBody, CardHeader, Input } from '@heroui/react';
 import { Ban, Palette } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { Dispatch, SetStateAction, useCallback, useEffect, useState } from 'react';
 
 interface ColorsSectionProps {
   colors: Record<string, string>;
+  onSetColors: Dispatch<SetStateAction<Record<string, string>>>;
   onSave: () => void;
 }
 
-export function ColorsSection({ colors, onSave }: ColorsSectionProps) {
-  const [previewColor, setPreviewColor] = useState<Record<string, string>>({});
+export function ColorsSection({
+  colors,
+  onSetColors,
+  onSave
+}: ColorsSectionProps) {
+  const [previewColors, setPreviewColors] = useState<Record<string, string>>({});
 
-  const handleColorChange = useCallback((key: string, value: string) => {
-    setPreviewColor((prev) => ({
+  const handleColorChange = (key: string, value: string) => {
+    setPreviewColors((prev) => ({
       ...prev,
       [key]: value,
     }));
-  }, []);
+  };
+
+  const handleColorSave = () => {
+    onSetColors({
+      primary: previewColors.primary,
+      secondary: previewColors.secondary
+    });
+    onSave();
+  };
 
   useEffect(() => {
-    setPreviewColor(colors);
+    setPreviewColors(colors);
   }, [colors]);
 
   return (
@@ -38,8 +51,8 @@ export function ColorsSection({ colors, onSave }: ColorsSectionProps) {
       </CardHeader>
       <CardBody>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <ColorInput 
-            colors={previewColor}
+          <ColorInput
+            colors={previewColors}
             handleColorChange={handleColorChange}
           />
         </div>
@@ -49,21 +62,21 @@ export function ColorsSection({ colors, onSave }: ColorsSectionProps) {
             <Button
               className="px-8 font-semibold"
               color="danger"
-              isDisabled={JSON.stringify(colors) === JSON.stringify(previewColor)}
+              isDisabled={JSON.stringify(colors) === JSON.stringify(previewColors)}
               size="lg"
               startContent={<Ban className="w-5 h-5" />}
               variant="light"
-              onPress={() => setPreviewColor(colors)}
+              onPress={() => setPreviewColors(colors)}
             >
               Discard All
             </Button>
             <Button
               className="px-8 font-semibold"
               color="primary"
-              isDisabled={JSON.stringify(colors) === JSON.stringify(previewColor)}
+              isDisabled={JSON.stringify(colors) === JSON.stringify(previewColors)}
               size="lg"
               startContent={<Palette className="w-5 h-5" />}
-              onPress={onSave}
+              onPress={handleColorSave}
             >
               Save Color Scheme
             </Button>
