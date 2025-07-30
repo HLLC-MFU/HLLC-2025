@@ -9,8 +9,6 @@ import { LayoutDashboard, Users, FileText, AlertTriangle } from 'lucide-react';
 import { ReportCharts } from './_components/DashboardReportCharts';
 import Overview from './_components/DashboardOverview';
 import FresherCheckinDashboard from './_components/FresherCheckinDashboard';
-import ListPretest from './_components/ListPretest';
-import ListPosttest from './_components/ListPosttest';
 import AssessmentTable from './_components/AssessmentTable';
 import CardStat from './_components/CardStat';
 
@@ -25,6 +23,7 @@ import { useActivities } from '@/hooks/useActivities';
 import { usePretest } from '@/hooks/usePretestAnswer';
 import { usePosttest } from '@/hooks/usePosttestAnswer';
 import ActivityTable from './_components/ActivityTable';
+import PretestDetail from './_components/PretestDetail';
 
 
 export default function Dashboard() {
@@ -119,18 +118,13 @@ export default function Dashboard() {
         </CardStat>
 
         <div className='grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-6'>
-          <div className='sm:col-span-2 md:col-span-1 lg:col-span-1'>
-            <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Pretest Dashboard">
-              <div className="flex flex-col gap-2 text-center w-full">
-                <ListPretest
-                  pretestAnswers={pretestAnswer}
-                  pretestAverage={pretestAverage}
-                />
-              </div>
+          <div className='col-span-2'>
+            <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Pretest">
+              <PretestDetail />
             </CardStat>
           </div>
 
-          <div className='sm:col-span-2 md:col-span-1 lg:col-span-1'>
+          {/* <div className='sm:col-span-2 md:col-span-1 lg:col-span-1'>
             <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Posttest Dashboard">
               <div className="flex flex-col gap-2 text-center w-full">
                 <ListPosttest
@@ -140,7 +134,7 @@ export default function Dashboard() {
                 />
               </div>
             </CardStat>
-          </div>
+          </div> */}
         </div>
 
         <CardStat colors='slate-100' icon={<FileText className="w-4 h-4" />} label="Activities Overview">
