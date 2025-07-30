@@ -1,5 +1,5 @@
 "use client";
-import { usePretestDetail } from "@/hooks/usePretestDetail";
+import { usePosttestDetail } from "@/hooks/usePosttestDetail";
 import {
   Pagination,
   Table,
@@ -14,14 +14,14 @@ import {
 import { FileText, RefreshCcw, Search } from "lucide-react";
 import React, { useEffect } from "react";
 
-export default function PretestDetail() {
+export default function PosttestDetail() {
   const {
     fetchPretestDetail,
     averageData,
     totalAnswers,
     userAnswers,
     isLoading,
-  } = usePretestDetail();
+  } = usePosttestDetail();
 
   const [searchTerm, setSearchTerm] = React.useState("");
   const [page, setPage] = React.useState(1);

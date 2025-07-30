@@ -20,19 +20,16 @@ import { useReports } from '@/hooks/useReports';
 import { useReportTypes } from '@/hooks/useReportTypes';
 import { useUserStatistics } from '@/hooks/useUsersytem';
 import { useActivities } from '@/hooks/useActivities';
-import { usePretest } from '@/hooks/usePretestAnswer';
-import { usePosttest } from '@/hooks/usePosttestAnswer';
 import ActivityTable from './_components/ActivityTable';
 import PretestDetail from './_components/PretestDetail';
 import ListActivities from './_components/ListActivities';
 import { useAssessment } from '@/hooks/useAssessment';
+import PosttestDetail from './_components/PosttestDetail';
 
 export default function Dashboard() {
   const { activities } = useActivities({ autoFetch: true });
   const { assessments, assessmentLoading, fetchAssessment } = useAssessment();
   const { fetchCheckinByActivity } = useCheckin(null);
-  const { pretestAverage, pretestAnswer } = usePretest();
-  const { posttestAverage, posttestAnswer, totalAverageCount } = usePosttest();
   const [allCheckins, setAllCheckins] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(false);
   const combinedCheckins = Object.values(allCheckins).flat();
@@ -106,11 +103,11 @@ export default function Dashboard() {
         />
       </div>
       <div className='space-y-6'>
-        <CardStat colors='lime-100' icon={<Users className="w-4 h-4" />} label="Fresher Checkin">
+        {/* <CardStat colors='lime-100' icon={<Users className="w-4 h-4" />} label="Fresher Checkin">
           <div className="flex flex-col gap-2 text-center w-full">
             <FresherCheckinDashboard checkIn={combinedCheckins} />
           </div>
-        </CardStat>
+        </CardStat> */}
 
         <CardStat colors='blue-100' icon={<FileText className="w-4 h-4" />} label="Activities Overview">
           <div className="flex flex-col gap-2 text-center w-full">
@@ -124,24 +121,17 @@ export default function Dashboard() {
               <PretestDetail />
             </CardStat>
           </div>
-
-          {/* <div className='sm:col-span-2 md:col-span-1 lg:col-span-1'>
-            <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Posttest Dashboard">
-              <div className="flex flex-col gap-2 text-center w-full">
-                <ListPosttest
-                  posttestAnswers={posttestAnswer}
-                  posttestAverage={posttestAverage}
-                  totalAverageCount={totalAverageCount}
-                />
-              </div>
+          <div className='col-span-2'>
+            <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Posttest">
+              <PosttestDetail />
             </CardStat>
-          </div> */}
+          </div>
 
           <div className='col-span-2'>
             <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Activities">
               <div className="flex flex-col gap-2 text-center w-full">
                 <ListActivities
-                  assessments={assessments}
+                  assessments={assessments.sort((a, b) => a.name.en.localeCompare(b.name.en))}
                   isLoading={assessmentLoading}
                   fetchAssessment={fetchAssessment}
                 />
@@ -149,12 +139,12 @@ export default function Dashboard() {
             </CardStat>
           </div>
         </div>
-
+{/* 
         <CardStat colors='slate-100' icon={<FileText className="w-4 h-4" />} label="Activities Overview">
           <div className="flex flex-col gap-2 text-center w-full">
             <AssessmentTable />
           </div>
-        </CardStat>
+        </CardStat> */}
 
         <CardStat colors='red-100' icon={<AlertTriangle className="w-4 h-4" />} label="Reports Overview">
           <div className="flex flex-col gap-2 text-center w-full">

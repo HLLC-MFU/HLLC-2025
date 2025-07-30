@@ -21,7 +21,7 @@ export class PretestPosttestDashboardService {
         // 1. Get all user IDs with this role
         const users = await this.userModel
           .find({ role: TARGET_ROLE_ID })
-          .select('_id name')
+          .select('_id name username')
           .lean();
     
         const userIds = users.map(user => user._id);
@@ -37,6 +37,7 @@ export class PretestPosttestDashboardService {
           return {
             userId: entry.user,
             name: userInfo?.name || {},
+            username: userInfo?.username || {},
             answers: entry.answers,
           };
         });
@@ -85,7 +86,7 @@ export class PretestPosttestDashboardService {
         // 1. Get all user IDs with this role
         const users = await this.userModel
           .find({ role: TARGET_ROLE_ID })
-          .select('_id name')
+          .select('_id name username')
           .lean();
     
         const userIds = users.map(user => user._id);
@@ -100,6 +101,7 @@ export class PretestPosttestDashboardService {
           const userInfo = users.find(u => u._id.toString() === entry.user.toString());
           return {
             userId: entry.user,
+            username: userInfo?.username || {},
             name: userInfo?.name || {},
             userAnswers: entry.answers,
           };
