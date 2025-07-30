@@ -24,13 +24,12 @@ import { usePretest } from '@/hooks/usePretestAnswer';
 import { usePosttest } from '@/hooks/usePosttestAnswer';
 import ActivityTable from './_components/ActivityTable';
 import PretestDetail from './_components/PretestDetail';
-
-import ListAssessments from './_components/ListAssessments';
+import ListActivities from './_components/ListActivities';
 import { useAssessment } from '@/hooks/useAssessment';
 
 export default function Dashboard() {
   const { activities } = useActivities({ autoFetch: true });
-  const { assessments } = useAssessment();
+  const { assessments, assessmentLoading, fetchAssessment } = useAssessment();
   const { fetchCheckinByActivity } = useCheckin(null);
   const { pretestAverage, pretestAnswer } = usePretest();
   const { posttestAverage, posttestAnswer, totalAverageCount } = usePosttest();
@@ -139,10 +138,12 @@ export default function Dashboard() {
           </div> */}
 
           <div className='col-span-2'>
-            <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Assessments">
+            <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Activities">
               <div className="flex flex-col gap-2 text-center w-full">
-                <ListAssessments
+                <ListActivities
                   assessments={assessments}
+                  isLoading={assessmentLoading}
+                  fetchAssessment={fetchAssessment}
                 />
               </div>
             </CardStat>

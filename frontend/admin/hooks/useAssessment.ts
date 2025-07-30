@@ -251,17 +251,26 @@ const assessmentService = {
 
 export function useAssessment() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [assessmentLoading, setAssessmentLoading] = useState(false);
   const [state, dispatch] = useReducer(assessmentReducer, initialState);
 
   const fetchAssessment = async () => {
-    const res = await apiRequest<Assessment[]>(
-      '/dashboard/activities?limit=0',
-      'GET'
-    );
-    if (!res) return;
-    setAssessments(Array.isArray(res.data) ? res.data : []);
+    setAssessmentLoading(true);
 
-    return res;
+    try {
+      const res = await apiRequest<Assessment[]>(
+        '/dashboard/activities?limit=0',
+        'GET'
+      );
+      if (!res) return;
+      setAssessments(Array.isArray(res.data) ? res.data : []);
+
+      return res;
+    } catch (err) {
+
+    } finally {
+      setAssessmentLoading(false);
+    }
   }
 
   // Generic fetch handler
@@ -388,6 +397,8 @@ export function useAssessment() {
     error: state.error,
 
     assessments,
+    assessmentLoading,
+    fetchAssessment,
 
     // Question operations
     fetchQuestions,
