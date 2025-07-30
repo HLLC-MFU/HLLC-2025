@@ -161,7 +161,7 @@ export default function ActivitiesPage() {
                 await updateActivity(selectedActivity._id, formData);
             } else {
                 const res = await createActivity(formData);
-                console.log('Activity created successfully', res);
+                
             }
         } catch (error) {
             console.error('Error creating/updating activity:', error);

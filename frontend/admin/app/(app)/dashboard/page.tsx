@@ -36,7 +36,7 @@ export default function Dashboard() {
   const combinedCheckins = Object.values(allCheckins).flat();
   const { sponsors } = useSponsors();
   const { evouchers } = useEvoucher();
-  const { problems } = useReports();
+  const { reports } = useReports();
   const { reporttypes } = useReportTypes();
   const { Userstats } = useUserStatistics();
   // const [selectedActivityId, setSelectedActivityId] = useState<
@@ -145,7 +145,7 @@ export default function Dashboard() {
 
         <CardStat colors='red-100' icon={<AlertTriangle className="w-4 h-4" />} label="Reports Overview">
           <div className="flex flex-col gap-2 text-center w-full">
-            <ReportCharts problems={problems} reporttypes={reporttypes} />
+            <ReportCharts reports={reports} reporttypes={reporttypes} />
           </div>
         </CardStat>
       </div>
