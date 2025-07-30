@@ -1,7 +1,7 @@
 "use client";
 
 import { addToast } from "@heroui/react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { MessagesSquare, SmilePlus } from "lucide-react";
 
@@ -13,7 +13,17 @@ import { PageHeader } from "@/components/ui/page-header";
 
 export default function ChatPage() {
     const { rooms, loading, error, fetchRooms, createRoom, updateRoom, deleteRoom, getRoomMembers: _getRoomMembers } = useChat();
-    const getRoomMembers = useCallback(_getRoomMembers, []);
+    
+    // Properly memoize getRoomMembers to prevent unnecessary re-renders
+    const getRoomMembers = useCallback(async (roomId: string) => {
+        try {
+            return await _getRoomMembers(roomId);
+        } catch (error) {
+            console.error("Error getting room members:", error);
+            return { data: { members: [] } };
+        }
+    }, [_getRoomMembers]);
+
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<Room | undefined>();
@@ -93,17 +103,27 @@ export default function ChatPage() {
     };
 
     const handleSubmitRoom = async (formData: FormData, mode: "add" | "edit") => {
-        if (mode === "add") {
-            await createRoom(formData);
-        } else if (mode === "edit" && selectedRoom?._id) {
-            await updateRoom(selectedRoom._id, formData);
+        try {
+            if (mode === "add") {
+                await createRoom(formData);
+            } else if (mode === "edit" && selectedRoom?._id) {
+                await updateRoom(selectedRoom._id, formData);
+            }
+            await fetchRooms();
+            if (selectedRoomType) {
+                setLastCreatedRoomType(selectedRoomType);
+            }
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error("Error submitting room:", error);
+            // Error handling is already done in the hook
         }
-        await fetchRooms();
-        if (selectedRoomType) {
-            setLastCreatedRoomType(selectedRoomType);
-        }
-        setIsModalOpen(false);
     };
+
+    // Memoize modal key to prevent unnecessary re-renders
+    const modalKey = useMemo(() => {
+        return selectedRoom?._id || `new-${selectedRoomType}-${modalMode}`;
+    }, [selectedRoom?._id, selectedRoomType, modalMode]);
 
     return (
         <>
@@ -139,7 +159,7 @@ export default function ChatPage() {
             </div>
 
             <RoomModal
-                key={selectedRoom?._id || 'new'}
+                key={modalKey}
                 isOpen={isModalOpen}
                 mode={modalMode}
                 room={selectedRoom}
