@@ -100,7 +100,16 @@ export default function ListAssessments({
                             {(assessment: AssessmentQuestion) => (
                                 <TableRow key={assessment._id}>
                                     <TableCell>{assessmentNotNull.findIndex(a => a._id === assessment._id) + 1}</TableCell>
-                                    <TableCell>{assessment.name.en}</TableCell>
+                                    <TableCell>
+                                        {
+                                            <div className="flex flex-col">
+                                                <span>{assessment.name.en}</span>
+                                                <span className="text-sm text-default-500">
+                                                    {assessment.name.th}
+                                                </span>
+                                            </div>
+                                        }
+                                    </TableCell>
                                     <TableCell>{assessment.count}</TableCell>
                                     <TableCell>{assessment.averageAnswer?.toFixed(2)}</TableCell>
                                 </TableRow>
