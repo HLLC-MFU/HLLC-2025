@@ -40,7 +40,7 @@ export class DashboardService {
       {
         $lookup: {
           from: 'activities',
-          pipeline: [{ $project: { _id: 1, name: 1 } }],
+          pipeline: [{ $project: { _id: 1, name: 1, acronym: 1 } }],
           as: 'activities',
         },
       },
@@ -133,6 +133,7 @@ export class DashboardService {
               in: {
                 activityId: '$$activity._id',
                 name: '$$activity.name',
+                acronym: '$$activity.acronym',
 
                 // Find checkin count for this activity
                 checkin: {
