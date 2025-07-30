@@ -22,7 +22,7 @@ export default function BottomNav() {
           { label: t('nav.activity'), asset: 'activities', href: '/activities', icon: Book },
           { label: t('nav.qrcode'), asset: 'qrcode', href: '/qrcode', icon: QrCode },
           { label: t('nav.evoucher'), asset: 'evoucher', href: '/evouchers', icon: Ticket },
-          { label: t('nav.community'), asset: 'community', href: '/community', icon: Globe },
+          { label: t('nav.community'), asset: 'community', href: '/community/chat', icon: Globe },
         ],
       },
     ],

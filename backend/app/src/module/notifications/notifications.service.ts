@@ -57,6 +57,7 @@ export class NotificationsService {
       pushNotificationResult = await this.pushNotificationService.sendPushNotification({
         receivers,
         title: createNotificationDto.title,
+        subtitle: createNotificationDto.subtitle ?? undefined,
         body: createNotificationDto.body,
         image: createNotificationDto.image ?? undefined,
         data: {

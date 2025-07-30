@@ -9,8 +9,6 @@ import { LayoutDashboard, Users, FileText, AlertTriangle } from 'lucide-react';
 import { ReportCharts } from './_components/DashboardReportCharts';
 import Overview from './_components/DashboardOverview';
 import FresherCheckinDashboard from './_components/FresherCheckinDashboard';
-import ListPretest from './_components/ListPretest';
-import ListPosttest from './_components/ListPosttest';
 import AssessmentTable from './_components/AssessmentTable';
 import CardStat from './_components/CardStat';
 
@@ -24,22 +22,27 @@ import { useUserStatistics } from '@/hooks/useUsersytem';
 import { useActivities } from '@/hooks/useActivities';
 import { usePretest } from '@/hooks/usePretestAnswer';
 import { usePosttest } from '@/hooks/usePosttestAnswer';
-import { useAssessmentAverages } from '@/hooks/useAssessmentAnswer';
+import ActivityTable from './_components/ActivityTable';
+import PretestDetail from './_components/PretestDetail';
 
 
-  export default function Dashboard() {
-    const { activities } = useActivities({ autoFetch: true })
-    const { fetchCheckinByActivity } = useCheckin(null)
-    const { pretestAverage, pretestAnswer } = usePretest()
-    const { posttestAverage, posttestAnswer, totalAverageCount } = usePosttest()
-    const [allCheckins, setAllCheckins] = useState<Record<string, any[]>>({})
-    const [loading, setLoading] = useState(false)
-    const combinedCheckins = Object.values(allCheckins).flat()
-    const { sponsors } = useSponsors()
-    const { evouchers } = useEvoucher()
-    const { reports } = useReports()
-    const { reporttypes } = useReportTypes()
-    const { Userstats } = useUserStatistics()
+export default function Dashboard() {
+  const { activities } = useActivities({ autoFetch: true });
+  const { fetchCheckinByActivity } = useCheckin(null);
+  const { pretestAverage, pretestAnswer } = usePretest();
+  const { posttestAverage, posttestAnswer, totalAverageCount } = usePosttest();
+  const [allCheckins, setAllCheckins] = useState<Record<string, any[]>>({});
+  const [loading, setLoading] = useState(false);
+  const combinedCheckins = Object.values(allCheckins).flat();
+  const { sponsors } = useSponsors();
+  const { evouchers } = useEvoucher();
+  const { problems } = useReports();
+  const { reporttypes } = useReportTypes();
+  const { Userstats } = useUserStatistics();
+  // const [selectedActivityId, setSelectedActivityId] = useState<
+  //   string | undefined
+  // >(undefined);
+  // const { data, error, refetch } = useAssessmentAverages(selectedActivityId);
 
   useEffect(() => {
     async function fetchAllCheckins() {
@@ -75,13 +78,7 @@ import { useAssessmentAverages } from '@/hooks/useAssessmentAnswer';
     count: names.size,
   }));
 
-  const defaultExpandedKeys = [
-    'overview',
-    'checkin',
-    'pretest',
-    'posttest',
-    'reports',
-  ];
+
 
   return (
     <>
@@ -114,19 +111,20 @@ import { useAssessmentAverages } from '@/hooks/useAssessmentAnswer';
           </div>
         </CardStat>
 
+        <CardStat colors='blue-100' icon={<FileText className="w-4 h-4" />} label="Activities Overview">
+          <div className="flex flex-col gap-2 text-center w-full">
+            <ActivityTable />
+          </div>
+        </CardStat>
+
         <div className='grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-6'>
-          <div className='sm:col-span-2 md:col-span-1 lg:col-span-1'>
-            <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Pretest Dashboard">
-              <div className="flex flex-col gap-2 text-center w-full">
-                <ListPretest
-                  pretestAnswers={pretestAnswer}
-                  pretestAverage={pretestAverage}
-                />
-              </div>
+          <div className='col-span-2'>
+            <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Pretest">
+              <PretestDetail />
             </CardStat>
           </div>
 
-          <div className='sm:col-span-2 md:col-span-1 lg:col-span-1'>
+          {/* <div className='sm:col-span-2 md:col-span-1 lg:col-span-1'>
             <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Posttest Dashboard">
               <div className="flex flex-col gap-2 text-center w-full">
                 <ListPosttest
@@ -136,9 +134,8 @@ import { useAssessmentAverages } from '@/hooks/useAssessmentAnswer';
                 />
               </div>
             </CardStat>
-          </div>
+          </div> */}
         </div>
-
 
         <CardStat colors='slate-100' icon={<FileText className="w-4 h-4" />} label="Activities Overview">
           <div className="flex flex-col gap-2 text-center w-full">
@@ -152,7 +149,6 @@ import { useAssessmentAverages } from '@/hooks/useAssessmentAnswer';
           </div>
         </CardStat>
       </div>
-
     </>
   );
 }

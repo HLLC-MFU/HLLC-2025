@@ -44,15 +44,15 @@ export default function StepContersTable({
       case 'rank':
         return <p>{step.rank}</p>
       case 'name':
-        const userName = step.user.name;
+        const userName = step.user?.name;
         return (
-          <p>{userName.first} {userName.middle ?? ''} {userName.last ?? ''}</p>
+          <p>{userName?.first} {userName?.middle ?? ''} {userName?.last ?? ''}</p>
         )
       case 'school':
-        const major = step.user.metadata?.major as Major;
+        const major = step.user?.metadata?.major as Major;
         return <p>{(major?.school as School)?.name.en ?? '-'}</p>
       case 'major':
-        return <p>{(step.user.metadata?.major as Major)?.name.en ?? '-'}</p>
+        return <p>{(step.user?.metadata?.major as Major)?.name.en ?? '-'}</p>
       case 'totalStep':
         return <p>{step.totalStep}</p>
       default:

@@ -338,8 +338,8 @@ export class CoinCollectionsService {
     
     if (collectedCount === 0) return null;
 
-    //ใช้โอกาสแจกตรง ๆ เช่น 1 ใน 27
-    const dropChance = 1 / 4;
+    //ใช้โอกาสแจกตรง ๆ เช่น 1 ใน 2
+    const dropChance = 1 / 2;
     if (Math.random() >= dropChance) {
       return null; // ไม่แจกครั้งนี้
     }

@@ -77,7 +77,9 @@ export async function middleware(req: NextRequest) {
     role === "administrator" ||
     role === "staff" ||
     role === "mentee" ||
-    role === "mentor";
+    role === "executive" ||
+    role === "mentor" ||
+    role === "ae";
 
   if (!isAllowed) {
     return NextResponse.redirect(new URL(`${basePath}/logout`, origin));
@@ -90,6 +92,14 @@ export async function middleware(req: NextRequest) {
     pathname !== "/logout"
   ) {
     return NextResponse.redirect(new URL(`${basePath}/checkin`, origin));
+  }
+  if (
+    role == "ae" &&
+    !pathname.startsWith (`/chat` )&&
+    !pathname.startsWith (`/sponsor-systems` )&&
+    !pathname.startsWith ("/logout")
+  ) {
+    return NextResponse.redirect(new URL(`${basePath}/sponsor-systems`, origin));
   }
 
   return NextResponse.next();

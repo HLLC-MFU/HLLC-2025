@@ -8,7 +8,7 @@ import ProgressBar from '@/components/ui/progressBar';
 import SSEListener from '@/components/SSEListener';
 import { useAppearances } from '@/hooks/useAppearances';
 import { useProfile } from '@/hooks/useProfile';
-// import PretestQuestionModal from '@/components/PretestPosttest/PretestQuestionModal';
+import PretestQuestionModal from '@/components/PretestPosttest/PretestQuestionModal';
 import PosttestQuestionModal from '@/components/PretestPosttest/PosttestQuestionModal';
 import { usePrepostQuestion } from '@/hooks/usePrePostQuestion';
 import { useSseStore } from '@/stores/useSseStore';
@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, fetchUser } = useProfile();
-  const { assets } = useAppearances();
+  const { assets, colors } = useAppearances();
   const {
     pretestAnswersInput,
     posttestAnswersInput,
@@ -138,44 +138,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const shouldBlur = pathname !== '/';
 
-  const hideProgressSummary =
-    pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
-  const hideBottomNav = pathname.match(/^\/community\/chat\/[^\/]+$/); // เฉพาะหน้าแชทห้อง (community/chat/[id])
-  const hideNotification = pathname.startsWith('/community/coin-hunting');
-  const hideNotificationChat = pathname.startsWith('/community/chat');
+  const hideProgressSummary = pathname.match(/^\/community\/chat\/[^\/]+$/) // (community/chat/[id])
+    || pathname.match(/^\/activities\/[^\/]+$/); // (activities/[id]);
+  const hideNotification = pathname.startsWith('/community/coin-hunting')
+    || pathname.match(/^\/community\/chat\/[^\/]+$/) // (community/chat/[id]);
+    || pathname.match(/^\/activities\/[^\/]+$/); // (activities/[id]);
+  const hideBottomNav = pathname.match(/^\/community\/chat\/[^\/]+$/) // (community/chat/[id])
+    || pathname.match(/^\/activities\/[^\/]+$/); // (activities/[id]);
+
+  const schoolAcronym = ["ADT", "AI", "CSC", "DENT", "HS", "IM", "LA", "LAW", "MED", "NS", "SCI", "SINO", "SOCIN", "SOM"];
+  const acronym = user?.metadata?.major?.school?.acronym?.toUpperCase();
+  const videoAcronym = schoolAcronym.includes(acronym ?? "") ? acronym : "DENT";
 
   return (
     <>
       <SSEListener />
       <div className="relative h-dvh w-full overflow-hidden pb-24">
-        {assets && assets.background ? (
-          assets.background.endsWith('.mp4') ? (
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="absolute inset-0 w-screen h-screen object-cover z-0"
-              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.background}`}
-            />
-          ) : (
-            <Image
-              fill
-              priority
-              alt="Background"
-              className="absolute inset-0 object-cover z-0"
-              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${assets.background}`}
-            />
-          )
-        ) : (
-          <Image
-            fill
-            priority
-            alt="Background"
-            className="absolute inset-0 object-cover z-0"
-            src={lobby}
-          />
-        )}
+
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-screen h-screen object-cover z-0"
+          src={`/images/lobby/${videoAcronym}.mp4`}
+        />
+
         <div
           className="absolute inset-0 z-10 pointer-events-none transition-all duration-500"
           style={{
@@ -190,6 +178,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex justify-between fixed top-0 left-0 right-0 mx-4 mt-6 z-40">
             {!hideProgressSummary && (
               <ProgressBar
+                colors={colors}
                 avatarUrl={(user && user.metadata?.major?.school?.photos?.avatar)
                   ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${user.metadata?.major?.school.photos.avatar}`
                   : (assets && assets.profile)
@@ -199,7 +188,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onClickAvatar={() => router.push('/profile')}
               />
             )}
-            {!hideNotification && !hideNotificationChat && (
+            {!hideNotification && (
               <GlassButton
                 iconOnly
                 className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 z-50"
@@ -225,7 +214,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {children}
           </main>
 
-          {/* <PretestQuestionModal
+          <PretestQuestionModal
             answers={pretestAnswersInput}
             isOpen={isPretestModalOpen}
             prePostQuestions={selectedPretestQuestions}
@@ -239,7 +228,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               setSelectedPretestQuestions([]);
             }}
             onSubmit={() => handlePretestSubmit()}
-          /> */}
+          />
 
           <PosttestQuestionModal
             answers={posttestAnswersInput}

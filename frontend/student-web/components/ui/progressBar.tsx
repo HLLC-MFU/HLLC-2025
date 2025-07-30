@@ -8,9 +8,11 @@ import { useRouter } from 'next/navigation';
 import { useSseStore } from '@/stores/useSseStore';
 
 export default function ProgressBar({
+  colors,
   avatarUrl = '/avatar.png',
   onClickAvatar,
 }: {
+  colors: Record<string, string> | undefined;
   avatarUrl?: string;
   onClickAvatar?: () => void;
 }) {
@@ -48,7 +50,6 @@ export default function ProgressBar({
             className="object-cover"
             src={avatarUrl || '/avatar.png'}
             onError={() => setImageError(true)}
-            sizes='8px'
           />
         )}
       </button>
@@ -57,13 +58,13 @@ export default function ProgressBar({
       <div className="relative flex-1 h-7 sm:h-7 md:h-10 rounded-full -ml-6 bg-black/10 backdrop-blur-md border border-black/20 shadow-inner overflow-hidden">
         {/* Progress Fill */}
         <div
-          className="h-full bg-gradient-to-r from-pink-400 to-pink-500 rounded-full transition-all duration-300 ease-in-out"
-          style={{ width: `${percentage}%` }}
+          className="h-full rounded-full transition-all duration-300 ease-in-out"
+          style={{ width: `50%`, backgroundImage: `linear-gradient(to right, ${colors?.primary ?? '#62cff4'}, ${colors?.secondary ?? '#2c67f2'})` }}
         />
 
         {/* Percentage Bubble */}
         <div
-          className="absolute top-1/2 right-0 -translate-y-1/2 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm md:text-base w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 pointer-events-none transition-all duration-300"
+          className="absolute top-1/2 right-5 -translate-y-1/2 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm md:text-base w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 pointer-events-none transition-all duration-300"
         >
           {percentage}%
         </div>

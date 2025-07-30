@@ -135,10 +135,6 @@ export class StepCountersService {
       user: user._id,
     });
 
-    if (!existingCounter) {
-      throw new NotFoundException('Step counter not found for this user');
-    }
-
     // Get today's date at 00:00:00 for accurate date matching
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -186,14 +182,10 @@ export class StepCountersService {
       .orFail(() => new NotFoundException('User not found'));
 
     const isFresher = (user.role as any)?.name?.toLowerCase() === 'fresher';
-    console.log('user.role:', user.role);
 
 
     // Find all step counters for user
     const stepCounters = await this.stepCounterModel.find({ user: user._id });
-    if (stepCounters.length === 0) {
-      throw new NotFoundException('Step counter not found for this user');
-    }
 
     // Find step counter matching deviceId
     const stepCounter = stepCounters.find((sc) => sc.deviceId === deviceId);
@@ -203,11 +195,11 @@ export class StepCountersService {
 
     // Set initialStepCount if not already set
     if (stepCounter.initialStepCount == null) {
-      stepCounter.initialStepCount = stepCount;
+      stepCounter.initialStepCount = Math.round(stepCount);
     }
 
     // Adjust step count to start from 0
-    const adjustedStepCount = stepCount - stepCounter.initialStepCount;
+    const adjustedStepCount = Math.round(stepCount) - stepCounter.initialStepCount;
     const finalStep = Math.max(adjustedStepCount, 0);
 
     // Normalize date to midnight
@@ -390,11 +382,8 @@ export class StepCountersService {
       return sc.user._id.toString() === user._id.toString();
     });
 
-    if (!myStepCounter) {
-      throw new NotFoundException('Step counter not found');
-    }
 
-    const myTotalSteps = myStepCounter.steps?.at(-1)?.totalStep || 0;
+    const myTotalSteps = myStepCounter?.steps?.at(-1)?.totalStep || 0;
 
     const globalRanked = allStepCounters
       .filter((sc) => sc.user && sc.user._id)
@@ -426,7 +415,8 @@ export class StepCountersService {
           ...sc,
           totalStep,
         };
-      });
+      })
+      .sort((a, b) => a.rank - b.rank);
 
 
     let schoolRank: number | null = null;

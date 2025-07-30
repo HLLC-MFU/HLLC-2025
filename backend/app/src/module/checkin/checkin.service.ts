@@ -28,7 +28,7 @@ export class CheckinService {
     @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
     private readonly notificationsService: NotificationsService,
     private readonly sseService: SseService,
-  ) {}
+  ) { }
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
     const { staff: staffId, user: username, activities } = createCheckinDto;
@@ -94,7 +94,7 @@ export class CheckinService {
     }
 
     const activityObjectIds = activities.map((id) => new Types.ObjectId(id));
-   const isAdmin = ['ADMINISTRATOR','DEV'].includes(staffRole);
+    const isAdmin = ['ADMINISTRATOR', 'DEV'].includes(staffRole);
 
     await validateCheckinTime(activities, this.activityModel, isAdmin);
 
@@ -218,5 +218,48 @@ export class CheckinService {
         select: ['username']
       })
     return checkin
+  }
+
+  async createMany(data: {
+    staff: string;
+    userIds: string[];
+    activities: string[];
+  }): Promise<Checkin[]> {
+    const checkins: Checkin[] = [];
+
+    for (const userId of data.userIds) {
+      for (const activityId of data.activities) {
+        const existing = await this.checkinModel.findOne({
+          user: new Types.ObjectId(userId),
+          activity: new Types.ObjectId(activityId),
+        });
+
+        if (existing) continue;
+
+        const created = new this.checkinModel({
+          user: new Types.ObjectId(userId),
+          activity: new Types.ObjectId(activityId),
+          staff: new Types.ObjectId(data.staff),
+        });
+        await created.save();
+        checkins.push(created);
+
+        // Send notification
+        await this.notificationsService.create({
+          type: 'checkin',
+          user: userId,
+          title: 'เช็คอินกิจกรรมสำเร็จ',
+          body: `คุณได้เช็คอินกิจกรรมแล้ว`,
+        });
+
+        // Emit SSE
+        this.sseService.broadcast(userId, 'checkin', {
+          activityId,
+          status: 'success',
+        });
+      }
+    }
+
+    return checkins;
   }
 }

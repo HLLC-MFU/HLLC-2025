@@ -5,7 +5,6 @@ import { Accordion, AccordionItem, Button } from '@heroui/react';
 import {
   MonitorSmartphone,
   Plus,
-  Smartphone,
   UserRound,
   UserRoundCog,
   UserRoundSearch,
@@ -13,6 +12,7 @@ import {
 
 import UsersTable from './_components/UserTable';
 import AddRoleModal from './_components/AddRoleModal';
+import DeviceTable from './_components/DeviceTable';
 
 import { useUsers } from '@/hooks/useUsers';
 import { useRoles } from '@/hooks/useRoles';
@@ -22,7 +22,6 @@ import { useSchools } from '@/hooks/useSchool';
 import { PageHeader } from '@/components/ui/page-header';
 import { useMajors } from '@/hooks/useMajor';
 import useAuth from '@/hooks/useAuth';
-import DeviceTable from './_components/DeviceTable';
 import { useDevices } from '@/hooks/useDevices';
 
 export const columns = [
@@ -53,7 +52,6 @@ export default function ManagementPage() {
     updateUser,
     uploadUser,
     deleteUser,
-    deleteMultiple,
   } = useUsers();
   const { roles, createRole, updateRole, deleteRole, loading: rolesLoading, fetchRoles } = useRoles();
   const { schools, loading: schoolsLoading } = useSchools();
@@ -190,100 +188,107 @@ export default function ManagementPage() {
         <Accordion className="px-0" variant="splitted">
           {isLoading
             ? Array.from({ length: 3 }).map((_, index) => (
-                <AccordionItem
-                  key={`skeleton-${index}`}
-                  aria-label={`Loading ${index}`}
-                  title={
-                    <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
-                  }
-                >
-                  <div className="h-[100px] w-full bg-gray-100 rounded-md animate-pulse" />
-                </AccordionItem>
-              ))
+              <AccordionItem
+                key={`skeleton-${index}`}
+                aria-label={`Loading ${index}`}
+                title={
+                  <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
+                }
+              >
+                <div className="h-[100px] w-full bg-gray-100 rounded-md animate-pulse" />
+              </AccordionItem>
+            ))
             : roles.map((role) => {
-                const roleName = role.name ?? 'Unnamed';
-                const roleUsers = groupedByRoleId[role._id] || [];
+              const roleName = role.name ?? 'Unnamed';
+              const roleUsers = groupedByRoleId[role._id] || [];
 
-                return (
-                  <AccordionItem
-                    key={role._id}
-                    aria-label={String(roleName)}
-                    className="font-medium mb-2"
-                    startContent={
-                      <div className="p-3 rounded-xl bg-gradient-to-r bg-gray-200 border">
-                        <span className="text-gray-500">
-                          {roleIcons[roleName] || <UserRound />}
-                        </span>
-                      </div>
-                    }
-                    subtitle={
-                      <p className="flex">
-                        <span className="text-primary ml-1">{`${roleUsers.length} users`}</span>
-                      </p>
-                    }
-                    title={roleName}
-                  >
-                    <UsersTable
-                      actionMode={actionMode}
-                      capitalize={capitalize}
-                      columns={columns}
-                      confirmMode={confirmMode}
-                      initialVisibleColumns={INITIAL_VISIBLE_COLUMNS}
-                      majors={majors}
-                      modal={modal}
-                      roleId={role._id}
-                      schools={schools}
-                      setActionMode={setActionMode}
-                      setConfirmMode={setConfirmMode}
-                      setModal={setModal}
-                      users={roleUsers}
-                      onAdd={handleAdd}
-                      onConfirm={handleConfirm}
-                      onImport={handleImport}
-                      selectedUser={selectedUser}
-                      setSelectedUser={setSelectedUser}
-                      onRoleEdit={() => handleEditRole(role)}
-                      onRoleDelete={() => handleDeleteRoleClick(role)}
-                    />
-                  </AccordionItem>
-                );
-              })}
+              return (
+                <AccordionItem
+                  key={role._id}
+                  aria-label={String(roleName)}
+                  className="font-medium mb-2"
+                  startContent={
+                    <div className="p-3 rounded-xl bg-gradient-to-r bg-gray-200 border">
+                      <span className="text-gray-500">
+                        {roleIcons[roleName] || <UserRound />}
+                      </span>
+                    </div>
+                  }
+                  subtitle={
+                    <p className="flex">
+                      <span className="text-primary ml-1">{`${roleUsers.length} users`}</span>
+                    </p>
+                  }
+                  title={roleName}
+                >
+                  <UsersTable
+                    actionMode={actionMode}
+                    capitalize={capitalize}
+                    columns={columns}
+                    confirmMode={confirmMode}
+                    initialVisibleColumns={INITIAL_VISIBLE_COLUMNS}
+                    majors={majors}
+                    modal={modal}
+                    roleId={role._id}
+                    schools={schools}
+                    selectedUser={selectedUser}
+                    setActionMode={setActionMode}
+                    setConfirmMode={setConfirmMode}
+                    setModal={setModal}
+                    setSelectedUser={setSelectedUser}
+                    users={roleUsers}
+                    onAdd={handleAdd}
+                    onConfirm={handleConfirm}
+                    onImport={handleImport}
+                    onRoleDelete={() => handleDeleteRoleClick(role)}
+                    onRoleEdit={() => handleEditRole(role)}
+                  />
+                </AccordionItem>
+              );
+            })}
         </Accordion>
-        <Accordion className="px-0" variant="splitted">
-      <AccordionItem
-        key="device-accordion"
-        aria-label="Devices"
-        className="font-medium mb-2"
-        title={
-          <div className="flex items-center gap-2">
-            <MonitorSmartphone className="w-5 h-5" />
-            <span>Devices ({filteredCount})</span>
-          </div>
-        }
-      >
-        <DeviceTable
-          devices={devices}
-          loading={devicesLoading}
-          onFilteredCountChange={setFilteredCount}
-        />
-      </AccordionItem>
-    </Accordion>
+        <Accordion className="px-0 border-t pt-6" variant="splitted">
+          <AccordionItem
+            key="device-accordion"
+            aria-label="Devices"
+            className="font-medium mb-2"
+            startContent={
+              <div className="p-3 rounded-xl bg-gradient-to-r bg-gray-200 border">
+                <span className="text-gray-500">
+                  <MonitorSmartphone />
+                </span>
+              </div>
+            }
+            subtitle={
+              <p className="flex">
+                <span className="text-primary ml-1">{`${devices.length} devices`}</span>
+              </p>
+            }
+            title="Devices"
+          >
+            <DeviceTable
+              devices={devices}
+              loading={devicesLoading}
+              onFilteredCountChange={setFilteredCount}
+            />
+          </AccordionItem>
+        </Accordion>
 
         <AddRoleModal
+          editingRole={selectedRole}
           isOpen={isRoleOpen}
+          majors={majors}
+          mode={roleModalMode}
+          schools={schools}
+          users={users}
           onAddRole={handleAddRole}
           onClose={() => {
             setIsRoleOpen(false);
             setSelectedRole(null);
             setRoleModalMode('Add');
           }}
-          schools={schools}
-          majors={majors}
-          users={users}
-          editingRole={selectedRole}
-          mode={roleModalMode}
         />
-        
+
         {/* Delete Role Confirmation Modal */}
         {isDeleteRoleOpen && (
           <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30">

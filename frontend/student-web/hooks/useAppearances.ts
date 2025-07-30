@@ -6,6 +6,7 @@ import { useProfile } from "./useProfile";
 
 export function useAppearances() {
     const [assets, setAssets] = useState<Record<string, string>>();
+    const [colors, setColors] = useState<Record<string, string>>();
     const { user } = useProfile();
     const schoolId = user?.metadata?.major?.school?._id ?? null;
 
@@ -17,6 +18,7 @@ export function useAppearances() {
             }
 
             setAssets(res.data.data[0].assets);
+            setColors(res.data.data[0].colors);
         } catch (err) {
             const message = err instanceof Error ? err.message : "Unexpected error";
         }
@@ -28,5 +30,6 @@ export function useAppearances() {
 
     return {
         assets,
+        colors,
     };
 }
