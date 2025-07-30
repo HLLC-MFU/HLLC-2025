@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { addToast } from "@heroui/react";
 
 import type { 
@@ -248,73 +248,79 @@ export function useChat(): UseChatReturn {
     };
 
     /**
-     * Get room members with restriction status
-     * @param roomId - Room ID with optional query parameters
-     * @returns Promise with members data
-     */
-    const getRoomMembers = async (roomId: string) => {
-        try {
-            setLoading(true);
-            const [id, query] = roomId.split("?");
-            const endpoint = query ? `/rooms/${id}/members?${query}` : `/rooms/${id}/members`;
-            const res = await apiGolangRequest<{ data: RoomMembersResponse }>(
-                endpoint,
-                "GET",
-            );
+ * Get room members with restriction status
+ * @param roomId - Room ID with optional query parameters
+ * @returns Promise with members data
+ */
+const getRoomMembers = useCallback(async (roomId: string) => {
+    try {
+        setLoading(true);
+        const [id, query] = roomId.split("?");
+        
+        // ตั้งค่า limit เป็น 0 ตลอดเวลา
+        const endpoint = query 
+            ? `/rooms/${id}/members?${query}&limit=10000`
+            : `/rooms/${id}/members?limit=10000`;
+
+        const res = await apiGolangRequest<{ data: RoomMembersResponse }>(
+            endpoint,
+            "GET",
+        );
+        
+        if (res.data) {
+            const responseData = res.data.data || res.data;
+            const members = Array.isArray(responseData?.members)
+                ? responseData.members
+                : [];
             
-            if (res.data) {
-                const responseData = res.data.data || res.data;
-                const members = Array.isArray(responseData?.members)
-                    ? responseData.members
-                    : [];
-                
-                let roomRestrictions: RoomRestrictionsResponse = {};
-                try {
-                    const restrictionRes = await apiGolangRequest<{data: RoomRestrictionsResponse}>(
-                        `/restriction/room/${id}/restrictions`,
-                        "GET"
-                    );
-                    roomRestrictions = restrictionRes.data?.data || {};
-                } catch (err) {
-                    console.error('Failed to get room restrictions:', err);
-                }
-
-                const membersWithRestrictionStatus = members.map((member: RoomMember) => {
-                    const memberRestrictions = roomRestrictions[member.user._id] || {
-                        isBanned: false,
-                        isMuted: false,
-                        isKicked: false
-                    };
-                    
-                    return {
-                        ...member,
-                        restrictionStatus: memberRestrictions
-                    };
-                });
-
-                return {
-                    data: {
-                        members: membersWithRestrictionStatus,
-                        meta: responseData.meta
-                    }
-                };
+            let roomRestrictions: RoomRestrictionsResponse = {};
+            try {
+                const restrictionRes = await apiGolangRequest<{data: RoomRestrictionsResponse}>(
+                    `/restriction/room/${id}/restrictions`,
+                    "GET"
+                );
+                roomRestrictions = restrictionRes.data?.data || {};
+            } catch (err) {
+                console.error('Failed to get room restrictions:', err);
             }
-            return { data: { members: [] } };
-        } catch (err) {
-            const errorMessage = err && typeof err === 'object' && 'message' in err
-                ? (err as { message?: string }).message || 'Failed to fetch room members.'
-                : 'Failed to fetch room members.';
-            
-            setError(errorMessage);
-            addToast({
-                title: 'Failed to fetch room members. Please try again.',
-                color: 'danger',
+
+            const membersWithRestrictionStatus = members.map((member: RoomMember) => {
+                const memberRestrictions = roomRestrictions[member.user._id] || {
+                    isBanned: false,
+                    isMuted: false,
+                    isKicked: false
+                };
+                
+                return {
+                    ...member,
+                    restrictionStatus: memberRestrictions
+                };
             });
-            return { data: { members: [] } };
-        } finally {
-            setLoading(false);
+
+            return {
+                data: {
+                    members: membersWithRestrictionStatus,
+                    meta: responseData.meta
+                }
+            };
         }
-    };
+        return { data: { members: [] } };
+    } catch (err) {
+        const errorMessage = err && typeof err === 'object' && 'message' in err
+            ? (err as { message?: string }).message || 'Failed to fetch room members.'
+            : 'Failed to fetch room members.';
+        
+        setError(errorMessage);
+        addToast({
+            title: 'Failed to fetch room members. Please try again.',
+            color: 'danger',
+        });
+        return { data: { members: [] } };
+    } finally {
+        setLoading(false);
+    }
+}, []);
+
 
     useEffect(() => {
         fetchRooms();

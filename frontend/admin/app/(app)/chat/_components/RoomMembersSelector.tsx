@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Badge, Button, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { Badge, Button, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Skeleton } from "@heroui/react";
 import { Users, UserPlus, X } from "lucide-react";
 
 import { useUsers } from "@/hooks/useUsers";
@@ -11,9 +11,10 @@ type RoomMembersSelectorProps = {
     selectedMembers: User[];
     setSelectedMembers: React.Dispatch<React.SetStateAction<User[]>>;
     allowSelectAll?: boolean;
+    isLoadingMembers?: boolean;
 };
 
-export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allowSelectAll = true }: RoomMembersSelectorProps) {
+export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allowSelectAll = true, isLoadingMembers = false }: RoomMembersSelectorProps) {
     const { users, fetchByUsername } = useUsers();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -165,29 +166,76 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
             )}
 
             {/* Selected Members */}
-            {!isSelectAllActive && selectedMembers.length > 0 && (
+            {!isSelectAllActive && (
                 <div className="space-y-2">
-                    <span className="text-sm text-default-500">Selected Members:</span>
-                    <div className="flex flex-wrap gap-2">
-                        {selectedMembers.map((user, index) => (
-                            <div key={user._id || index} className="flex items-center gap-1 bg-default-50 rounded-full px-2 py-1">
-                                <span className="font-medium text-sm">
-                                    {user.username || `${user.name?.first || ''} ${user.name?.last || ''}`.trim()}
-                                </span>
-                                {user._id !== "__SELECT_ALL__" && (
-                                    <Button 
-                                        isIconOnly 
-                                        color="danger" 
-                                        size="sm" 
-                                        variant="light" 
-                                        onPress={() => handleUserSelect(user)}
-                                    >
-                                        <X size={12} />
-                                    </Button>
+                    {isLoadingMembers ? (
+                        // Skeleton loading for members
+                        <>
+                            <span className="text-sm text-default-500">Selected Members:</span>
+                            <div className="flex flex-wrap gap-2">
+                                {Array.from({ length: 3 }).map((_, index) => (
+                                    <div key={index} className="flex items-center gap-1 bg-default-50 rounded-full px-2 py-1">
+                                        <Skeleton className="w-20 h-4 rounded" />
+                                        <Skeleton className="w-4 h-4 rounded-full" />
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    ) : selectedMembers.length > 0 ? (
+                        <>
+                            <span className="text-sm text-default-500">Selected Members ({selectedMembers.length}):</span>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedMembers.length <= 5 ? (
+                                    // Show all members if 5 or fewer
+                                    selectedMembers.map((user, index) => (
+                                        <div key={user._id || index} className="flex items-center gap-1 bg-default-50 rounded-full px-2 py-1">
+                                            <span className="font-medium text-sm">
+                                                {user.username || `${user.name?.first || ''} ${user.name?.last || ''}`.trim()}
+                                            </span>
+                                            {user._id !== "__SELECT_ALL__" && (
+                                                <Button 
+                                                    isIconOnly 
+                                                    color="danger" 
+                                                    size="sm" 
+                                                    variant="light" 
+                                                    onPress={() => handleUserSelect(user)}
+                                                >
+                                                    <X size={12} />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))
+                                ) : (
+                                    // Show first 5 members + count for the rest
+                                    <>
+                                        {selectedMembers.slice(0, 5).map((user, index) => (
+                                            <div key={user._id || index} className="flex items-center gap-1 bg-default-50 rounded-full px-2 py-1">
+                                                <span className="font-medium text-sm">
+                                                    {user.username || `${user.name?.first || ''} ${user.name?.last || ''}`.trim()}
+                                                </span>
+                                                {user._id !== "__SELECT_ALL__" && (
+                                                    <Button 
+                                                        isIconOnly 
+                                                        color="danger" 
+                                                        size="sm" 
+                                                        variant="light" 
+                                                        onPress={() => handleUserSelect(user)}
+                                                    >
+                                                        <X size={12} />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        <div className="flex items-center gap-1 bg-blue-100 text-blue-700 rounded-full px-3 py-1">
+                                            <span className="font-medium text-sm">
+                                                +{selectedMembers.length - 5} more
+                                            </span>
+                                        </div>
+                                    </>
                                 )}
                             </div>
-                        ))}
-                    </div>
+                        </>
+                    ) : null}
                 </div>
             )}
 

@@ -25,6 +25,7 @@ type RoomModalProps = {
 
 export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, getRoomMembers }: RoomModalProps) {
     const [loading, setLoading] = useState(false);
+    const [loadingMembers, setLoadingMembers] = useState(false);
     const { schools, loading: schoolsLoading } = useSchools();
     const { majors, loading: majorsLoading } = useMajors();
     const [nameEn, setNameEn] = useState("");
@@ -89,6 +90,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
         if (mode === "edit" && roomId && isOpen) {
             const loadMembers = async () => {
                 try {
+                    setLoadingMembers(true);
                     const result = await getRoomMembers(roomId);
                     if (result && Array.isArray(result.data?.members)) {
                         const mappedMembers = result.data.members.map((m: RoomMember) => ({
@@ -109,12 +111,16 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                 } catch (error) {
                     console.error("Failed to load room members:", error);
                     setSelectedMembers([]);
+                } finally {
+                    setLoadingMembers(false);
                 }
             };
             
             loadMembers();
+        } else {
+            setLoadingMembers(false);
         }
-    }, [mode, roomId, isOpen]); // Removed getRoomMembers from dependencies
+    }, [mode, roomId, isOpen, getRoomMembers]); // Added getRoomMembers back but will be memoized in parent
 
     const handleSubmit = async () => {
         if (!nameEn.trim() || !nameTh.trim() || !capacity.trim()) {
@@ -214,7 +220,8 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
     const isFormValid = nameEn.trim() && nameTh.trim() && capacity.trim() &&
         ((roomType !== "school" && roomType !== "major") ||
             (roomType === "school" && selectedSchool) ||
-            (roomType === "major" && selectedMajor));
+            (roomType === "major" && selectedMajor)) &&
+        !loadingMembers; // Prevent save while loading members
 
     return (
         <Modal isDismissable={false} isOpen={isOpen} scrollBehavior="inside" size="3xl" onClose={onClose}>
@@ -342,6 +349,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                                 allowSelectAll={roomType !== 'school' && roomType !== 'major'}
                                 selectedMembers={selectedMembers}
                                 setSelectedMembers={setSelectedMembers}
+                                isLoadingMembers={loadingMembers}
                             />
 
                             <div className="space-y-4">
@@ -416,8 +424,8 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                         <Button
                             className="bg-blue-600 hover:bg-blue-700"
                             color="primary"
-                            isDisabled={!isFormValid || loading}
-                            isLoading={loading}
+                            isDisabled={!isFormValid || loading || loadingMembers}
+                            isLoading={loading || loadingMembers}
                             onPress={handleSubmit}
                         >
                             {mode === "add" ? "Add" : "Save"}
