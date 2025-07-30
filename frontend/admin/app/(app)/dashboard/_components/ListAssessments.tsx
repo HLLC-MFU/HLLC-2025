@@ -70,7 +70,9 @@ export default function ListAssessments({
                     </CardHeader>
                     <CardBody>
                         <div className="text-2xl font-bold">
-                            {(assessmentNotNull?.reduce((sum, answer) => sum + (answer.averageAnswer ?? 0), 0) / assessmentNotNull?.length).toFixed(2)}
+                            {assessmentNotNull && assessmentNotNull.length > 0
+                                ? (assessmentNotNull.reduce((sum, answer) => sum + (answer.averageAnswer ?? 0), 0) / assessmentNotNull.length).toFixed(2)
+                                : '0.00'}
                         </div>
                     </CardBody>
                 </Card>

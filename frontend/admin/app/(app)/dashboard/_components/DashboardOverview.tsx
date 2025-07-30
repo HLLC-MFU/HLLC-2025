@@ -33,6 +33,8 @@ export default function Overview({ Activities, Userstats, Evouchers, Sponsors }:
                 colors="blue-100"
                 icon={<UserIcon className="w-4 h-4" />}
                 label="Fresher"
+                defaultOpen={true}
+                isClosable={false}
             >
                 <div className="flex flex-row gap-4 w-full">
                     <div className="flex flex-col gap-2 text-center flex-1">
@@ -51,6 +53,8 @@ export default function Overview({ Activities, Userstats, Evouchers, Sponsors }:
                 colors="red-100"
                 icon={<TicketCheck className="w-4 h-4" />}
                 label="Evouchers"
+                defaultOpen={true}
+                isClosable={false}
             >
                 <div className="flex flex-row gap-4 w-full">
                     <div className="flex flex-col gap-2 text-center flex-1">
@@ -69,6 +73,8 @@ export default function Overview({ Activities, Userstats, Evouchers, Sponsors }:
                 colors="green-100"
                 icon={<Book className="w-4 h-4" />}
                 label="Activities"
+                defaultOpen={true}
+                isClosable={false}
             >
                 {Activities.length === 0 ? (
                     <p className="text-sm text-gray-500">No activities found</p>
