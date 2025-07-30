@@ -62,11 +62,11 @@ export default function ActivityCheckinChart() {
     });
 
     // Log activity IDs per group
-    useEffect(() => {
-        Object.entries(groupedData).forEach(([fullName, group]) => {
-            console.log(`Activity IDs grouped under "${fullName}":`, group.activityIds);
-        });
-    }, [groupedData]);
+    // useEffect(() => {
+    //     Object.entries(groupedData).forEach(([fullName, group]) => {
+    //         console.log(`Activity IDs grouped under "${fullName}":`, group.activityIds);
+    //     });
+    // }, [groupedData]);
 
     const chartData = Object.entries(groupedData).map(([_, value]) => ({
         name: value.fullName,

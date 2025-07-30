@@ -36,7 +36,6 @@ export function useAssessmentAverages(activityId?: string) {
         : `/assessment-answers/all/average`;
 
       const res = await apiRequest<AssessmentAverage[]>(endpoint, 'GET');
-      console.log(res.data);
       if (Array.isArray(res.data)) {
         setData(res.data);
       } else {

@@ -25,9 +25,12 @@ import { usePosttest } from '@/hooks/usePosttestAnswer';
 import ActivityTable from './_components/ActivityTable';
 import PretestDetail from './_components/PretestDetail';
 
+import ListAssessments from './_components/ListAssessments';
+import { useAssessment } from '@/hooks/useAssessment';
 
 export default function Dashboard() {
   const { activities } = useActivities({ autoFetch: true });
+  const { assessments } = useAssessment();
   const { fetchCheckinByActivity } = useCheckin(null);
   const { pretestAverage, pretestAnswer } = usePretest();
   const { posttestAverage, posttestAnswer, totalAverageCount } = usePosttest();
@@ -39,6 +42,7 @@ export default function Dashboard() {
   const { problems } = useReports();
   const { reporttypes } = useReportTypes();
   const { Userstats } = useUserStatistics();
+
   // const [selectedActivityId, setSelectedActivityId] = useState<
   //   string | undefined
   // >(undefined);
@@ -77,8 +81,6 @@ export default function Dashboard() {
     type,
     count: names.size,
   }));
-
-
 
   return (
     <>
@@ -135,6 +137,16 @@ export default function Dashboard() {
               </div>
             </CardStat>
           </div> */}
+
+          <div className='col-span-2'>
+            <CardStat colors='purple-100' icon={<FileText className="w-4 h-4" />} label="Assessments">
+              <div className="flex flex-col gap-2 text-center w-full">
+                <ListAssessments
+                  assessments={assessments}
+                />
+              </div>
+            </CardStat>
+          </div>
         </div>
 
         <CardStat colors='slate-100' icon={<FileText className="w-4 h-4" />} label="Activities Overview">
