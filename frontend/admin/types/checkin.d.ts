@@ -38,7 +38,7 @@ export type User = {
 export type Name = {
   first: string;
   middle?: string;
-  last: string;
+  last?: string;
 };
 
 export type CheckinCreate = {

@@ -73,7 +73,7 @@ export class PretestPosttestDashboardService {
         });
     
         return {
-          answers,
+          userAnswers: answers,
           average,
           totalAnswers: answers.length,
         };
@@ -101,7 +101,7 @@ export class PretestPosttestDashboardService {
           return {
             userId: entry.user,
             name: userInfo?.name || {},
-            answers: entry.answers,
+            userAnswers: entry.answers,
           };
         });
     
@@ -137,7 +137,7 @@ export class PretestPosttestDashboardService {
         });
     
         return {
-          answers,
+          userAnswers: answers,
           average,
           totalAnswers: answers.length,
         };
