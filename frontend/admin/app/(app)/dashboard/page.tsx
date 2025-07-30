@@ -36,7 +36,7 @@ export default function Dashboard() {
   const combinedCheckins = Object.values(allCheckins).flat();
   const { sponsors } = useSponsors();
   const { evouchers } = useEvoucher();
-  const { problems } = useReports();
+  const { reports } = useReports();
   const { reporttypes } = useReportTypes();
   const { Userstats } = useUserStatistics();
   // const [selectedActivityId, setSelectedActivityId] = useState<
