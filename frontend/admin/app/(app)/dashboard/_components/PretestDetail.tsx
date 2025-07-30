@@ -63,24 +63,24 @@ export default function PretestDetail() {
           <TableBody>
             {isLoading
               ? // Skeleton rows, e.g. 3 rows
-                [...Array(3)].map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="px-4 py-2">
-                      <div className="h-4 w-24 bg-gray-300 rounded animate-pulse" />
-                    </TableCell>
-                    <TableCell className="px-4 py-2 text-right">
-                      <div className="h-4 w-12 bg-gray-300 rounded animate-pulse mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                ))
+              [...Array(3)].map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell className="px-4 py-2">
+                    <div className="h-4 w-24 bg-gray-300 rounded animate-pulse" />
+                  </TableCell>
+                  <TableCell className="px-4 py-2 text-right">
+                    <div className="h-4 w-12 bg-gray-300 rounded animate-pulse mx-auto" />
+                  </TableCell>
+                </TableRow>
+              ))
               : averageData.map((avg) => (
-                  <TableRow key={avg.questionId}>
-                    <TableCell className="px-4 py-2">{avg.question.en}</TableCell>
-                    <TableCell className="px-4 py-2 text-right">
-                      {avg.average.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                <TableRow key={avg.questionId}>
+                  <TableCell className="px-4 py-2">{avg.question.en}</TableCell>
+                  <TableCell className="px-4 py-2 text-right">
+                    {avg.average.toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
 
@@ -119,39 +119,34 @@ export default function PretestDetail() {
           <TableBody>
             {isLoading
               ? [...Array(rowsPerPage)].map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="px-3 py-1 font-medium flex-1">
-                      <div className="h-4 w-24 bg-gray-300 rounded animate-pulse" />
-                    </TableCell>
-                    {[...Array(maxAnswersCount)].map((_, j) => (
-                      <TableCell key={j} className="px-3 py-1">
-                        <div className="h-4 w-16 bg-gray-300 rounded animate-pulse" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
+                <TableRow key={i}>
+                  <TableCell className="px-3 py-1 font-medium flex-1">
+                    <div className="h-4 w-24 bg-gray-300 rounded animate-pulse" />
+                  </TableCell>
+                </TableRow>
+              ))
               : items.map((user) => (
-                  <TableRow key={user.userId}>
-                    <TableCell className="px-3 py-1 font-medium flex-1">
-                      {user.name.first} {user.name.last}
-                    </TableCell>
+                <TableRow key={user.userId}>
+                  <TableCell className="px-3 py-1 font-medium flex-1">
+                    {user.name.first} {user.name.last}
+                  </TableCell>
+                  <>
                     {[...Array(maxAnswersCount)].map((_, i) => (
                       <TableCell key={i} className="px-3 py-1">
                         {user.answers[i]?.answer ?? ""}
                       </TableCell>
                     ))}
-                  </TableRow>
-                ))}
+                  </>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>
-              <p className="mt-2 text-sm text-gray-600">
-          {isLoading ? (
-            <div className="h-4 w-24 bg-gray-300 rounded animate-pulse"></div>
-          ) : (
-            <>Total Answers: {totalAnswers}</>
-          )}
-        </p>
+      {isLoading ? (
+        <div className="h-4 w-24 bg-gray-300 rounded animate-pulse"></div>
+      ) : (
+        <p className="mt-2 text-sm text-gray-600">Total Answers: {totalAnswers}</p>
+      )}
     </div>
   );
 }
