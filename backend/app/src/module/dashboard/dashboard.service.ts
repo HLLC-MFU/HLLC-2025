@@ -6,6 +6,9 @@ import { Checkin } from '../checkin/schema/checkin.schema';
 import { Assessment } from '../assessments/schema/assessment.schema';
 import { AssessmentAnswer } from '../assessments/schema/assessment-answer.schema';
 import { User } from '../users/schemas/user.schema';
+import { PretestAnswer } from '../prepost-questions/schema/pretest-answer.schema';
+import { PrepostQuestion } from '../prepost-questions/schema/prepost-question.schema';
+import { PosttestAnswer } from '../prepost-questions/schema/posttest-answer.schema';
 
 @Injectable()
 export class DashboardService {
@@ -15,6 +18,9 @@ export class DashboardService {
     @InjectModel(Assessment.name) private assessmentModel: Model<Assessment>,
     @InjectModel(AssessmentAnswer.name) private assessmentAnswerModel: Model<AssessmentAnswer>,
     @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(PretestAnswer.name) private pretestAnswersModel: Model<PretestAnswer>,
+    @InjectModel(PosttestAnswer.name) private posttestAnswersModel: Model<PosttestAnswer>,
+    @InjectModel(PrepostQuestion.name) private prepostQuestionModel: Model<PrepostQuestion>,
   ) { }
 
   async getActivitiesDashboard() {
@@ -34,7 +40,7 @@ export class DashboardService {
       {
         $lookup: {
           from: 'activities',
-          pipeline: [{ $project: { _id: 1, name: 1 } }],
+          pipeline: [{ $project: { _id: 1, name: 1, acronym: 1 } }],
           as: 'activities',
         },
       },
@@ -127,6 +133,7 @@ export class DashboardService {
               in: {
                 activityId: '$$activity._id',
                 name: '$$activity.name',
+                acronym: '$$activity.acronym',
 
                 // Find checkin count for this activity
                 checkin: {
@@ -253,7 +260,5 @@ export class DashboardService {
 
     return result[0]; // has { dashboard: [...] }
   }
-
-
 
 }

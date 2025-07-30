@@ -7,6 +7,10 @@ import { Checkin, CheckinSchema } from '../checkin/schema/checkin.schema';
 import { Assessment, AssessmentSchema } from '../assessments/schema/assessment.schema';
 import { AssessmentAnswer, AssessmentAnswerSchema } from '../assessments/schema/assessment-answer.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
+import { PretestAnswer, PretestAnswerSchema } from '../prepost-questions/schema/pretest-answer.schema';
+import { PrepostQuestion, PrepostQuestionSchema } from '../prepost-questions/schema/prepost-question.schema';
+import { PosttestAnswer, PosttestAnswerSchema } from '../prepost-questions/schema/posttest-answer.schema';
+import { PretestPosttestDashboardService } from './services/pretest-posttest.service';
 
 @Module({
   imports: [
@@ -15,10 +19,13 @@ import { User, UserSchema } from '../users/schemas/user.schema';
       { name: Activities.name, schema: ActivitiesSchema },
       { name: Checkin.name, schema: CheckinSchema },
       { name: Assessment.name, schema: AssessmentSchema },
-      { name: AssessmentAnswer.name, schema: AssessmentAnswerSchema }
+      { name: AssessmentAnswer.name, schema: AssessmentAnswerSchema },
+      { name: PretestAnswer.name, schema: PretestAnswerSchema },
+      { name: PrepostQuestion.name, schema: PrepostQuestionSchema },
+      { name: PosttestAnswer.name, schema: PosttestAnswerSchema },
     ]),
   ],
   controllers: [DashboardController],
-  providers: [DashboardService],
+  providers: [DashboardService, PretestPosttestDashboardService],
 })
 export class DashboardModule { }

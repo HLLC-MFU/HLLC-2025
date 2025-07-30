@@ -11,7 +11,6 @@ import { Modal as Dialog } from "@heroui/react";
 import { RoomMembersSelector } from "./RoomMembersSelector";
 import { useSchools } from "@/hooks/useSchool";
 import { useMajors } from "@/hooks/useMajor";
-import { apiGolangRequest } from "@/utils/api";
 
 
 type RoomModalProps = {
@@ -42,6 +41,9 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
     const [showImageSizeDialog, setShowImageSizeDialog] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+    // Memoize room ID to prevent unnecessary re-renders
+    const roomId = room?._id;
+
     useEffect(() => {
         if (isOpen && room) {
             setNameEn(room.name.en);
@@ -53,18 +55,16 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
             setSelectedMajor(room.metadata?.groupType === "major" ? room.metadata.groupValue || "" : "");
             setSelectedMembers([]);
 
-            // แก้ไขปัญหารูปภาพ - ใช้ URL ที่ถูกต้อง
             if (room.image) {
                 const imageUrl = `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${room.image}`;
                 setImagePreview(imageUrl);
-                setImage(null); // ไม่ต้อง set file เพราะเป็น URL
+                setImage(null); 
             } else {
                 setImagePreview(null);
                 setImage(null);
             }
             setImageError(false);
         } else {
-            // Reset ทุกอย่างเมื่อเปิด modal ใหม่
             setNameEn("");
             setNameTh("");
             setStatus("active");
@@ -76,7 +76,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
             setImagePreview(null);
             setImageError(false);
 
-            // set type ตาม roomType เฉพาะตอน add
             if (["normal", "readonly", "mc"].includes(roomType)) {
                 setType(roomType as RoomType);
             } else {
@@ -85,25 +84,37 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
         }
     }, [isOpen, room, roomType]);
 
+    // Separate useEffect for loading members to prevent unnecessary calls
     useEffect(() => {
-        if (mode === "edit" && room?._id) {
-            getRoomMembers(room._id).then(result => {
-                if (result && Array.isArray(result.data?.members)) {
-                    setSelectedMembers(result.data.members.map((m: RoomMember) => ({
-                        _id: m.user._id,
-                        username: m.user.username,
-                        name: {
-                            first: m.user.name?.first || "",
-                            middle: m.user.name?.middle,
-                            last: m.user.name?.last,
-                        },
-                        role: m.user.Role ? m.user.Role : (m.user as any).role || "",
-                        metadata: {},
-                    })));
+        if (mode === "edit" && roomId && isOpen) {
+            const loadMembers = async () => {
+                try {
+                    const result = await getRoomMembers(roomId);
+                    if (result && Array.isArray(result.data?.members)) {
+                        const mappedMembers = result.data.members.map((m: RoomMember) => ({
+                            _id: m.user._id,
+                            username: m.user.username,
+                            name: {
+                                first: m.user.name?.first || "",
+                                middle: m.user.name?.middle,
+                                last: m.user.name?.last || "",
+                            },
+                            role: m.user.Role ? m.user.Role : (m.user as any).role || "",
+                            metadata: {},
+                        }));
+                        setSelectedMembers(mappedMembers);
+                    } else {
+                        setSelectedMembers([]);
+                    }
+                } catch (error) {
+                    console.error("Failed to load room members:", error);
+                    setSelectedMembers([]);
                 }
-            });
+            };
+            
+            loadMembers();
         }
-    }, [mode, room?._id, getRoomMembers]);
+    }, [mode, roomId, isOpen]); // Removed getRoomMembers from dependencies
 
     const handleSubmit = async () => {
         if (!nameEn.trim() || !nameTh.trim() || !capacity.trim()) {
@@ -121,7 +132,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
         if (roomType === "major" && !selectedMajor) {
             return;
         }
-        // Validation: ห้ามมี user ที่ไม่มี _id
         if (selectedMembers.some(u => !u._id)) {
             addToast({
                 title: "Invalid user",
@@ -133,7 +143,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
         setLoading(true);
 
         try {
-            // สร้าง FormData โดยไม่ผ่าน Server Action
             const formData = new FormData();
 
             formData.append("name.en", nameEn.trim());
@@ -155,7 +164,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                     formData.append("selectAllUsers", "true");
                 } else {
                     selectedMembers.forEach((user) => {
-                        // Debug log
                         console.log("[RoomModal] Add member:", user);
                         if (user._id) {
                             formData.append("members", user._id);
@@ -193,7 +201,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                 setImage(null);
                 setImagePreview(null);
                 setImageError(false);
-                // reset file input
                 if (fileInputRef.current) fileInputRef.current.value = "";
                 return;
             }
@@ -270,7 +277,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                                 />
                             </div>
 
-                            {/* ตรวจสอบ input status/capacity ว่าเป็น controlled component */}
                             <Select
                                 label="Status"
                                 selectedKeys={[status]}
@@ -293,7 +299,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                                 <span>Set to 0 for unlimited capacity</span>
                             </div>
 
-                            {/* Room Type dropdown เฉพาะ school/major เท่านั้น */}
                             {(roomType === "school" || roomType === "major") && (
                                 <Select
                                     label="Room Type"
@@ -339,12 +344,10 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                                 setSelectedMembers={setSelectedMembers}
                             />
 
-                            {/* Enhanced Image Upload Section */}
                             <div className="space-y-4">
                                 <label className="text-sm font-medium text-gray-700">Room Image (Optional)</label>
 
                                 <div className="flex items-start gap-6">
-                                    {/* Current Image Preview */}
                                     <div className="flex-shrink-0">
                                         <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 overflow-hidden bg-gray-50 flex items-center justify-center">
                                             {imagePreview ? (
@@ -367,7 +370,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                                         </div>
                                     </div>
 
-                                    {/* Upload Controls */}
                                     <div className="flex-1 space-y-3">
                                         <Input
                                             accept="image/*"
@@ -423,7 +425,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                     </ModalFooter>
                 </ModalContent>
             </div>
-            {/* Image size dialog */}
             <Dialog isOpen={showImageSizeDialog} onClose={() => setShowImageSizeDialog(false)} size="sm">
                 <ModalContent>
                     <ModalHeader>Image Too Large</ModalHeader>
