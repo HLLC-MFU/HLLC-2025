@@ -17,7 +17,9 @@ import { Footprints, Globe, RefreshCw, SchoolIcon, Search, Target } from 'lucide
 
 export default function StepContersPage() {
   const {
-    stepByAll,
+    stepByTop,
+    stepBySchool,
+    stepByAcheivement,
     loading: stepCounterLoading
   } = useStepCounters();
 
@@ -59,16 +61,14 @@ export default function StepContersPage() {
 
   // Highest steps of all
   const topOverall = useMemo(() => {
-    return [...stepByAll]
-      .filter((sc) => typeof sc.totalStep === 'number' && sc.totalStep !== null)
-      .sort((curr, next) => (curr.computedRank ?? Infinity) - (next.computedRank ?? Infinity))
-      .slice(0, 3)
-  }, [stepByAll]);
+    return [...stepByTop]
+      .filter((sc) => typeof sc.totalStep === 'number' && sc.totalStep !== null && filterBySearch(sc))
+  }, [stepByTop, search]);
 
   // Highest steps of each school
   const topSchool = useMemo(() => {
     const filteredSchool = schools.map((school) => {
-      const studentsInSchool = stepByAll
+      const studentsInSchool = stepByTop
         .filter((sc) => {
           const userMajor = sc.user?.metadata?.major as Major;
           if (!userMajor) return;
@@ -83,15 +83,13 @@ export default function StepContersPage() {
         .sort((curr, next) => (next.totalStep ?? Infinity) - (curr.totalStep ?? Infinity))[0];
     });
     return filteredSchool;
-  }, [stepByAll, schools]);
+  }, [stepByTop, schools]);
 
   // People who achieve the goal
   const topAchiever = useMemo(() => {
-    return [...stepByAll]
+    return [...stepByAcheivement]
       .filter((sc) => sc.completeStatus && typeof sc.rank === 'number' && filterBySearch(sc))
-      .sort((curr, next) => (curr.rank ?? 0) - (next.rank ?? 0))
-      .slice(0, 20);
-  }, [stepByAll, search]);
+  }, [stepByAcheivement, search]);
 
   const handleUpdate = async (steps: number) => {
     if (!steps) return;
@@ -123,7 +121,7 @@ export default function StepContersPage() {
           key="1"
           aria-label="Top Overall"
           title="Top Overall"
-          subtitle="Top 3 highest steps"
+          subtitle="Top highest steps"
           startContent={
             <div className="p-3 rounded-xl bg-gray-200 border">
               <Globe className="text-gray-500" />
@@ -158,7 +156,7 @@ export default function StepContersPage() {
           key="3"
           aria-label="Top Achievers"
           title="Top Achievers"
-          subtitle={`First 20 students to reach ${achievement?.achievement ?? 0} steps`}
+          subtitle={`First 150 students to reach ${achievement?.achievement ?? 0} steps`}
           startContent={
             <div className="p-3 rounded-xl bg-gray-200 border">
               <Target className="text-gray-500" />

@@ -336,6 +336,10 @@ export class StepCountersService {
       }))
       .sort((a, b) => b.totalStep - a.totalStep);
 
+    const schoolRanked = completed.filter((sc) => {
+      
+    })
+
     // Assign computed rank
     const combinedWithRank = completed.map((sc, idx) => ({
       ...sc,
@@ -343,7 +347,9 @@ export class StepCountersService {
     }));
 
     return {
-      data: combinedWithRank.slice(skip, skip + pageSize),
+      topRank: combinedWithRank.slice(skip, skip + pageSize),
+      schoolRank: [],
+      achievementRank: stepCounters.sort((a, b) => a.rank - b.rank).slice(0, 150),
       metadata: {
         total: combinedWithRank.length,
         page,

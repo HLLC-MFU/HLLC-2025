@@ -30,3 +30,9 @@ export type Steps = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type StepLeaderboardResponse = {
+  topRank: StepCounter[];
+  schoolRank: StepCounter[];
+  achievementRank: StepCounter[];
+};
