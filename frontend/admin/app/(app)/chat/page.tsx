@@ -12,7 +12,7 @@ import { useChat } from "@/hooks/useChat";
 import { PageHeader } from "@/components/ui/page-header";
 
 export default function ChatPage() {
-    const { rooms, loading, error, fetchRooms, createRoom, updateRoom, deleteRoom, getRoomMembers: _getRoomMembers } = useChat();
+    const { rooms, loading, error, fetchRooms, createRoom, updateRoom, deleteRoom, getRoomMembers: _getRoomMembers, getRoomMembersOnly: _getRoomMembersOnly } = useChat();
     
     // Properly memoize getRoomMembers to prevent unnecessary re-renders
     const getRoomMembers = useCallback(async (roomId: string) => {
@@ -23,6 +23,16 @@ export default function ChatPage() {
             return { data: { members: [] } };
         }
     }, [_getRoomMembers]);
+
+    // Memoize getRoomMembersOnly for faster loading
+    const getRoomMembersOnly = useCallback(async (roomId: string) => {
+        try {
+            return await _getRoomMembersOnly(roomId);
+        } catch (error) {
+            console.error("Error getting room members:", error);
+            return { data: { members: [] } };
+        }
+    }, [_getRoomMembersOnly]);
 
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -167,6 +177,7 @@ export default function ChatPage() {
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={handleSubmitRoom}
                 getRoomMembers={getRoomMembers}
+                getRoomMembersOnly={getRoomMembersOnly}
             />
         </>
     );

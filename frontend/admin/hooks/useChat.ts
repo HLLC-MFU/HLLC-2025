@@ -321,6 +321,44 @@ const getRoomMembers = useCallback(async (roomId: string) => {
     }
 }, []);
 
+/**
+ * Get room members only (without restriction status) - for faster loading
+ * @param roomId - Room ID with optional query parameters
+ * @returns Promise with members data
+ */
+const getRoomMembersOnly = useCallback(async (roomId: string) => {
+    try {
+        const [id, query] = roomId.split("?");
+        
+        const endpoint = query 
+            ? `/rooms/${id}/members?${query}&limit=10000`
+            : `/rooms/${id}/members?limit=10000`;
+
+        const res = await apiGolangRequest<{ data: RoomMembersResponse }>(
+            endpoint,
+            "GET",
+        );
+        
+        if (res.data) {
+            const responseData = res.data.data || res.data;
+            const members = Array.isArray(responseData?.members)
+                ? responseData.members
+                : [];
+
+            return {
+                data: {
+                    members: members,
+                    meta: responseData.meta
+                }
+            };
+        }
+        return { data: { members: [] } };
+    } catch (err) {
+        console.error('Failed to fetch room members:', err);
+        return { data: { members: [] } };
+    }
+}, []);
+
 
     useEffect(() => {
         fetchRooms();
@@ -337,6 +375,7 @@ const getRoomMembers = useCallback(async (roomId: string) => {
         toggleRoomStatus,
         getRoomById,
         getRoomMembers,
+        getRoomMembersOnly,
         getRestrictionStatus,
     };
 }

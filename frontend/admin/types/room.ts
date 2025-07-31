@@ -168,5 +168,16 @@ export type UseChatReturn = {
             };
         };
     }>;
+    getRoomMembersOnly: (roomId: string) => Promise<{
+        data: {
+            members: RoomMember[];
+            meta?: {
+                total: number;
+                page: number;
+                limit: number;
+                totalPages: number;
+            };
+        };
+    }>;
     getRestrictionStatus: (roomId: string, userId: string) => Promise<RestrictionStatus | null>;
 }; 

@@ -21,9 +21,10 @@ type RoomModalProps = {
     mode: "add" | "edit";
     roomType: RoomType | "school" | "major";
     getRoomMembers: (roomId: string) => Promise<any>;
+    getRoomMembersOnly: (roomId: string) => Promise<any>;
 };
 
-export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, getRoomMembers }: RoomModalProps) {
+export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, getRoomMembers, getRoomMembersOnly }: RoomModalProps) {
     const [loading, setLoading] = useState(false);
     const [loadingMembers, setLoadingMembers] = useState(false);
     const { schools, loading: schoolsLoading } = useSchools();
@@ -91,7 +92,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
             const loadMembers = async () => {
                 try {
                     setLoadingMembers(true);
-                    const result = await getRoomMembers(roomId);
+                    const result = await getRoomMembersOnly(roomId);
                     if (result && Array.isArray(result.data?.members)) {
                         const mappedMembers = result.data.members.map((m: RoomMember) => ({
                             _id: m.user._id,
@@ -120,7 +121,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
         } else {
             setLoadingMembers(false);
         }
-    }, [mode, roomId, isOpen, getRoomMembers]); // Added getRoomMembers back but will be memoized in parent
+    }, [mode, roomId, isOpen, getRoomMembersOnly]); // Use faster function without restriction status
 
     const handleSubmit = async () => {
         if (!nameEn.trim() || !nameTh.trim() || !capacity.trim()) {
@@ -350,6 +351,13 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                                 selectedMembers={selectedMembers}
                                 setSelectedMembers={setSelectedMembers}
                                 isLoadingMembers={loadingMembers}
+                                onShowAllMembers={(members) => {
+                                    addToast({
+                                        title: "All Members",
+                                        description: `Showing all ${members.length} selected members`,
+                                        color: "primary",
+                                    });
+                                }}
                             />
 
                             <div className="space-y-4">

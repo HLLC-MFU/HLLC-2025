@@ -12,9 +12,10 @@ type RoomMembersSelectorProps = {
     setSelectedMembers: React.Dispatch<React.SetStateAction<User[]>>;
     allowSelectAll?: boolean;
     isLoadingMembers?: boolean;
+    onShowAllMembers?: (members: User[]) => void;
 };
 
-export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allowSelectAll = true, isLoadingMembers = false }: RoomMembersSelectorProps) {
+export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allowSelectAll = true, isLoadingMembers = false, onShowAllMembers }: RoomMembersSelectorProps) {
     const { users, fetchByUsername } = useUsers();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -226,11 +227,20 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                                                 )}
                                             </div>
                                         ))}
-                                        <div className="flex items-center gap-1 bg-blue-100 text-blue-700 rounded-full px-3 py-1">
+                                        <Button
+                                            className="bg-blue-100 text-blue-700 rounded-full px-3 py-1 hover:bg-blue-200"
+                                            variant="light"
+                                            size="sm"
+                                            onPress={() => {
+                                                if (onShowAllMembers) {
+                                                    onShowAllMembers(selectedMembers);
+                                                }
+                                            }}
+                                        >
                                             <span className="font-medium text-sm">
                                                 +{selectedMembers.length - 5} more
                                             </span>
-                                        </div>
+                                        </Button>
                                     </>
                                 )}
                             </div>
@@ -298,6 +308,8 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                     </ModalContent>
                 </Modal>
             )}
+
+
         </div>
     );
 }
