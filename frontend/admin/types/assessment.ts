@@ -1,3 +1,5 @@
+import { Lang } from "./lang";
+
 export type QuestionType = "text" | "rating" | "dropdown" | "checkbox" | "radio";
 export type DifficultyLevel = "easy" | "medium" | "hard";
 export type AssessmentType = "pretest" | "posttest" | "activity";
@@ -6,114 +8,129 @@ export type DisplayType = "both" | "pretest" | "posttest";
 export type QuestionDifficulty = "easy" | "medium" | "hard";
 
 export interface Activity {
-  _id: string;
-  name: {
-    en: string;
-    th: string;
-  };
-  acronym: string;
-  fullDetails: {
-    en: string;
-    th: string;
-  };
-  shortDetails: {
-    en: string;
-    th: string;
-  };
-  type: string;
-  photo: {
-    bannerPhoto: string;
-  };
-  location: {
-    en: string;
-    th: string;
-  };
-  metadata: {
-    isOpen: boolean;
-    isProgressCount: boolean;
-    isVisible: boolean;
-    scope: {
-      major: string[];
-      school: string[];
-      user: string[];
+    _id: string;
+    name: {
+        en: string;
+        th: string;
     };
-  };
-  createdAt: string;
-  updatedAt: string;
+    acronym: string;
+    fullDetails: {
+        en: string;
+        th: string;
+    };
+    shortDetails: {
+        en: string;
+        th: string;
+    };
+    type: string;
+    photo: {
+        bannerPhoto: string;
+    };
+    location: {
+        en: string;
+        th: string;
+    };
+    metadata: {
+        isOpen: boolean;
+        isProgressCount: boolean;
+        isVisible: boolean;
+        scope: {
+            major: string[];
+            school: string[];
+            user: string[];
+        };
+    };
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface Question {
-  _id: string;
-  type: QuestionType;
-  displayType?: DisplayType; // Optional for backward compatibility
-  question: {
-    en: string;
-    th: string;
-  };
-  order: number;
-  banner: string | null;
-  createdAt: string;
-  updatedAt: string;
-  assessmentType?: AssessmentType; // Optional since it's not in the API response
-  activityId?: string; // Optional field to link question to a specific activity
-  activity?: Activity; // The full activity object from the API
-  difficulty?: DifficultyLevel; // Added difficulty level
+    _id: string;
+    type: QuestionType;
+    displayType?: DisplayType; // Optional for backward compatibility
+    question: {
+        en: string;
+        th: string;
+    };
+    order: number;
+    banner: string | null;
+    createdAt: string;
+    updatedAt: string;
+    assessmentType?: AssessmentType; // Optional since it's not in the API response
+    activityId?: string; // Optional field to link question to a specific activity
+    activity?: Activity; // The full activity object from the API
+    difficulty?: DifficultyLevel; // Added difficulty level
+}
+
+export type Assessment = {
+    acronym: string;
+    activityId: string;
+    name: Lang;
+    checkin: number;
+    assessments: AssessmentQuestion[];
+}
+
+export type AssessmentQuestion = {
+    _id: string;
+    name: Lang;
+    count: number;
+    averageAnswer: number | null;
 }
 
 export interface AssessmentResult {
-  _id: string;
-  userId: string;
-  userName: string;
-  userType: string;
-  school: string;
-  major: string;
-  questionId: string;
-  questionText: string;
-  userAnswer: string;
-  isCorrect: boolean;
-  score: number;
-  timeSpent: number;
-  completedAt: string;
-  assessmentType: AssessmentType;
-  submitted: boolean;
-  skillAnswers: Record<string, number>;
+    _id: string;
+    userId: string;
+    userName: string;
+    userType: string;
+    school: string;
+    major: string;
+    questionId: string;
+    questionText: string;
+    userAnswer: string;
+    isCorrect: boolean;
+    score: number;
+    timeSpent: number;
+    completedAt: string;
+    assessmentType: AssessmentType;
+    submitted: boolean;
+    skillAnswers: Record<string, number>;
 }
 
 export interface AssessmentStats {
-  totalQuestions: number;
-  totalAttempts: number;
-  averageScore: number;
-  completionRate: number;
-  averageTimeSpent: number;
-  totalStudents: number;
-  difficultyDistribution: {
-    easy: number;
-    medium: number;
-    hard: number;
-  };
-  questionTypeDistribution: {
-    text: number;
-    rating: number;
-    dropdown: number;
-    checkbox: number;
-    radio: number;
-  };
+    totalQuestions: number;
+    totalAttempts: number;
+    averageScore: number;
+    completionRate: number;
+    averageTimeSpent: number;
+    totalStudents: number;
+    difficultyDistribution: {
+        easy: number;
+        medium: number;
+        hard: number;
+    };
+    questionTypeDistribution: {
+        text: number;
+        rating: number;
+        dropdown: number;
+        checkbox: number;
+        radio: number;
+    };
 }
 
 export interface ActivityProgress {
-  _id: string;
-  userId: string;
-  userName: string;
-  activityId: string;
-  activityName: string;
-  status: "not-started" | "in-progress" | "completed";
-  progress: number;
-  lastAccessed: string;
-  completedAt?: string;
-  // Additional fields for filtering
-  userType?: string;
-  school?: string;
-  major?: string;
+    _id: string;
+    userId: string;
+    userName: string;
+    activityId: string;
+    activityName: string;
+    status: "not-started" | "in-progress" | "completed";
+    progress: number;
+    lastAccessed: string;
+    completedAt?: string;
+    // Additional fields for filtering
+    userType?: string;
+    school?: string;
+    major?: string;
 }
 
 export interface TestAnswer {
