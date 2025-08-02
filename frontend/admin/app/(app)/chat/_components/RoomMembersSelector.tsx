@@ -12,14 +12,14 @@ type RoomMembersSelectorProps = {
     setSelectedMembers: React.Dispatch<React.SetStateAction<User[]>>;
     allowSelectAll?: boolean;
     isLoadingMembers?: boolean;
-    onShowAllMembers?: (members: User[]) => void;
 };
 
-export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allowSelectAll = true, isLoadingMembers = false, onShowAllMembers }: RoomMembersSelectorProps) {
+export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allowSelectAll = true, isLoadingMembers = false }: RoomMembersSelectorProps) {
     const { users, fetchByUsername } = useUsers();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
     const [showSelectAllModal, setShowSelectAllModal] = useState(false);
+    const [showAllMembers, setShowAllMembers] = useState(false);
 
     // Clear search results when component unmounts or when selectedMembers change
     useEffect(() => {
@@ -184,64 +184,54 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                         </>
                     ) : selectedMembers.length > 0 ? (
                         <>
-                            <span className="text-sm text-default-500">Selected Members ({selectedMembers.length}):</span>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-default-500">Selected Members ({selectedMembers.length}):</span>
+                                {selectedMembers.length > 5 && !showAllMembers && (
+                                    <Button
+                                        size="sm"
+                                        color="primary"
+                                        variant="light"
+                                        onPress={() => setShowAllMembers(true)}
+                                    >
+                                        Show All
+                                    </Button>
+                                )}
+                                {showAllMembers && (
+                                    <Button
+                                        size="sm"
+                                        color="default"
+                                        variant="light"
+                                        onPress={() => setShowAllMembers(false)}
+                                    >
+                                        Show Less
+                                    </Button>
+                                )}
+                            </div>
                             <div className="flex flex-wrap gap-2">
-                                {selectedMembers.length <= 5 ? (
-                                    // Show all members if 5 or fewer
-                                    selectedMembers.map((user, index) => (
-                                        <div key={user._id || index} className="flex items-center gap-1 bg-default-50 rounded-full px-2 py-1">
-                                            <span className="font-medium text-sm">
-                                                {user.username || `${user.name?.first || ''} ${user.name?.last || ''}`.trim()}
-                                            </span>
-                                            {user._id !== "__SELECT_ALL__" && (
-                                                <Button 
-                                                    isIconOnly 
-                                                    color="danger" 
-                                                    size="sm" 
-                                                    variant="light" 
-                                                    onPress={() => handleUserSelect(user)}
-                                                >
-                                                    <X size={12} />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    ))
-                                ) : (
-                                    // Show first 5 members + count for the rest
-                                    <>
-                                        {selectedMembers.slice(0, 5).map((user, index) => (
-                                            <div key={user._id || index} className="flex items-center gap-1 bg-default-50 rounded-full px-2 py-1">
-                                                <span className="font-medium text-sm">
-                                                    {user.username || `${user.name?.first || ''} ${user.name?.last || ''}`.trim()}
-                                                </span>
-                                                {user._id !== "__SELECT_ALL__" && (
-                                                    <Button 
-                                                        isIconOnly 
-                                                        color="danger" 
-                                                        size="sm" 
-                                                        variant="light" 
-                                                        onPress={() => handleUserSelect(user)}
-                                                    >
-                                                        <X size={12} />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        ))}
-                                        <Button
-                                            className="bg-blue-100 text-blue-700 rounded-full px-3 py-1 hover:bg-blue-200"
-                                            variant="light"
-                                            size="sm"
-                                            onPress={() => {
-                                                if (onShowAllMembers) {
-                                                    onShowAllMembers(selectedMembers);
-                                                }
-                                            }}
-                                        >
-                                            <span className="font-medium text-sm">
-                                                +{selectedMembers.length - 5} more
-                                            </span>
-                                        </Button>
-                                    </>
+                                {(showAllMembers ? selectedMembers : selectedMembers.slice(0, 5)).map((user, index) => (
+                                    <div key={user._id || index} className="flex items-center gap-1 bg-default-50 rounded-full px-2 py-1">
+                                        <span className="font-medium text-sm">
+                                            {user.username || `${user.name?.first || ''} ${user.name?.last || ''}`.trim()}
+                                        </span>
+                                        {user._id !== "__SELECT_ALL__" && (
+                                            <Button 
+                                                isIconOnly 
+                                                color="danger" 
+                                                size="sm" 
+                                                variant="light" 
+                                                onPress={() => handleUserSelect(user)}
+                                            >
+                                                <X size={12} />
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+                                {!showAllMembers && selectedMembers.length > 5 && (
+                                    <div className="flex items-center gap-1 bg-blue-100 text-blue-700 rounded-full px-3 py-1">
+                                        <span className="font-medium text-sm">
+                                            +{selectedMembers.length - 5} more
+                                        </span>
+                                    </div>
                                 )}
                             </div>
                         </>

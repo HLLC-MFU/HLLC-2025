@@ -351,13 +351,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType, ge
                                 selectedMembers={selectedMembers}
                                 setSelectedMembers={setSelectedMembers}
                                 isLoadingMembers={loadingMembers}
-                                onShowAllMembers={(members) => {
-                                    addToast({
-                                        title: "All Members",
-                                        description: `Showing all ${members.length} selected members`,
-                                        color: "primary",
-                                    });
-                                }}
                             />
 
                             <div className="space-y-4">
