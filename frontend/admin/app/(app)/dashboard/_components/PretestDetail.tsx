@@ -191,17 +191,12 @@ export default function PretestDetail() {
           <TableBody>
             {isLoading
               ? [...Array(rowsPerPage)].map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="px-3 py-1 font-medium flex-1">
-                      <div className="h-4 w-24 bg-gray-300 rounded animate-pulse" />
-                    </TableCell>
-                    {[...Array(maxAnswersCount)].map((_, j) => (
-                      <TableCell key={j} className="px-3 py-1">
-                        <div className="h-4 w-16 bg-gray-300 rounded animate-pulse" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
+                <TableRow key={i}>
+                  <TableCell className="px-3 py-1 font-medium flex-1">
+                    <div className="h-4 w-24 bg-gray-300 rounded animate-pulse" />
+                  </TableCell>
+                </TableRow>
+              ))
               : items.map((user) => (
                   <TableRow key={user.userId}>
                     <TableCell className="px-3 py-1 font-medium flex-1">
@@ -212,8 +207,9 @@ export default function PretestDetail() {
                         {user.answers[i]?.answer ?? ""}
                       </TableCell>
                     ))}
-                  </TableRow>
-                ))}
+                  </>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>
