@@ -1,5 +1,6 @@
-import { useReducer, useCallback, useEffect } from 'react';
-import { Question, ActivityProgress, RawPretestAnswer, RawPosttestAnswer } from '@/types/assessment';
+import { useReducer, useCallback, useEffect, useState } from 'react';
+import { Question, ActivityProgress, RawPretestAnswer, RawPosttestAnswer, Assessment } from '@/types/assessment';
+import { apiRequest } from '@/utils/api';
 
 // API base URL - should be configured in environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -71,7 +72,7 @@ const assessmentService = {
     try {
       // If activityId is "activity", fetch all activity questions
       // Otherwise, fetch questions for specific activity
-      const url = activityId === "activity" 
+      const url = activityId === "activity"
         ? `${API_BASE_URL}/assessments?limit=0`
         : `${API_BASE_URL}/assessments?activity=${activityId}`;
 
@@ -249,7 +250,28 @@ const assessmentService = {
 };
 
 export function useAssessment() {
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [assessmentLoading, setAssessmentLoading] = useState(false);
   const [state, dispatch] = useReducer(assessmentReducer, initialState);
+
+  const fetchAssessment = async () => {
+    setAssessmentLoading(true);
+
+    try {
+      const res = await apiRequest<Assessment[]>(
+        '/dashboard/activities?limit=0',
+        'GET'
+      );
+      if (!res) return;
+      setAssessments(Array.isArray(res.data) ? res.data : []);
+
+      return res;
+    } catch (err) {
+
+    } finally {
+      setAssessmentLoading(false);
+    }
+  }
 
   // Generic fetch handler
   const handleFetch = useCallback(async <T>(
@@ -259,9 +281,9 @@ export function useAssessment() {
     dispatch({ type: 'FETCH_START' });
     try {
       const data = await fetchFn();
-      dispatch({ 
-        type: 'FETCH_SUCCESS', 
-        payload: { [updateKey]: data } 
+      dispatch({
+        type: 'FETCH_SUCCESS',
+        payload: { [updateKey]: data }
       });
       return data;
     } catch (err: any) {
@@ -272,8 +294,8 @@ export function useAssessment() {
   }, []);
 
   // Question operations
-  const fetchQuestions = useCallback((activityId: string) => 
-    handleFetch(() => assessmentService.fetchQuestions(activityId), 'questions'), 
+  const fetchQuestions = useCallback((activityId: string) =>
+    handleFetch(() => assessmentService.fetchQuestions(activityId), 'questions'),
     [handleFetch]
   );
 
@@ -281,17 +303,17 @@ export function useAssessment() {
     dispatch({ type: 'FETCH_START' });
     try {
       const newQuestion = await assessmentService.createQuestion(activityId, questionData);
-      dispatch({ 
-        type: 'FETCH_SUCCESS', 
-        payload: { 
-          questions: [...state.data.questions, newQuestion] 
-        } 
+      dispatch({
+        type: 'FETCH_SUCCESS',
+        payload: {
+          questions: [...state.data.questions, newQuestion]
+        }
       });
       return newQuestion;
     } catch (err: any) {
-      dispatch({ 
-        type: 'FETCH_ERROR', 
-        payload: err.message || "Failed to create question" 
+      dispatch({
+        type: 'FETCH_ERROR',
+        payload: err.message || "Failed to create question"
       });
       throw err;
     }
@@ -301,19 +323,19 @@ export function useAssessment() {
     dispatch({ type: 'FETCH_START' });
     try {
       const updatedQuestion = await assessmentService.updateQuestion(questionId, questionData);
-      dispatch({ 
-        type: 'FETCH_SUCCESS', 
-        payload: { 
-          questions: state.data.questions.map(q => 
+      dispatch({
+        type: 'FETCH_SUCCESS',
+        payload: {
+          questions: state.data.questions.map(q =>
             q._id === questionId ? updatedQuestion : q
-          ) 
-        } 
+          )
+        }
       });
       return updatedQuestion;
     } catch (err: any) {
-      dispatch({ 
-        type: 'FETCH_ERROR', 
-        payload: err.message || "Failed to update question" 
+      dispatch({
+        type: 'FETCH_ERROR',
+        payload: err.message || "Failed to update question"
       });
       throw err;
     }
@@ -323,41 +345,41 @@ export function useAssessment() {
     dispatch({ type: 'FETCH_START' });
     try {
       await assessmentService.deleteQuestion(questionId);
-      dispatch({ 
-        type: 'FETCH_SUCCESS', 
-        payload: { 
-          questions: state.data.questions.filter(q => q._id !== questionId) 
-        } 
+      dispatch({
+        type: 'FETCH_SUCCESS',
+        payload: {
+          questions: state.data.questions.filter(q => q._id !== questionId)
+        }
       });
     } catch (err: any) {
-      dispatch({ 
-        type: 'FETCH_ERROR', 
-        payload: err.message || "Failed to delete question" 
+      dispatch({
+        type: 'FETCH_ERROR',
+        payload: err.message || "Failed to delete question"
       });
       throw err;
     }
   }, [state.data.questions]);
 
   // Activity progress operations
-  const fetchActivityProgress = useCallback((activityId: string) => 
-    handleFetch(() => assessmentService.fetchActivityProgress(activityId), 'activityProgress'), 
+  const fetchActivityProgress = useCallback((activityId: string) =>
+    handleFetch(() => assessmentService.fetchActivityProgress(activityId), 'activityProgress'),
     [handleFetch]
   );
 
   // Activity operations
-  const fetchActivities = useCallback(() => 
-    handleFetch(() => assessmentService.fetchActivities(), 'activities'), 
+  const fetchActivities = useCallback(() =>
+    handleFetch(() => assessmentService.fetchActivities(), 'activities'),
     [handleFetch]
   );
 
   // Pretest and Posttest progress operations
-  const fetchPretestProgress = useCallback(() => 
-    handleFetch(() => assessmentService.fetchPretestProgress(), 'pretestProgress'), 
+  const fetchPretestProgress = useCallback(() =>
+    handleFetch(() => assessmentService.fetchPretestProgress(), 'pretestProgress'),
     [handleFetch]
   );
 
-  const fetchPosttestProgress = useCallback(() => 
-    handleFetch(() => assessmentService.fetchPosttestProgress(), 'posttestProgress'), 
+  const fetchPosttestProgress = useCallback(() =>
+    handleFetch(() => assessmentService.fetchPosttestProgress(), 'posttestProgress'),
     [handleFetch]
   );
 
@@ -365,13 +387,18 @@ export function useAssessment() {
   useEffect(() => {
     fetchPretestProgress();
     fetchPosttestProgress();
-  }, [fetchPretestProgress, fetchPosttestProgress]);
+    fetchAssessment();
+  }, []);
 
   return {
     // State
     ...state.data,
     loading: state.loading,
     error: state.error,
+
+    assessments,
+    assessmentLoading,
+    fetchAssessment,
 
     // Question operations
     fetchQuestions,

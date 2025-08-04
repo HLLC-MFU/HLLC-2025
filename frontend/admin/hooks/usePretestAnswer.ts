@@ -18,7 +18,6 @@ export function usePretest({ page = 1, limit = 5 } = {}) {
             const res = await apiRequest<{ data: PretestAnswer[], total: number }>(
                 `/pretest-answers?page=${page}&limit=${limit}`,
                 "GET");
-            console.log('data by fetchPretestAnswer here =>', res);
             setPretestAnswer(Array.isArray(res.data?.data) ? res.data.data : []);
             setTotalAnswerCount(res.data?.total || 0);
             return res;

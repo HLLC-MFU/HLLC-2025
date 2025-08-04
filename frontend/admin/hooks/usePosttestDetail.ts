@@ -21,7 +21,7 @@ type PretestDetailResponse = {
     totalAnswers: number;
 }
 
-export function usePretestDetail() {
+export function usePosttestDetail() {
     const [averageData, setAverageData] = useState<average[]>([]);
     const [userAnswersData, setUserAnswersData] = useState<userAnswers[]>([]);
     const [totalAnswers, setTotalAnswers] = useState(0);
@@ -30,7 +30,7 @@ export function usePretestDetail() {
     const fetchPretestDetail = useCallback(async () => {
         setIsLoading(true);
         try {
-            const response = await apiRequest<PretestDetailResponse>(`/dashboard/pretest-answers`, "GET");
+            const response = await apiRequest<PretestDetailResponse>(`/dashboard/posttest-answers`, "GET");
             const data = response.data;
 
             setAverageData(data?.average || []);
